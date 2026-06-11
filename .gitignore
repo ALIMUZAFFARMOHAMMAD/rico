@@ -1,0 +1,22 @@
+# dependencies
+node_modules/
+.npm-cache/
+
+# next.js
+.next/
+out/
+build/
+
+# vercel
+.vercel
+
+# secrets / env — NEVER commit these
+.env
+.env.*
+*.local
+
+# logs & os
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db

@@ -1,0 +1,10 @@
+{
+  "name": "Rico — your people, always",
+  "short_name": "Rico",
+  "description": "Match, chat and call with AI friends — and meet AI twins of real people.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f0e17",
+  "theme_color": "#0f0e17",
+  "orientation": "portrait"
+}
