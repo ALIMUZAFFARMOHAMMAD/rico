@@ -1,0 +1,19 @@
+{
+  "appId": "chat.rico.app",
+  "appName": "Rico",
+  "webDir": "public",
+  "server": {
+    "url": "https://hitony.vercel.app",
+    "cleartext": false,
+    "androidScheme": "https"
+  },
+  "backgroundColor": "#0f0e17",
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1200,
+      "backgroundColor": "#0f0e17",
+      "showSpinner": false,
+      "androidScaleType": "CENTER_CROP"
+    }
+  }
+}

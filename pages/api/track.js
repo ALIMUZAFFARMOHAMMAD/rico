@@ -1,0 +1,45 @@
+// Lightweight retention + activity tracking — stamps each signed-in user's
+// first-seen, last-seen, distinct active days, and counters for games & voice
+// calls in their meta row. No third-party analytics. Feeds the profile dashboard.
+import { configured, getRow, upsertRow, metaKey } from "../../lib/db";
+
+export default async function handler(req, res) {
+  if (req.method !== "POST") return res.status(405).end();
+  if (!configured()) return res.status(200).json({ ok: false });
+  const { userId, event, game, seconds } = req.body || {};
+  if (!userId) return res.status(400).json({ error: "no userId" });
+  try {
+    const key = metaKey(userId);
+    const row = await getRow(key);
+    const traits = (row && row.traits) || {};
+    const now = new Date();
+    const today = now.toISOString().slice(0, 10);
+
+    // always refresh the activity stamp
+    const a = traits.activity || { first: null, last: null, days: [] };
+    if (!a.first) a.first = now.toISOString();
+    a.last = now.toISOString();
+    if (!a.days.includes(today)) a.days = [...a.days, today].slice(-90);
+
+    // counters for the dashboard's voice & games scores
+    const stats = traits.stats || {};
+    if (event === "game") {
+      const gs = stats.games || { total: 0, byKey: {} };
+      gs.total = (gs.total || 0) + 1;
+      if (game) { gs.byKey = gs.byKey || {}; gs.byKey[game] = (gs.byKey[game] || 0) + 1; }
+      gs.last = now.toISOString();
+      stats.games = gs;
+    } else if (event === "voice") {
+      const vs = stats.voice || { calls: 0, seconds: 0 };
+      vs.calls = (vs.calls || 0) + 1;
+      vs.seconds = (vs.seconds || 0) + Math.max(0, Math.round(seconds || 0));
+      vs.last = now.toISOString();
+      stats.voice = vs;
+    }
+
+    await upsertRow(key, { traits: { ...traits, activity: a, stats } });
+    return res.status(200).json({ ok: true });
+  } catch (e) {
+    return res.status(200).json({ ok: false });
+  }
+}

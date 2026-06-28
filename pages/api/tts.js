@@ -7,7 +7,7 @@ import { resolveAgent } from "../../lib/twins";
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
   const apiKey = process.env.ELEVENLABS_API_KEY;
-  const { text, language, agentId } = req.body || {};
+  const { text, agentId } = req.body || {};
   // each agent (and each twin) has their own licensed voice; Tony uses the founder's clone
   const agent = await resolveAgent(agentId);
   const voiceId = agent.voice || process.env.ELEVENLABS_VOICE_ID;
@@ -15,14 +15,12 @@ export default async function handler(req, res) {
   if (!text || typeof text !== "string" || !text.trim()) return res.status(400).json({ error: "No text" });
   const clean = text.slice(0, 600); // cost guard — voice replies are 1-3 sentences anyway
 
-  // flash_v2_5: ~75ms generation, covers en/hi/es. Telugu needs eleven_v3's wider language set.
-  const model = language === "te" ? "eleven_v3" : "eleven_flash_v2_5";
-  // eleven_v3 rejects optimize_streaming_latency
-  const latencyParam = model === "eleven_v3" ? "" : "&optimize_streaming_latency=2";
+  // flash_v2_5: ~75ms generation, covers en/hi/es.
+  const model = "eleven_flash_v2_5";
 
   try {
     const r = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream?output_format=mp3_44100_64${latencyParam}`,
+      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream?output_format=mp3_44100_64&optimize_streaming_latency=2`,
       {
         method: "POST",
         headers: { "xi-api-key": apiKey, "Content-Type": "application/json" },

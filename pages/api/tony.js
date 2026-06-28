@@ -1,5 +1,4 @@
 import { languagePrompt, LANGS } from "../../lib/i18n";
-import { AGENTS } from "../../lib/agents";
 import { resolveAgent } from "../../lib/twins";
 
 // Generic system prompt for catalog agents (Tony keeps his original full prompt)
@@ -17,6 +16,8 @@ SHARED RULES:
 - Occasionally use *italics* for a gentle observation
 - Never say "certainly", "absolutely", "of course", "great question", "as an AI"
 - FRIENDSHIP ONLY: you are a platonic friend. If the user pushes romantic or sexual, warmly and firmly redirect — you're their friend, full stop.
+- STAY IN YOUR LANE: you are a specialist in your own domain — talk about that with real depth and knowledge. You are NOT a career advisor; only Tony gives career, job, and resume guidance. If they ask about careers, warmly say "that's Tony's specialty — go chat with him!" and steer back to what YOU do.
+- GAMES: if the user wants to play a game (20 Questions, Would You Rather, trivia, hangman, story-building, riddles, rock-paper-scissors, two-truths-and-a-lie, word games, or anything else they ask for), happily host it IN CHARACTER. Track the game state yourself across messages (the score, the secret word, whose turn it is, questions used), keep turns short and fun, react with personality to wins/losses, and gently wrap up or offer a rematch when it ends. Keep it light and friendship-appropriate.
 - Stay in character at all times.
 
 HUMOR — read the room FIRST:
@@ -70,7 +71,7 @@ HUMOR & PLAY — read the room FIRST:
 - FIRST check their emotional state. If they sound stressed, sad, anxious, discouraged, or vulnerable: ZERO humor. Be the fully present, serious friend. This rule overrides everything below.
 - When the mood is light: warm observational humor, at most 1 joke every 3-4 messages. Land it, then return to substance.
 - Satire is allowed ONLY about situations — LinkedIn culture, corporate jargon, interview rituals, resume clichés. NEVER about the user, and never about groups, religion, politics, or appearance.
-- Humor must be NATIVE to the language you're replying in: Hindi → affectionate yaar-style ribbing and filmy references; Telugu → playful filmy/household flavour; Spanish → warm irony; English → dry observational. Never translate a joke from another language.
+- Humor must be NATIVE to the language you're replying in: Hindi → affectionate yaar-style ribbing and filmy references; Spanish → warm irony; Chinese → playful wordplay and gentle self-deprecation; German → dry, deadpan wit; French → witty, slightly sardonic; Portuguese → warm, playful Brazilian banter; Japanese → gentle, polite wit with wordplay; Korean → warm, lively banter; Arabic → warm, expressive humor; English → dry observational. Never translate a joke from another language.
 - Roughly every 5-6 messages, when the mood is light, you may OFFER (never force) one playful interactive bit: a 30-second role-play ("I'll be the interviewer — 30 seconds, go"), "two truths and a career lie", or a would-you-rather career dilemma. If they ignore or decline it, drop it completely.
 - If a joke lands flat, stay substantive for a while.
 
@@ -122,11 +123,12 @@ async function loadMemory(supabaseUrl, supabaseKey, userId) {
     );
     if (!res.ok) return null;
     const data = await res.json();
-    if (!data || !data[0] || !data[0].messages) return null;
+    if (!data || !data[0]) return null;
 
-    const messages = data[0].messages;
+    const messages = data[0].messages || [];
     const traits = data[0].traits || {};
     const riasec = data[0].riasec || "";
+    const resume = traits.resume || null;
 
     const userMessages = messages
       .filter(m => m.role === "user")
@@ -134,16 +136,22 @@ async function loadMemory(supabaseUrl, supabaseKey, userId) {
       .filter(c => c && !c.startsWith("["))
       .slice(-30);
 
-    if (userMessages.length === 0) return null;
+    // résumé block — Tony grounds career advice in the user's real background
+    const resumeBlock = resume ? `THIS PERSON SHARED THEIR RÉSUMÉ WITH YOU — use it to give specific, grounded career advice (reference real roles, skills and experience; never read it back like a list):
+${resume.summary}${resume.currentRole ? `\nCurrent/most-recent role: ${resume.currentRole}` : ""}${resume.yearsExperience ? `\nExperience: ~${resume.yearsExperience} years` : ""}${resume.topSkills?.length ? `\nKey skills: ${resume.topSkills.join(", ")}` : ""}${resume.education?.length ? `\nEducation: ${resume.education.join("; ")}` : ""}${resume.careerGoals ? `\nStated goals: ${resume.careerGoals}` : ""}` : "";
+
+    // nothing to inject at all
+    if (userMessages.length === 0 && !resume) return null;
 
     const traitSummary = traits.O
       ? `Personality so far: Openness ${traits.O}%, Drive ${traits.C}%, Social ${traits.E}%, Empathy ${traits.A}%, Reflection ${traits.N}%. RIASEC: ${riasec}.`
       : "";
 
-    return `Things this person has shared in past conversations:
-${userMessages.map(m => `- "${m}"`).join('\n')}
+    const pastBlock = userMessages.length
+      ? `Things this person has shared in past conversations:\n${userMessages.map(m => `- "${m}"`).join('\n')}`
+      : "";
 
-${traitSummary}
+    return [pastBlock, traitSummary, resumeBlock].filter(Boolean).join("\n\n") + `
 
 Use this to give deeply personalised, grounded responses. You know this person.`;
   } catch (e) {

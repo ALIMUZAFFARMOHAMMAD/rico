@@ -50,7 +50,6 @@ async function saveVoiceNotes(userId,callMessages,userName){
   }catch(e){console.error("saveVoiceNotes error:",e.message);}
 }
 
-import { AGENTS } from "../../lib/agents";
 import { resolveAgent } from "../../lib/twins";
 
 const SYSTEM=(agent,userName,memory,language)=>`${agent.persona||`You are Tony, a warm perceptive AI companion at hitony.ai`} — you are on a VOICE CALL with the user, like calling your closest friend.
@@ -65,7 +64,7 @@ export default async function handler(req,res){
   if(req.method!=="POST")return res.status(405).end();
   const apiKey=process.env.ANTHROPIC_API_KEY;
   if(!apiKey)return res.status(500).json({error:"No API key"});
-  const{messages,mode,userName,userId,callMessages,language,agentId}=req.body;
+  const{messages,mode,userName,userId,callMessages,language,agentId,build}=req.body;
   const lang=LANGS[language]?language:"en";
   const agent=await resolveAgent(agentId);
   const memUserId=userId?(agent.id==="tony"?userId:`${userId}::agent::${agent.id}`):null;
@@ -78,10 +77,14 @@ export default async function handler(req,res){
     return res.status(200).json({success:true});
   }
   const memory=memUserId?await loadMemory(memUserId):null;
-  console.log(`Memory loaded: ${memory?"YES":"NO"} agent:${agent.id}`);
-  const system=SYSTEM(agent,userName||"",memory,lang);
+  console.log(`Memory loaded: ${memory?"YES":"NO"} agent:${agent.id} build:${!!build}`);
+  // "Build your twin" interview mode: a warm voice chat whose goal is to learn who the user really is.
+  const BUILD_DIRECTIVE=`\n\nTWIN-BUILDING SESSION: This call exists to get to know ${userName||"this person"} deeply so an AI twin of them can be created. Warmly interview them — ask about what they love, how they talk and joke, what they care about, what kind of friend they are, a story that captures them. Go a little deeper each turn, react genuinely, ONE question at a time. Make it feel like a curious friend, never a survey. Draw out their real character and voice.`;
+  const system=SYSTEM(agent,userName||"",memory,lang)+(build?BUILD_DIRECTIVE:"");
   try{
-    const initMsg=memory&&userName
+    const initMsg=build
+      ?`[Start a warm get-to-know-you voice chat to learn who ${userName||"this person"} really is, for building their twin. Greet them${userName?` by name`:""}, say in one line you'd love to really get to know them, then ask your first genuine question about what makes them them. 2 sentences max.]`
+      :memory&&userName
       ?`[${userName} just called. You have memory above. Pick up warmly using their name, reference ONE specific thing you remember naturally, ask one follow-up question. 2 sentences max. Sound like a real friend.]`
       :memory
       ?`[Someone called. You have memory above. Greet warmly, reference something you remember, ask a follow-up. 2 sentences max.]`
