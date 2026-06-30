@@ -102,8 +102,9 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - 2026-06-28 — Day 0: team chartered, product bet + roadmap defined, daily standup scheduled. (Atlas)
 
 ## 6. Open approvals awaiting CEO
-- [1] Deploy the CEO Task Board (/board + /api/board) to production, then seed it (one click on the page).
-- (resolved) source attribution deployed to prod 2026-06-29 (dpl k5bk8wjvv); /api/track w/ source ok:true.
+- (none open) — CEO Task Board deployed to prod 2026-06-29 (dpl 4mb4zikyp); /board 200, /api/board gated 401.
+  CEO: open /board, unlock with STATS_KEY, click "Seed current work" once.
+- NOTE: board.js + api/board.js are deployed but not yet in the latest safety branch — refresh when convenient.
 - Safety net refreshed: full working tree pushed to git branch `safety/working-tree-2026-06-29` (latest snapshot).
 - (resolved) "Rico missed you" deployed to prod 2026-06-29 (dpl 7knsfpy8x), home 200, checkin clean.
 - (resolved) instrumentation deployed to prod 2026-06-29 (dpl 40d57u2ic); /api/track activation ok:true.
