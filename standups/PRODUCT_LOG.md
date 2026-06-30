@@ -72,6 +72,10 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   so Rico reaches out even when the app is closed (true "texts you first" — Capacitor android shell exists).
 
 ## 5. Done log (most recent first)
+- 2026-06-29 (run 4) — CEO Task Board: interactive kanban at `/board` (To Do / In Progress / Done,
+  add/assign/move/delete, founder-key gated) + `/api/board` (Supabase-persisted, seed action).
+  Team prompt updated: the daily run now READS the board (via STATS_KEY) and works board 'todo' tasks
+  first, moving them in-progress→done. `next build` passes. ⏳ Awaiting deploy. (Forge)
 - 2026-06-29 (run 3) — Signup-source attribution (closes Sage's GTM gap): `lib/source.js` first-touch
   capture (?src=/?ref=/utm_source/referrer), wired into `landing.js` + `index.js`; `track.js` stores
   `source` once; `stats.js` now returns `by_source` funnel (signups/activated/returned per channel).
@@ -98,7 +102,8 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - 2026-06-28 — Day 0: team chartered, product bet + roadmap defined, daily standup scheduled. (Atlas)
 
 ## 6. Open approvals awaiting CEO
-- (none open) — source attribution deployed to prod 2026-06-29 (dpl k5bk8wjvv); /api/track w/ source ok:true.
+- [1] Deploy the CEO Task Board (/board + /api/board) to production, then seed it (one click on the page).
+- (resolved) source attribution deployed to prod 2026-06-29 (dpl k5bk8wjvv); /api/track w/ source ok:true.
 - Safety net refreshed: full working tree pushed to git branch `safety/working-tree-2026-06-29` (latest snapshot).
 - (resolved) "Rico missed you" deployed to prod 2026-06-29 (dpl 7knsfpy8x), home 200, checkin clean.
 - (resolved) instrumentation deployed to prod 2026-06-29 (dpl 40d57u2ic); /api/track activation ok:true.
