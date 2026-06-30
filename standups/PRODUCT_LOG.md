@@ -52,7 +52,7 @@ Forge (engineer) · Sentry (QA) · Pulse (data) · Beacon (growth, drafts only) 
       Code complete + build/runtime verified. ⏳ Awaiting CEO deploy approval. (Owner: Forge)
 
 **NEXT:**
-- [ ] "Rico missed you" lapse re-engagement check-in (Nova-promoted; uses existing activity stamps). ← next build
+- [x] "Rico missed you" lapse re-engagement check-in. Code complete 2026-06-29 (awaiting deploy).
 - [ ] Proactive timing intelligence — fire check-ins around each user's habitual active hour.
 - [ ] Honest-AI / privacy badge on landing (turn Replika's €5M GDPR fine into our trust wedge).
 - [ ] Investor demo script + 2-min product walkthrough video.
@@ -69,6 +69,10 @@ Forge (engineer) · Sentry (QA) · Pulse (data) · Beacon (growth, drafts only) 
   so Rico reaches out even when the app is closed (true "texts you first" — Capacitor android shell exists).
 
 ## 5. Done log (most recent first)
+- 2026-06-29 (run 2) — "Rico missed you" lapse re-engagement: `checkin.js` now computes days since
+  last conversation; if >=3 days the opener warmly acknowledges the gap (no guilt-trip) and still
+  references memory; `ProactiveCheckin.js` shows a "missed you 💜" badge. `next build` passes.
+  ⏳ Awaiting deploy. (Nova → Forge)
 - 2026-06-29 — Measurement layer: `track.js` + `stats.js` now capture ACTIVATION (first real
   conversation, +within-24h) and Flagship #1 proactive check-in shown/reply rate; client fires wired
   in `index.js` + `ProactiveCheckin.js`. `next build` passes. ⏳ Awaiting deploy. R&D (Nova) added 3
@@ -87,7 +91,8 @@ Forge (engineer) · Sentry (QA) · Pulse (data) · Beacon (growth, drafts only) 
 - 2026-06-28 — Day 0: team chartered, product bet + roadmap defined, daily standup scheduled. (Atlas)
 
 ## 6. Open approvals awaiting CEO
-- [1] Deploy the 2026-06-29 instrumentation (activation + check-in metrics) to production.
+- [1] Deploy "Rico missed you" lapse re-engagement (checkin.js + ProactiveCheckin.js) to production.
+- (resolved) instrumentation deployed to prod 2026-06-29 (dpl 40d57u2ic); /api/track activation ok:true.
 - NOTE FOR TEAM: a safety branch now exists, but `main` is STILL behind (snapshot lives on
   `safety/working-tree-2026-06-28`). Working tree remains source of truth; deploys via Vercel CLI.
 - NOTE FOR TEAM: repo `main` is far behind the working tree — most of the app is uncommitted and
