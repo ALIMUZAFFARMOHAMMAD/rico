@@ -41,7 +41,37 @@ app AND monetize like a career tool."
 - [ ] Pricing validated (post-Stripe).
 - [ ] Deck (Gamma deck exists) + one-pager + 2-min walkthrough video (Reel can produce).
 
+## 6b. Go-to-Market plan — reaching international students (Sage deep-dive, 2026-06-29)
+**GTM goal:** first 500 real, retained beachhead users so the metric story exists. Budget ~$0–50 (video credits); everything else is sweat. Honest, value-first — no spammy mass-DMs.
+
+**Where they actually are (channels, by trust):**
+1. **WhatsApp/Telegram cohorts** (highest trust) — university intl-student groups, country cohorts. Reached via ambassadors, not ads.
+2. **Reddit** — r/internationalstudents, r/gradschool, r/f1visa, r/ABCDesis, r/developersIndia, country subs. Story-led, never spam.
+3. **Instagram/TikTok** — @rico.hitony + study-abroad & desi-abroad creators; "day in the life" / homesick angles (Echo + Reel).
+4. **University intl-student offices & cultural orgs** (ISA, desi student assocs) — offer free "AI for your career / ATS" workshops with Tony.
+5. **LinkedIn** — recent grads / job-seeking intl students (Tony career hook) + founder story.
+6. **Discord** — study-abroad & university servers.
+
+**Tactics ranked by ROI for a solo founder:**
+- **Campus ambassadors (highest ROI):** recruit 5–10 intl students (free Premium + small perk) to share Rico in their WhatsApp/Telegram cohorts — the trusted, un-buyable channel.
+- **Content-led:** Echo/Reel short-form on "texts you first" + "homesick" + Tony career wins; post in-feed and as genuine value in communities.
+- **Community seeding:** founder participates authentically in 5–10 communities ("I built this because I was far from home").
+- **Org partnerships:** free career/ATS workshops → warm funnel.
+- **Referral loop:** "invite a friend from home" (ties to the 15% referral goal).
+
+**30-day plan:**
+- W1: instrument signup source; publish 3 short-form videos; seed 5 communities authentically.
+- W2: recruit 5 ambassadors; 1 student-org partnership outreach; daily content.
+- W3: founder LinkedIn story; double down on the best channel from W1–2 data (Pulse).
+- W4: referral push; collect named testimonials (with consent); read activation/D7 BY SOURCE.
+
+**Measure (Pulse):** signups, activation rate, and D7 **by source** → kill what doesn't convert, pour into what does.
+**Needs a tracking gap closed:** add a `source` field to signups so Pulse can attribute (small Forge task — propose next).
+
 ## 7. Strategic recommendations log (most recent first)
+- 2026-06-29 — GTM deep-dive added (§6b). Key insight: the un-buyable advantage is ambassador-led
+  WhatsApp/Telegram distribution inside diaspora cohorts; pair with honest founder story. Blocking gap:
+  no signup-source attribution yet — recommend Forge add a `source` capture so growth is measurable.
 - 2026-06-29 — Priority order to become investable: (1) get real users through the funnel so the
   instrumentation produces a metric story; (2) ship plan gating to test willingness-to-pay; (3) lock
   named testimonials. Features are ahead of distribution — the bottleneck is now users, not product.
