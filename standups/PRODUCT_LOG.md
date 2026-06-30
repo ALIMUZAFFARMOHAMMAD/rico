@@ -10,7 +10,7 @@
 enough to raise from an investor. Optimize for: (1) a unique, defensible wedge,
 (2) a metric story (retention + outcomes), (3) a demo that makes an investor lean in.
 
-**Cadence:** Autonomous runs Mon–Fri ~11:00am CST (one focused work session per run).
+**Cadence:** Autonomous runs EVERY day ~11:00am CST (heavier build weekdays, lighter weekends; report daily).
 **Team roster:** Atlas (PM/orchestrator) · **Sage (business strategist — positioning, moat, monetization, fundraising, investor narrative; brain at standups/STRATEGY.md)** · Nova (R&D — proposes new implementable ideas each run) ·
 Forge (engineer) · Sentry (QA) · Pulse (data) · Beacon (growth strategy/outreach, drafts only) ·
 Echo (content & social — posts/captions/short-form for @rico.hitony; drafts only, publishing gated) ·
