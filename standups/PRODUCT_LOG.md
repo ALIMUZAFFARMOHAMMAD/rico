@@ -91,7 +91,7 @@ Forge (engineer) · Sentry (QA) · Pulse (data) · Beacon (growth, drafts only) 
 - 2026-06-28 — Day 0: team chartered, product bet + roadmap defined, daily standup scheduled. (Atlas)
 
 ## 6. Open approvals awaiting CEO
-- [1] Deploy "Rico missed you" lapse re-engagement (checkin.js + ProactiveCheckin.js) to production.
+- (none open) — "Rico missed you" deployed to prod 2026-06-29 (dpl 7knsfpy8x), home 200, checkin clean.
 - (resolved) instrumentation deployed to prod 2026-06-29 (dpl 40d57u2ic); /api/track activation ok:true.
 - NOTE FOR TEAM: a safety branch now exists, but `main` is STILL behind (snapshot lives on
   `safety/working-tree-2026-06-28`). Working tree remains source of truth; deploys via Vercel CLI.
