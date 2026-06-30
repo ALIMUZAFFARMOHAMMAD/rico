@@ -98,7 +98,8 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - 2026-06-28 — Day 0: team chartered, product bet + roadmap defined, daily standup scheduled. (Atlas)
 
 ## 6. Open approvals awaiting CEO
-- [1] Deploy signup-source attribution (lib/source.js + landing.js + index.js + track.js + stats.js) to production.
+- (none open) — source attribution deployed to prod 2026-06-29 (dpl k5bk8wjvv); /api/track w/ source ok:true.
+- Safety net refreshed: full working tree pushed to git branch `safety/working-tree-2026-06-29` (latest snapshot).
 - (resolved) "Rico missed you" deployed to prod 2026-06-29 (dpl 7knsfpy8x), home 200, checkin clean.
 - (resolved) instrumentation deployed to prod 2026-06-29 (dpl 40d57u2ic); /api/track activation ok:true.
 - NOTE FOR TEAM: a safety branch now exists, but `main` is STILL behind (snapshot lives on
