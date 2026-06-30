@@ -14,6 +14,8 @@ import ConsentGate from "../components/ConsentGate";
 import GameBoard from "../components/GameBoard";
 import Dashboard from "../components/Dashboard";
 import ProactiveCheckin from "../components/ProactiveCheckin";
+import MemorySpotlight from "../components/MemorySpotlight";
+import { captureSource, getSource } from "../lib/source";
 import { CONSENT_VERSION } from "../lib/consent";
 import Onboarding from "../components/Onboarding";
 import Intro from "../components/Intro";
@@ -400,10 +402,13 @@ export default function Rico() {
     }).catch(() => setNeedsConsent(true));
   }, [isLoaded, isSignedIn, userId]);
 
-  // retention tracking: stamp first/last-seen + active days once per session
+  // first-touch attribution (also runs for visitors who land directly on the app)
+  useEffect(() => { captureSource(); }, []);
+
+  // retention tracking: stamp first/last-seen + active days once per session (+ signup source)
   useEffect(() => {
     if (!isSignedIn || !userId) return;
-    fetch("/api/track", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId }) }).catch(() => {});
+    fetch("/api/track", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, source: getSource() }) }).catch(() => {});
   }, [isSignedIn, userId]);
   const finishTour = () => { try { localStorage.setItem(`rico_tour_${userId}`, "1"); } catch (e) {} setNeedsTour(false); };
   const reactTo = useCallback((expr) => {
@@ -502,6 +507,16 @@ export default function Rico() {
       if (data) { setTraits(nt); if (data.riasec) setRiasec(data.riasec); }
       const nc = msgCount + 2; setMsgCount(nc);
       if (isSignedIn) fetch("/api/conversation", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, agent: chatAgent.id, messages: fh, traits: nt, riasec: data?.riasec || riasec, msgCount: nc }) }).catch(() => {});
+      // Activation (North Star leading indicator): first real conversation = 6+ messages. Fire once.
+      if (isSignedIn && userId && nc >= 6) {
+        try {
+          const ak = `rico_act_${userId}`;
+          if (!localStorage.getItem(ak)) {
+            localStorage.setItem(ak, "1");
+            fetch("/api/track", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, event: "activation" }) }).catch(() => {});
+          }
+        } catch (e) {}
+      }
     } catch (e) {
       setMessages(p => [...p, { role: "agent", text: "Something went quiet on my end — say that again?", id: Date.now() }]);
     }
@@ -664,6 +679,9 @@ export default function Rico() {
               <div style={{ color: T.sub, fontSize: 13, marginTop: 3 }}>{isSignedIn ? "Your friends remember you across devices." : "Sign in so your friends can remember you."}</div>
               {!isSignedIn && <div style={{ marginTop: 10 }}><SignInButton mode="modal"><button style={{ background: T.grad, border: "none", color: "white", fontWeight: 700, fontSize: 13, padding: "9px 20px", borderRadius: 100, cursor: "pointer", fontFamily: font }}>Sign in</button></SignInButton></div>}
             </div>
+
+            {/* LIVING MEMORY — what your friends remember about you (the moat, made visible) */}
+            {isSignedIn && userId && <MemorySpotlight userId={userId} lang={langRef.current} T={T} font={font} />}
 
             {/* PERSONALITY DASHBOARD — your scores from chat, voice & games */}
             {isSignedIn && <Dashboard userId={userId} userName={userName} onOpenGroups={() => { window.location.href = "/groups"; }} />}

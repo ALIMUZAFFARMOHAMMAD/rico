@@ -21,6 +21,8 @@ export default function ProactiveCheckin({ userId, lang, T, font, onOpen }) {
         try { dismissed = localStorage.getItem(DISMISS_KEY) || ""; } catch (e) {}
         if (dismissed === d.message) return; // already waved this one away
         setData(d);
+        // Instrument: the proactive check-in was actually shown (Flagship #1 impact).
+        fetch("/api/track", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, event: "checkin_shown" }) }).catch(() => {});
       })
       .catch(() => {});
     return () => { alive = false; };
@@ -40,7 +42,12 @@ export default function ProactiveCheckin({ userId, lang, T, font, onOpen }) {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -8, scale: 0.97 }}
           transition={{ type: "spring", stiffness: 320, damping: 26 }}
-          onClick={() => { dismiss(); onOpen?.(data.agentId); }}
+          onClick={() => {
+            // Instrument: the check-in earned a reply (user tapped through to chat).
+            fetch("/api/track", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, event: "checkin_reply" }) }).catch(() => {});
+            dismiss();
+            onOpen?.(data.agentId);
+          }}
           style={{
             display: "flex", alignItems: "flex-start", gap: 12, cursor: "pointer",
             padding: "13px 14px", borderRadius: 18, marginBottom: 14,
@@ -64,7 +71,7 @@ export default function ProactiveCheckin({ userId, lang, T, font, onOpen }) {
                 fontSize: 9.5, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase",
                 color: T.violet, background: `${T.violet}22`, padding: "2px 7px", borderRadius: 100,
               }}>
-                texted you
+                {data.lapsed ? "missed you 💜" : "texted you"}
               </span>
             </div>
             <div style={{ color: T.text, fontSize: 13.5, lineHeight: 1.45, opacity: 0.95 }}>{data.message}</div>

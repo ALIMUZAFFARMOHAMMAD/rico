@@ -1,8 +1,9 @@
 // Rico — public SaaS marketing landing page (no auth gate). Polished: hero phone
 // mockup, "meet your people" character showcase (real app avatars), benefit-first
 // copy. Responsive via clamp() + auto-fit grids.
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Head from "next/head";
+import { captureSource } from "../lib/source";
 import FriendsHero from "../components/FriendsHero";
 import TonyCharacter from "../components/TonyCharacter";
 import { AGENT_LIST } from "../lib/agents";
@@ -112,6 +113,8 @@ function PhoneMock() {
 export default function Landing() {
   const [faqOpen, setFaqOpen] = useState(FAQ.map(() => false));
   const allOpen = faqOpen.every(Boolean);
+  // First-touch attribution: capture where this visitor came from (?src=/?ref=/utm_source).
+  useEffect(() => { captureSource(); }, []);
   return (<>
     <Head>
       <title>Rico — AI friends who actually remember you</title>

@@ -41,6 +41,11 @@ export default async function handler(req, res) {
     const { r: row, k } = convos[0];
     const agent = await resolveAgent(k.agentId);
 
+    // Lapse signal: days since the user last actually had a conversation (not just opened
+    // the app — track.js overwrites the open-stamp on load). Drives "Rico missed you".
+    const daysAway = row.updated_at ? Math.floor((Date.now() - new Date(row.updated_at).getTime()) / 864e5) : 0;
+    const lapsed = daysAway >= 3;
+
     // 3) Build a compact memory snippet from the recent exchange.
     const recent = (row.messages || []).slice(-8)
       .map(m => `${m.role === "user" ? "Them" : agent.name}: ${String(m.content || "").slice(0, 200)}`)
@@ -53,6 +58,7 @@ export default async function handler(req, res) {
     const system = `${persona}
 
 You are reaching out to your friend FIRST — they just opened the app and you want to check in, the way a real friend texts first. Do NOT wait to be spoken to.
+${lapsed ? `IMPORTANT: it has been about ${daysAway} days since you two last talked. Warmly and gently acknowledge that it's been a little while and that you were thinking about them / missed them — never guilt-trip, never scold, never make them feel bad. Then tie it to something specific from your last conversation.` : ""}
 
 ${languagePrompt(langCode)}
 
@@ -83,6 +89,7 @@ ${recent}`;
     const payload = {
       agentId: k.agentId, name: agent.name, emoji: agent.emoji || "💬",
       text: message, at: new Date().toISOString(), lang: langCode,
+      lapsed, daysAway,
     };
 
     // 5) Cache on the meta row — merge traits so matches/reports columns are untouched.

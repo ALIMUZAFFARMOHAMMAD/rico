@@ -6,13 +6,14 @@ import { configured, getRow, upsertRow, metaKey } from "../../lib/db";
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
   if (!configured()) return res.status(200).json({ ok: false });
-  const { userId, event, game, seconds } = req.body || {};
+  const { userId, event, game, seconds, source } = req.body || {};
   if (!userId) return res.status(400).json({ error: "no userId" });
   try {
     const key = metaKey(userId);
     const row = await getRow(key);
     const traits = (row && row.traits) || {};
     const now = new Date();
+    const DAY = 864e5;
     const today = now.toISOString().slice(0, 10);
 
     // always refresh the activity stamp
@@ -20,10 +21,27 @@ export default async function handler(req, res) {
     if (!a.first) a.first = now.toISOString();
     a.last = now.toISOString();
     if (!a.days.includes(today)) a.days = [...a.days, today].slice(-90);
+    // First-touch signup source — set once, never overwritten (for by-channel attribution).
+    if (source && !a.source) a.source = String(source).slice(0, 40);
 
     // counters for the dashboard's voice & games scores
     const stats = traits.stats || {};
-    if (event === "game") {
+    if (event === "activation") {
+      // North-Star leading indicator: user completed their first real conversation.
+      // Stamp once; record whether it happened within 24h of first-seen ("fast" activation).
+      if (!a.activated) {
+        a.activated = true;
+        a.activatedAt = now.toISOString();
+        a.activatedFast = (now.getTime() - new Date(a.first).getTime()) <= DAY;
+      }
+    } else if (event === "checkin_shown" || event === "checkin_reply") {
+      // Proactive check-in (Flagship #1) impact: shown vs. led-to-reply.
+      const c = stats.checkin || { shown: 0, replied: 0 };
+      if (event === "checkin_shown") c.shown = (c.shown || 0) + 1;
+      else c.replied = (c.replied || 0) + 1;
+      c.last = now.toISOString();
+      stats.checkin = c;
+    } else if (event === "game") {
       const gs = stats.games || { total: 0, byKey: {} };
       gs.total = (gs.total || 0) + 1;
       if (game) { gs.byKey = gs.byKey || {}; gs.byKey[game] = (gs.byKey[game] || 0) + 1; }
