@@ -72,6 +72,9 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   so Rico reaches out even when the app is closed (true "texts you first" — Capacitor android shell exists).
 
 ## 5. Done log (most recent first)
+- 2026-06-29 (run 5) — Board v2: simple founder key (BOARD_KEY=752003, set in Vercel) + visual upgrade
+  (progress bar, per-member color-coded chips, open-workload summary). Deployed to prod (dpl twrrhmxwv);
+  /api/board?key=752003 ok:true. (Forge)
 - 2026-06-29 (run 4) — CEO Task Board: interactive kanban at `/board` (To Do / In Progress / Done,
   add/assign/move/delete, founder-key gated) + `/api/board` (Supabase-persisted, seed action).
   Team prompt updated: the daily run now READS the board (via STATS_KEY) and works board 'todo' tasks
