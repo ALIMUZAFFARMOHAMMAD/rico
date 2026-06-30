@@ -72,6 +72,10 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   so Rico reaches out even when the app is closed (true "texts you first" — Capacitor android shell exists).
 
 ## 5. Done log (most recent first)
+- 2026-06-29 (run 3) — Signup-source attribution (closes Sage's GTM gap): `lib/source.js` first-touch
+  capture (?src=/?ref=/utm_source/referrer), wired into `landing.js` + `index.js`; `track.js` stores
+  `source` once; `stats.js` now returns `by_source` funnel (signups/activated/returned per channel).
+  `next build` passes. ⏳ Awaiting deploy. Now GTM channels are measurable. (Sage → Forge)
 - 2026-06-29 (run 2) — "Rico missed you" lapse re-engagement: `checkin.js` now computes days since
   last conversation; if >=3 days the opener warmly acknowledges the gap (no guilt-trip) and still
   references memory; `ProactiveCheckin.js` shows a "missed you 💜" badge. `next build` passes.
@@ -94,7 +98,8 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - 2026-06-28 — Day 0: team chartered, product bet + roadmap defined, daily standup scheduled. (Atlas)
 
 ## 6. Open approvals awaiting CEO
-- (none open) — "Rico missed you" deployed to prod 2026-06-29 (dpl 7knsfpy8x), home 200, checkin clean.
+- [1] Deploy signup-source attribution (lib/source.js + landing.js + index.js + track.js + stats.js) to production.
+- (resolved) "Rico missed you" deployed to prod 2026-06-29 (dpl 7knsfpy8x), home 200, checkin clean.
 - (resolved) instrumentation deployed to prod 2026-06-29 (dpl 40d57u2ic); /api/track activation ok:true.
 - NOTE FOR TEAM: a safety branch now exists, but `main` is STILL behind (snapshot lives on
   `safety/working-tree-2026-06-28`). Working tree remains source of truth; deploys via Vercel CLI.

@@ -66,7 +66,8 @@ app AND monetize like a career tool."
 - W4: referral push; collect named testimonials (with consent); read activation/D7 BY SOURCE.
 
 **Measure (Pulse):** signups, activation rate, and D7 **by source** → kill what doesn't convert, pour into what does.
-**Needs a tracking gap closed:** add a `source` field to signups so Pulse can attribute (small Forge task — propose next).
+**Tracking gap — CLOSED (2026-06-29):** signup-source attribution built (`lib/source.js`, `by_source` in /api/stats).
+Tag every link you share: `hitony.vercel.app/landing?src=reddit` (or `?src=ambassador_name`, `?src=ig`, etc.).
 
 ## 7. Strategic recommendations log (most recent first)
 - 2026-06-29 — GTM deep-dive added (§6b). Key insight: the un-buyable advantage is ambassador-led
