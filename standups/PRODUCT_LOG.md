@@ -10,6 +10,12 @@
 enough to raise from an investor. Optimize for: (1) a unique, defensible wedge,
 (2) a metric story (retention + outcomes), (3) a demo that makes an investor lean in.
 
+**Cadence:** Autonomous runs Mon–Fri ~11:00am CST (one focused work session per run).
+**Team roster:** Atlas (PM/orchestrator) · **Nova (R&D — proposes new implementable ideas each run)** ·
+Forge (engineer) · Sentry (QA) · Pulse (data) · Beacon (growth, drafts only) · Keeper (deploys).
+**Approvals:** when anything is gated (deploy / spend / external comms), the run emails an
+"ACTION NEEDED" alert to the CEO (real send if available, else a Gmail draft) + in-app notification.
+
 ---
 
 ## 0. Autonomy guardrails (NEVER cross without CEO approval)
@@ -46,9 +52,12 @@ enough to raise from an investor. Optimize for: (1) a unique, defensible wedge,
       Code complete + build/runtime verified. ⏳ Awaiting CEO deploy approval. (Owner: Forge)
 
 **NEXT:**
-- [ ] Living memory surfacing — friends reference past conversations naturally; a visible "what Rico remembers about you" panel.
-- [ ] Instrumentation: D1/D7/D30 cohort dashboard + activation event (dependency for the whole metric story).
+- [ ] "Rico missed you" lapse re-engagement check-in (Nova-promoted; uses existing activity stamps). ← next build
+- [ ] Proactive timing intelligence — fire check-ins around each user's habitual active hour.
+- [ ] Honest-AI / privacy badge on landing (turn Replika's €5M GDPR fine into our trust wedge).
 - [ ] Investor demo script + 2-min product walkthrough video.
+- [x] Living memory surfacing — "what Rico remembers about you" panel. SHIPPED to prod 2026-06-28.
+- [x] Instrumentation: activation event + Flagship-impact metrics. Code complete 2026-06-29 (awaiting deploy).
 
 **LATER:**
 - [ ] Outcome engine v2: track interviews/offers attributed to Tony; surface as user "wins."
@@ -57,10 +66,20 @@ enough to raise from an investor. Optimize for: (1) a unique, defensible wedge,
 
 ## 4. In progress (carries across days)
 - Flagship #1 v2 ideas (NEXT): proactive VOICE-note check-ins (ElevenLabs), and a notification/push
-  so Rico reaches out even when the app is closed (true "texts you first"). Also: a "what Rico
-  remembers about you" panel to make the living-memory moat visible.
+  so Rico reaches out even when the app is closed (true "texts you first" — Capacitor android shell exists).
 
 ## 5. Done log (most recent first)
+- 2026-06-29 — Measurement layer: `track.js` + `stats.js` now capture ACTIVATION (first real
+  conversation, +within-24h) and Flagship #1 proactive check-in shown/reply rate; client fires wired
+  in `index.js` + `ProactiveCheckin.js`. `next build` passes. ⏳ Awaiting deploy. R&D (Nova) added 3
+  ideas; promoted "Rico missed you" lapse re-engagement to next NOW. (Nova + Forge)
+- 2026-06-28 — Pillar #2 shipped to working tree: **Living-memory moat made visible** — `pages/api/remembers.js`
+  (extracts 3-6 real, specific things Rico knows about you across all friends, honest/no-invent, 18h cache)
+  + `components/MemorySpotlight.js` (warm chips) on the Me tab. DEPLOYED to production
+  (hitony.vercel.app, dpl earx43d2v, aliased, smoke-passed). (Forge + Keeper)
+- 2026-06-28 — Safety net: full uncommitted working tree committed (bd8e08e) and pushed to GitHub branch
+  `safety/working-tree-2026-06-28`. Git no longer out of sync / at risk. (Keeper)
+- 2026-06-28 — Flagship #1 DEPLOYED to production (hitony.vercel.app, dpl GXreiWXb), aliased, smoke-passed. (Keeper)
 - 2026-06-28 — Flagship #1 v1 shipped to working tree: `pages/api/checkin.js` (memory-grounded
   proactive opener via Haiku, 18h cache on meta row), `components/ProactiveCheckin.js` (dismissible
   card), wired into Chats tab in `pages/index.js`. `next build` passes; runtime smoke on /api/checkin
@@ -68,7 +87,9 @@ enough to raise from an investor. Optimize for: (1) a unique, defensible wedge,
 - 2026-06-28 — Day 0: team chartered, product bet + roadmap defined, daily standup scheduled. (Atlas)
 
 ## 6. Open approvals awaiting CEO
-- [1] Deploy Flagship #1 to production (`npx vercel --prod --yes` + `vercel alias set <url> hitony.vercel.app`).
+- [1] Deploy the 2026-06-29 instrumentation (activation + check-in metrics) to production.
+- NOTE FOR TEAM: a safety branch now exists, but `main` is STILL behind (snapshot lives on
+  `safety/working-tree-2026-06-28`). Working tree remains source of truth; deploys via Vercel CLI.
 - NOTE FOR TEAM: repo `main` is far behind the working tree — most of the app is uncommitted and
   deploys happen from the working directory via Vercel, NOT via git. Do not assume `git` reflects
   production. Treat the working tree as source of truth until the CEO decides to reconcile git.
