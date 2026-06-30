@@ -13,8 +13,9 @@ enough to raise from an investor. Optimize for: (1) a unique, defensible wedge,
 **Cadence:** Autonomous runs Mon–Fri ~11:00am CST (one focused work session per run).
 **Team roster:** Atlas (PM/orchestrator) · Nova (R&D — proposes new implementable ideas each run) ·
 Forge (engineer) · Sentry (QA) · Pulse (data) · Beacon (growth strategy/outreach, drafts only) ·
-**Echo (content & social — posts/captions/short-form for @rico.hitony; drafts only, publishing gated)** ·
-Keeper (deploys). Content drafts live in standups/CONTENT_CALENDAR.md.
+Echo (content & social — posts/captions/short-form for @rico.hitony; drafts only, publishing gated) ·
+**Reel (AI video editor — storyboards + produces videos from Echo's content via Higgsfield/ElevenLabs/Descript; generation gated on credits)** ·
+Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 **Approvals:** when anything is gated (deploy / spend / external comms), the run emails an
 "ACTION NEEDED" alert to the CEO (real send if available, else a Gmail draft) + in-app notification.
 
