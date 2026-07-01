@@ -68,10 +68,14 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - [ ] Plan gating + Stripe (separate backlog item, CEO drives credentials).
 
 ## 4. In progress (carries across days)
-- Flagship #1 v2 ideas (NEXT): proactive VOICE-note check-ins (ElevenLabs), and a notification/push
-  so Rico reaches out even when the app is closed (true "texts you first" — Capacitor android shell exists).
+- Next up: notification/push so Rico reaches out even when the app is closed (Capacitor android shell exists);
+  proactive timing intelligence (fire around each user's habitual active hour).
 
 ## 5. Done log (most recent first)
+- 2026-06-29 (run 6) — Voice-note check-ins (board 'in progress' task): `ProactiveCheckin.js` now has a
+  "🔊 Voice note" button that plays the check-in in the friend's own voice via existing `/api/tts`
+  (on-demand → cost-controlled); `track.js`/`stats.js` add a `checkin.voice` play counter. `next build`
+  passes. ⏳ Awaiting deploy → then move board card to Done. (Reel + Forge)
 - 2026-06-29 (run 5) — Board v2: simple founder key (BOARD_KEY=752003, set in Vercel) + visual upgrade
   (progress bar, per-member color-coded chips, open-workload summary). Deployed to prod (dpl twrrhmxwv);
   /api/board?key=752003 ok:true. (Forge)
@@ -105,7 +109,8 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - 2026-06-28 — Day 0: team chartered, product bet + roadmap defined, daily standup scheduled. (Atlas)
 
 ## 6. Open approvals awaiting CEO
-- (none open) — CEO Task Board deployed to prod 2026-06-29 (dpl 4mb4zikyp); /board 200, /api/board gated 401.
+- [1] Deploy voice-note check-ins to production (then board card "Voice-note check-ins" → Done).
+- (resolved) CEO Task Board deployed to prod 2026-06-29 (dpl 4mb4zikyp); /board 200, /api/board gated 401.
   CEO: open /board, unlock with STATS_KEY, click "Seed current work" once.
 - NOTE: board.js + api/board.js are deployed but not yet in the latest safety branch — refresh when convenient.
 - Safety net refreshed: full working tree pushed to git branch `safety/working-tree-2026-06-29` (latest snapshot).
