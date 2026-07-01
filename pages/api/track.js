@@ -34,11 +34,12 @@ export default async function handler(req, res) {
         a.activatedAt = now.toISOString();
         a.activatedFast = (now.getTime() - new Date(a.first).getTime()) <= DAY;
       }
-    } else if (event === "checkin_shown" || event === "checkin_reply") {
-      // Proactive check-in (Flagship #1) impact: shown vs. led-to-reply.
-      const c = stats.checkin || { shown: 0, replied: 0 };
+    } else if (event === "checkin_shown" || event === "checkin_reply" || event === "checkin_voice") {
+      // Proactive check-in (Flagship #1) impact: shown vs. reply vs. voice-note play.
+      const c = stats.checkin || { shown: 0, replied: 0, voice: 0 };
       if (event === "checkin_shown") c.shown = (c.shown || 0) + 1;
-      else c.replied = (c.replied || 0) + 1;
+      else if (event === "checkin_reply") c.replied = (c.replied || 0) + 1;
+      else c.voice = (c.voice || 0) + 1;
       c.last = now.toISOString();
       stats.checkin = c;
     } else if (event === "game") {

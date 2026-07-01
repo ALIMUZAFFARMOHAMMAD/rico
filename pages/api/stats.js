@@ -9,7 +9,7 @@ export default async function handler(req, res) {
     const rows = await sb(`/conversations?user_id=like.*::meta&select=user_id,traits`);
     const DAY = 864e5, now = Date.now();
     let total = 0, returned = 0, d7 = 0, active7 = 0, active1 = 0;
-    let activated = 0, activatedFast = 0, ckShown = 0, ckReplied = 0;
+    let activated = 0, activatedFast = 0, ckShown = 0, ckReplied = 0, ckVoice = 0;
     const cohort = {};
     const bySource = {}; // channel -> { signups, activated, returned }
     for (const r of (rows || [])) {
@@ -26,7 +26,7 @@ export default async function handler(req, res) {
       if (a.activated) activated++;                  // completed first real conversation
       if (a.activatedFast) activatedFast++;          // ...within 24h of signup
       const ck = r.traits && r.traits.stats && r.traits.stats.checkin;
-      if (ck) { ckShown += ck.shown || 0; ckReplied += ck.replied || 0; }
+      if (ck) { ckShown += ck.shown || 0; ckReplied += ck.replied || 0; ckVoice += ck.voice || 0; }
       const wk = new Date(a.first).toISOString().slice(0, 10);
       cohort[wk] = (cohort[wk] || 0) + 1;
       // attribution by first-touch source (defaults to "direct")
@@ -50,6 +50,7 @@ export default async function handler(req, res) {
       proactive_checkin: {
         shown: ckShown,
         replied: ckReplied,
+        voice_plays: ckVoice,
         reply_rate_pct: ckShown ? Math.round((ckReplied / ckShown) * 100) : 0,
       },
       signups_by_day: cohort,

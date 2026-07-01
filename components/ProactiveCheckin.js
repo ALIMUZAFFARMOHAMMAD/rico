@@ -1,13 +1,15 @@
 // Flagship #1 — "Rico texts you first" (client surface).
 // Fetches a memory-grounded proactive check-in and shows it as a dismissible card
 // at the top of Chats. Tapping it opens the chat with that friend, message in hand.
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const DISMISS_KEY = "rico_checkin_dismissed";
 
 export default function ProactiveCheckin({ userId, lang, T, font, onOpen }) {
   const [data, setData] = useState(null);
+  const [voice, setVoice] = useState("idle"); // idle | loading | playing
+  const audioRef = useRef(null);
 
   useEffect(() => {
     if (!userId) return;
@@ -30,9 +32,32 @@ export default function ProactiveCheckin({ userId, lang, T, font, onOpen }) {
 
   const dismiss = (e) => {
     e?.stopPropagation();
+    try { if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; } } catch (e2) {}
     try { if (data?.message) localStorage.setItem(DISMISS_KEY, data.message); } catch (e2) {}
     setData(null);
   };
+
+  // Voice-note check-in: hear the message in the friend's own voice (generated on tap → cost-controlled).
+  const playVoice = async (e) => {
+    e.stopPropagation();
+    if (voice === "loading") return;
+    if (voice === "playing" && audioRef.current) { audioRef.current.pause(); audioRef.current = null; setVoice("idle"); return; }
+    try {
+      setVoice("loading");
+      fetch("/api/track", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, event: "checkin_voice" }) }).catch(() => {});
+      const r = await fetch("/api/tts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: data.message, agentId: data.agentId }) });
+      if (!r.ok) { setVoice("idle"); return; }
+      const blob = await r.blob();
+      const audio = new Audio(URL.createObjectURL(blob));
+      audioRef.current = audio;
+      audio.onended = () => setVoice("idle");
+      audio.onerror = () => setVoice("idle");
+      setVoice("playing");
+      audio.play().catch(() => setVoice("idle"));
+    } catch (err) { setVoice("idle"); }
+  };
+
+  useEffect(() => () => { try { if (audioRef.current) audioRef.current.pause(); } catch (e) {} }, []);
 
   return (
     <AnimatePresence>
@@ -75,7 +100,17 @@ export default function ProactiveCheckin({ userId, lang, T, font, onOpen }) {
               </span>
             </div>
             <div style={{ color: T.text, fontSize: 13.5, lineHeight: 1.45, opacity: 0.95 }}>{data.message}</div>
-            <div style={{ color: T.violet, fontSize: 12, fontWeight: 700, marginTop: 7, fontFamily: font }}>Reply →</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8 }}>
+              <span style={{ color: T.violet, fontSize: 12, fontWeight: 700, fontFamily: font }}>Reply →</span>
+              <button
+                onClick={playVoice}
+                disabled={voice === "loading"}
+                aria-label="Play voice note"
+                style={{ display: "inline-flex", alignItems: "center", gap: 5, background: `${T.violet}1f`, border: `1px solid ${T.violet}55`, color: T.text, fontSize: 11.5, fontWeight: 700, padding: "4px 11px", borderRadius: 100, cursor: "pointer", fontFamily: font }}
+              >
+                {voice === "loading" ? "…generating" : voice === "playing" ? "⏸ Stop" : "🔊 Voice note"}
+              </button>
+            </div>
           </div>
           <button
             onClick={dismiss}
