@@ -75,6 +75,9 @@ Images (Higgsfield marketing_studio_image, 1k):
 Videos (Higgsfield kling3_0_turbo, 5s, 9:16):
 - **Day 1 hero video** (phone lights up at night) — https://d8j0ntlcm91z4.cloudfront.net/user_3F3FjeSrmJ2MKQ7t0lMprvYNoFx/hf_20260701_031338_c4a3af81-0ed6-4065-8678-d67a6cd716ad.mp4
 - **Day 4 homesick video** (student gets a message, relieved smile) — https://d8j0ntlcm91z4.cloudfront.net/user_3F3FjeSrmJ2MKQ7t0lMprvYNoFx/hf_20260701_031322_5f8ec111-2211-4cb1-9b28-de54caf48cf3.mp4
+- **Day 3 memory video** (chat glows, memory bubbles drift) 9:16 — https://d8j0ntlcm91z4.cloudfront.net/user_3F3FjeSrmJ2MKQ7t0lMprvYNoFx/hf_20260701_032007_0edb6c3a-cfbc-4b56-9ece-a17b876aa031.mp4
+- **Day 5 career video** (graduate looks up, hopeful smile) 1:1 — https://d8j0ntlcm91z4.cloudfront.net/user_3F3FjeSrmJ2MKQ7t0lMprvYNoFx/hf_20260701_032017_30c42bd8-d0c6-4ae9-ba18-0a00aea5f8d0.mp4
+- **Day 6 privacy video** (shield pulses, bubble floats) 1:1 — https://d8j0ntlcm91z4.cloudfront.net/user_3F3FjeSrmJ2MKQ7t0lMprvYNoFx/hf_20260701_032020_f1ed69a4-486c-4ddb-9542-76ef68ef6196.mp4
 
 > Note: text overlays/captions to be burned in when posting. All drafts remain APPROVAL-gated before publishing.
 
