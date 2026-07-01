@@ -64,6 +64,20 @@ Caption: Some AI apps blur the line and mishandle your data. Rico is different: 
 
 ---
 
+## 🎨 Generated assets (2026-06-30 · Reel · ~25 credits) — ready to attach
+Images (Higgsfield marketing_studio_image, 1k):
+- **Day 1 hero** (dorm night, phone) 9:16 — https://d8j0ntlcm91z4.cloudfront.net/user_3F3FjeSrmJ2MKQ7t0lMprvYNoFx/hf_20260701_031305_efea9535-22cc-434a-97e4-991e0a11da81.png
+- **Day 4 homesick** (student by window, soft smile) 9:16 — https://d8j0ntlcm91z4.cloudfront.net/user_3F3FjeSrmJ2MKQ7t0lMprvYNoFx/hf_20260701_031308_05d1fd0d-adad-4ef3-98f8-29cd6e37883e.png
+- **Day 5 career** (graduate at laptop) 1:1 — https://d8j0ntlcm91z4.cloudfront.net/user_3F3FjeSrmJ2MKQ7t0lMprvYNoFx/hf_20260701_031312_f8f1066b-d8d6-4679-a5e1-c0a7bb89dbf8.png
+- **Day 6 privacy/trust** (shield + chat bubble) 1:1 — https://d8j0ntlcm91z4.cloudfront.net/user_3F3FjeSrmJ2MKQ7t0lMprvYNoFx/hf_20260701_031314_5abd36bd-e2e4-475e-a278-b106bc13b8dc.png
+- **Day 3 memory** (warm chat UI, memory bubbles) 9:16 — https://d8j0ntlcm91z4.cloudfront.net/user_3F3FjeSrmJ2MKQ7t0lMprvYNoFx/hf_20260701_031316_b4d333d7-003d-4df1-b1f9-e36c9b5f3701.png
+
+Videos (Higgsfield kling3_0_turbo, 5s, 9:16):
+- **Day 1 hero video** (phone lights up at night) — https://d8j0ntlcm91z4.cloudfront.net/user_3F3FjeSrmJ2MKQ7t0lMprvYNoFx/hf_20260701_031338_c4a3af81-0ed6-4065-8678-d67a6cd716ad.mp4
+- **Day 4 homesick video** (student gets a message, relieved smile) — https://d8j0ntlcm91z4.cloudfront.net/user_3F3FjeSrmJ2MKQ7t0lMprvYNoFx/hf_20260701_031322_5f8ec111-2211-4cb1-9b28-de54caf48cf3.mp4
+
+> Note: text overlays/captions to be burned in when posting. All drafts remain APPROVAL-gated before publishing.
+
 ## Ideas parking lot
 - "What your friends remember about you" — screen-record the memory chips (shows the moat).
 - Honest-AI angle: gentle contrast with apps that had privacy fines (no naming/bashing — just "your data, your control").
