@@ -109,7 +109,7 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - 2026-06-28 — Day 0: team chartered, product bet + roadmap defined, daily standup scheduled. (Atlas)
 
 ## 6. Open approvals awaiting CEO
-- [1] Deploy voice-note check-ins to production (then board card "Voice-note check-ins" → Done).
+- (none open) — voice-note check-ins deployed to prod 2026-06-30 (dpl g7j9qhkdw); track voice ok:true; board card → Done.
 - (resolved) CEO Task Board deployed to prod 2026-06-29 (dpl 4mb4zikyp); /board 200, /api/board gated 401.
   CEO: open /board, unlock with STATS_KEY, click "Seed current work" once.
 - NOTE: board.js + api/board.js are deployed but not yet in the latest safety branch — refresh when convenient.
