@@ -74,8 +74,8 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 ## 5. Done log (most recent first)
 - 2026-07-01 — Honest-AI/privacy trust band on landing (board top task): `pages/landing.js` new
   "Honest by design" section (labeled AI · your-memory-your-control · friendship-not-romance) + Trust
-  nav link. Turns AI-trust gap into our wedge (Sage). `next build` + served-HTML render verified.
-  ⏳ Awaiting deploy → board card to Done. Echo content card marked Done. (Forge + Sage)
+  nav link. Turns AI-trust gap into our wedge (Sage). DEPLOYED to prod (dpl beizacnqf) — live on /landing.
+  Board card → Done. Echo content card also Done. (Forge + Sage + Keeper)
 - 2026-06-29 (run 6) — Voice-note check-ins (board 'in progress' task): `ProactiveCheckin.js` now has a
   "🔊 Voice note" button that plays the check-in in the friend's own voice via existing `/api/tts`
   (on-demand → cost-controlled); `track.js`/`stats.js` add a `checkin.voice` play counter. `next build`
