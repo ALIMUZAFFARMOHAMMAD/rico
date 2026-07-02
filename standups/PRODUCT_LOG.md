@@ -57,7 +57,7 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 **NEXT:**
 - [x] "Rico missed you" lapse re-engagement check-in. Code complete 2026-06-29 (awaiting deploy).
 - [ ] Proactive timing intelligence — fire check-ins around each user's habitual active hour.
-- [ ] Honest-AI / privacy badge on landing (turn Replika's €5M GDPR fine into our trust wedge).
+- [x] Honest-AI / privacy trust band on landing. Code complete 2026-07-01 (awaiting deploy).
 - [ ] Investor demo script + 2-min product walkthrough video.
 - [x] Living memory surfacing — "what Rico remembers about you" panel. SHIPPED to prod 2026-06-28.
 - [x] Instrumentation: activation event + Flagship-impact metrics. Code complete 2026-06-29 (awaiting deploy).
@@ -72,6 +72,10 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   proactive timing intelligence (fire around each user's habitual active hour).
 
 ## 5. Done log (most recent first)
+- 2026-07-01 — Honest-AI/privacy trust band on landing (board top task): `pages/landing.js` new
+  "Honest by design" section (labeled AI · your-memory-your-control · friendship-not-romance) + Trust
+  nav link. Turns AI-trust gap into our wedge (Sage). `next build` + served-HTML render verified.
+  ⏳ Awaiting deploy → board card to Done. Echo content card marked Done. (Forge + Sage)
 - 2026-06-29 (run 6) — Voice-note check-ins (board 'in progress' task): `ProactiveCheckin.js` now has a
   "🔊 Voice note" button that plays the check-in in the friend's own voice via existing `/api/tts`
   (on-demand → cost-controlled); `track.js`/`stats.js` add a `checkin.voice` play counter. `next build`
