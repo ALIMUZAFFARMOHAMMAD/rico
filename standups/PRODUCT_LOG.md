@@ -57,7 +57,11 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 **NEXT:**
 - [x] "Rico missed you" lapse re-engagement check-in. Code complete 2026-06-29 (awaiting deploy).
 - [ ] Proactive timing intelligence — fire check-ins around each user's habitual active hour.
-- [x] Honest-AI / privacy trust band on landing. Code complete 2026-07-01 (awaiting deploy).
+- [x] Honest-AI / privacy trust band on landing. Code complete 2026-07-01, DEPLOYED to prod.
+- [x] Trust badge on sign-up screen (mirrors landing trust band at account creation). Code complete
+      2026-07-02, `next build` + runtime smoke pass. On branch `feature/signup-trust-badge`
+      (pushed to GitHub). ⏳ Awaiting CEO deploy approval.
+- [ ] Data-export button ("download everything Rico remembers") — GDPR-friendly, extends trust story. (Nova, queued)
 - [ ] Investor demo script + 2-min product walkthrough video.
 - [x] Living memory surfacing — "what Rico remembers about you" panel. SHIPPED to prod 2026-06-28.
 - [x] Instrumentation: activation event + Flagship-impact metrics. Code complete 2026-06-29 (awaiting deploy).
@@ -72,6 +76,14 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   proactive timing intelligence (fire around each user's habitual active hour).
 
 ## 5. Done log (most recent first)
+- 2026-07-02 — Trust badge on sign-up screen (Nova R&D → Forge): `pages/sign-up/[[...index]].js`
+  adds a compact honesty-pledge strip (AI clearly labeled · you control your data · no romance/
+  manipulation) below the Clerk form + a link to `/landing#trust`. Mirrors yesterday's landing trust
+  band at the exact moment a trust-wary student decides whether to make an account. `next build`
+  passes; runtime smoke (`next start` + curl `/sign-up`) confirms the copy renders. Committed on new
+  branch `feature/signup-trust-badge`, pushed to GitHub (PR not opened — `gh` not authenticated in
+  this environment; CEO or next run can open it from the pushed branch). No matching board card.
+  ⏳ Awaiting CEO deploy approval.
 - 2026-07-01 — Honest-AI/privacy trust band on landing (board top task): `pages/landing.js` new
   "Honest by design" section (labeled AI · your-memory-your-control · friendship-not-romance) + Trust
   nav link. Turns AI-trust gap into our wedge (Sage). DEPLOYED to prod (dpl beizacnqf) — live on /landing.
@@ -113,6 +125,10 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - 2026-06-28 — Day 0: team chartered, product bet + roadmap defined, daily standup scheduled. (Atlas)
 
 ## 6. Open approvals awaiting CEO
+- **Deploy `feature/signup-trust-badge`** (sign-up trust badge, code complete 2026-07-02) to production.
+- REMINDER (not a build task, board items assigned to CEO, unchanged since 2026-06-30): Plan gating +
+  Stripe, Lock 3 named testimonials, Start 30-day GTM push. These three are the actual bottleneck to
+  an investor-ready metric story — product is now ahead of distribution/monetization proof.
 - (none open) — voice-note check-ins deployed to prod 2026-06-30 (dpl g7j9qhkdw); track voice ok:true; board card → Done.
 - (resolved) CEO Task Board deployed to prod 2026-06-29 (dpl 4mb4zikyp); /board 200, /api/board gated 401.
   CEO: open /board, unlock with STATS_KEY, click "Seed current work" once.
@@ -127,6 +143,10 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   production. Treat the working tree as source of truth until the CEO decides to reconcile git.
 
 ## 7. Idea backlog (raw, unprioritized)
+- First-chat AI-disclosure micro-moment (S, Nova 2026-07-02): bake a warm, natural one-line AI
+  disclosure into each new friend's very first message (not a boilerplate popup) — extends the trust
+  wedge into the single product moment that matters most (first chat), cheap to build, reinforces the
+  honesty narrative for investors.
 - Streaks / "Rico missed you" re-engagement after lapse.
 - Voice note check-ins (ElevenLabs) instead of text — higher emotional fidelity.
 - Group "friend circle" that reacts among themselves to your news.

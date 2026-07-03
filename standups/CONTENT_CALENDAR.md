@@ -12,6 +12,36 @@
 
 ## Queue
 
+### 2026-07-02 — 📝 DRAFT — Trust post: "We put our promise where you sign up"
+**Format:** Instagram single image / static post (src=ig4)
+**Hook:** "Most apps bury their privacy policy. We put ours right where you sign up."
+**Caption:**
+Before you even make an account, Rico tells you the truth: every friend is clearly AI,
+you control your memory (see it, wipe it, anytime), and it's friendship — never romance,
+never manipulation. Not fine print. Not a popup you click through. Right there, before you join.
+Because trust shouldn't be something you have to go looking for. 💜
+→ Try Rico (link in bio)
+**Hashtags:** #internationalstudents #studyabroad #aitransparency #dataprivacy #aicompanion
+**Suggested time:** weekday 7–9pm local
+**Link:** hitony.vercel.app/landing?src=ig4
+**Note:** pairs with a screen-recording of the new sign-up trust badge (ships once
+`feature/signup-trust-badge` is deployed).
+
+#### 🎬 Reel — AI video production spec (📝 not generated — generation is gated)
+**Title:** "Our promise, before you join" · **Aspect:** 9:16 vertical · **Duration:** ~15s · **Tool:** Higgsfield video + ElevenLabs VO
+- **Scene 1 (0–4s):** Screen-record: hand types into the Rico sign-up form; camera pushes in as the
+  trust badge fades into view beneath the form. *Prompt (if live capture unavailable):* "clean UI
+  screen-record style, dark violet app sign-up screen, small trust badge fading in below a form, soft
+  glow, 9:16."
+- **Scene 2 (4–9s):** Close-up on the three trust lines highlighting one at a time (🤖 AI clearly
+  labeled → 🔒 your data, your control → 💛 no romance, no manipulation), each with a soft pulse.
+- **Scene 3 (9–13s):** Cut to a student smiling, tapping "create account" — relief/trust in expression.
+  *Prompt:* "young international student, soft smile, tapping phone screen, warm indoor light, 9:16."
+- **Scene 4 (13–15s):** Rico logo + tagline "Your people, always. Honest by design." CTA: "Try Rico — link in bio."
+- **Voiceover (ElevenLabs, warm, calm):** "Before you even say hi, Rico tells you the truth. That's the whole point."
+- **On-screen captions:** burned-in, large, student-casual. **Music:** soft, minimal, trust-building (no big swell).
+- **Approval needed to generate:** ~1 Higgsfield video gen + 1 ElevenLabs VO (uses credits).
+
 ### 2026-06-29 — 📝 DRAFT — Feature post: "Rico texts you first"
 **Format:** Reel / carousel (3 frames)
 **Hook:** "Most AI apps wait for you to talk. Rico texts *you* first."

@@ -70,6 +70,14 @@ app AND monetize like a career tool."
 Tag every link you share: `hitony.vercel.app/landing?src=reddit` (or `?src=ambassador_name`, `?src=ig`, etc.).
 
 ## 7. Strategic recommendations log (most recent first)
+- 2026-07-02 — Three CEO-owned board tasks (plan gating/Stripe, testimonials, GTM push) have sat in
+  "todo" since 2026-06-30 — the team cannot progress them further without CEO action, and they are the
+  actual blockers to an investor-ready metric story (activation/D7/reply-rate exist but need real
+  traffic; the pricing test needs Stripe; the "this app changed my life" flywheel needs consented
+  names). Recommendation: this week, spend the team's free capacity on the one investor-readiness item
+  fully unblocked — the demo script + 2-min walkthrough video (Reel can produce once approved) — so
+  there's a leave-behind asset ready the moment the CEO unlocks the other three. Do not let feature
+  work keep outpacing distribution/monetization proof; the product bet is demo-ready now.
 - 2026-06-29 — GTM deep-dive added (§6b). Key insight: the un-buyable advantage is ambassador-led
   WhatsApp/Telegram distribution inside diaspora cohorts; pair with honest founder story. Blocking gap:
   no signup-source attribution yet — recommend Forge add a `source` capture so growth is measurable.
