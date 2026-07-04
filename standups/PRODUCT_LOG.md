@@ -63,7 +63,8 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
       (pushed to GitHub). ⏳ Awaiting CEO deploy approval.
 - [x] Data-export button ("download everything Rico remembers") — GDPR-friendly, extends trust story.
       Code complete 2026-07-04. On branch `feature/memory-data-export` (pushed). ⏳ Awaiting CEO deploy approval.
-- [ ] Investor demo script + 2-min product walkthrough video.
+- [x] Investor demo script — written 2026-07-04 (`standups/DEMO_SCRIPT.md`), incl. Reel production
+      spec. [ ] Video itself not generated (screen-record + ElevenLabs VO — needs CEO approval).
 - [x] Living memory surfacing — "what Rico remembers about you" panel. SHIPPED to prod 2026-06-28.
 - [x] Instrumentation: activation event + Flagship-impact metrics. Code complete 2026-06-29 (awaiting deploy).
 
@@ -77,6 +78,13 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   proactive timing intelligence (fire around each user's habitual active hour).
 
 ## 5. Done log (most recent first)
+- 2026-07-04 (cont'd) — Investor demo script + 2-min walkthrough (Sage → Atlas): `standups/DEMO_SCRIPT.md`
+  — a beat-by-beat 2-min script (problem → proactive check-in → memory spotlight → data export/trust →
+  business model → ask) plus a Reel production spec (screen-record + ElevenLabs VO, 16:9 + 9:16 cutdown).
+  Executes the recommendation Sage made on 2026-07-01 and repeated 2026-07-02 instead of re-queuing it
+  a third time. Added a retention benchmark to STRATEGY.md: Character.AI D30 is 13–18%; Rico's D7≥18%
+  target already matches that range at 1/4 the time horizon — sharpens the raise narrative once real
+  data lands. No deploy needed (doc only); one open ask: record/generate the actual video (ElevenLabs VO).
 - 2026-07-04 — Data-export button in Memory Vault (Nova R&D → Forge): `pages/memory.js` adds a
   "⬇ DOWNLOAD EVERYTHING RICO REMEMBERS" button, visible to signed-in users with vault data, that
   builds a JSON export (per-friend message counts, traits, last-talked date, voice-note memories)
@@ -138,9 +146,12 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 ## 6. Open approvals awaiting CEO
 - **Deploy `feature/signup-trust-badge`** (sign-up trust badge, code complete 2026-07-02) to production.
 - **Deploy `feature/memory-data-export`** (Memory Vault data-export button, code complete 2026-07-04) to production.
-- REMINDER (not a build task, board items assigned to CEO, unchanged since 2026-06-30): Plan gating +
-  Stripe, Lock 3 named testimonials, Start 30-day GTM push. These three are the actual bottleneck to
-  an investor-ready metric story — product is now ahead of distribution/monetization proof.
+- **Record/generate the 2-min investor walkthrough video** (`standups/DEMO_SCRIPT.md`) — mostly a live
+  screen-record, but the voiceover pass (ElevenLabs, unless the CEO records their own narration) spends
+  credits. New as of 2026-07-04.
+- REMINDER (not a build task, board items assigned to CEO, unchanged since 2026-06-30 — now 5 days):
+  Plan gating + Stripe, Lock 3 named testimonials, Start 30-day GTM push. These three are the actual
+  bottleneck to an investor-ready metric story — product is now ahead of distribution/monetization proof.
 - (none open) — voice-note check-ins deployed to prod 2026-06-30 (dpl g7j9qhkdw); track voice ok:true; board card → Done.
 - (resolved) CEO Task Board deployed to prod 2026-06-29 (dpl 4mb4zikyp); /board 200, /api/board gated 401.
   CEO: open /board, unlock with STATS_KEY, click "Seed current work" once.
@@ -155,6 +166,14 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   production. Treat the working tree as source of truth until the CEO decides to reconcile git.
 
 ## 7. Idea backlog (raw, unprioritized)
+- **In-app testimonial capture flow** (S, Nova 2026-07-04): a consent-gated prompt for engaged beta
+  users ("mind if we share a short quote? we'll show your first name only, your call") that stores
+  opted-in quotes for the CEO to review/select — turns "lock 3 testimonials" from a from-scratch task
+  into a one-click review once a few beta users opt in. Doesn't do the outreach itself (still CEO-owned),
+  just removes the build work standing in front of it.
+- **Ambassador referral link generator** (S, Nova 2026-07-04): auto-generate personalized
+  `?src=ambassador_<name>` links + a simple referral count in the CEO board, so the moment the GTM push
+  starts, ambassadors already have working, trackable links instead of the CEO hand-rolling them.
 - First-chat AI-disclosure micro-moment (S, Nova 2026-07-02): bake a warm, natural one-line AI
   disclosure into each new friend's very first message (not a boilerplate popup) — extends the trust
   wedge into the single product moment that matters most (first chat), cheap to build, reinforces the

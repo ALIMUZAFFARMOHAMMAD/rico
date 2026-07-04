@@ -12,6 +12,32 @@
 
 ## Queue
 
+### 2026-07-04 — 📝 DRAFT — Trust post: "Download everything Rico remembers"
+**Format:** Instagram single image / screen-record (src=ig5)
+**Hook:** "Most apps just say 'trust us.' We give you a download button."
+**Caption:**
+Every friend you talk to on Rico remembers you — but it's still *your* memory, not ours to keep.
+Open your Memory Vault and you'll find a button that does exactly what it says: downloads everything
+Rico remembers about you, in one file, anytime you want. No asking, no waiting, no fine print. 💜
+Because a friend who remembers you should never feel like a company that owns you.
+→ Try Rico (link in bio)
+**Hashtags:** #internationalstudents #studyabroad #aitransparency #dataprivacy #aicompanion
+**Suggested time:** weekday 7–9pm local
+**Link:** hitony.vercel.app/landing?src=ig5
+**Note:** pairs with a screen-recording of the new Memory Vault "⬇ DOWNLOAD EVERYTHING RICO REMEMBERS"
+button (ships once `feature/memory-data-export` is deployed).
+
+#### 🎬 Reel — AI video production spec (📝 not generated — generation is gated)
+**Title:** "Yours to keep" · **Aspect:** 9:16 vertical · **Duration:** ~14s · **Tool:** screen-record + ElevenLabs VO
+- **Scene 1 (0–4s):** Screen-record: Memory Vault page, memory chips visible (per-friend traits, dates).
+- **Scene 2 (4–9s):** Cursor moves to and taps "⬇ DOWNLOAD EVERYTHING RICO REMEMBERS"; a file-download
+  animation plays; a JSON file lands on the "device."
+- **Scene 3 (9–12s):** Cut to logo + tagline "Your people, always. Yours to keep."
+- **Voiceover (ElevenLabs, warm, calm):** "It remembers you. But it's still your memory — download it,
+  anytime, no asking required."
+- **On-screen captions:** burned-in, large, student-casual. **Music:** soft, minimal.
+- **Approval needed to generate:** ~1 ElevenLabs VO pass (uses credits); scene footage is a live screen-record.
+
 ### 2026-07-02 — 📝 DRAFT — Trust post: "We put our promise where you sign up"
 **Format:** Instagram single image / static post (src=ig4)
 **Hook:** "Most apps bury their privacy policy. We put ours right where you sign up."

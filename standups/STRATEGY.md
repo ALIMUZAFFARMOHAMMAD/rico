@@ -27,6 +27,13 @@
 ## 4. Market (for the pitch)
 - AI companion market large & fast-growing (companion apps; Character.AI 233M registered, Replika 30M+ downloads).
 - Rico's wedge = the underserved international-student / diaspora segment (tens of millions globally), in-language.
+- **Retention benchmark (added 2026-07-04):** Character.AI, the category leader, reports ~50–60% D1,
+  ~30% D7, and 13–18% D30 retention (2026 industry reporting). Rico's own North Star is D7 ≥18% — our
+  7-day target already sits at the top of the leader's 30-day range. Use this framing once real data
+  lands: "our week-one retention target matches best-in-class month-one retention in this category."
+  Category economics: consumer AI companion apps crossed ~$120M revenue in 2025; Character.AI ~$32M
+  and Replika ~$24M annual revenue (2024) on 200M+ / 30M+ user bases respectively — confirms the
+  category monetizes at scale even before Rico's outcome-engine upsell.
 
 ## 5. Investor narrative (the raise)
 "Companion apps churn because novelty fades; career tools don't retain. Rico fuses emotional
@@ -39,7 +46,9 @@ app AND monetize like a career tool."
 - [ ] Demo that lands the bet in 60s (proactive check-in + memory panel both live ✓).
 - [ ] Named testimonials (3 beta lovers — pending consent).
 - [ ] Pricing validated (post-Stripe).
-- [ ] Deck (Gamma deck exists) + one-pager + 2-min walkthrough video (Reel can produce).
+- [x] Deck (Gamma deck exists). 2-min walkthrough **script** written 2026-07-04 (`standups/DEMO_SCRIPT.md`)
+      + Reel production spec attached. [ ] Video itself not generated (screen-record + 1 ElevenLabs VO —
+      minimal spend, needs CEO approval to record/generate). [ ] One-pager still open.
 
 ## 6b. Go-to-Market plan — reaching international students (Sage deep-dive, 2026-06-29)
 **GTM goal:** first 500 real, retained beachhead users so the metric story exists. Budget ~$0–50 (video credits); everything else is sweat. Honest, value-first — no spammy mass-DMs.
@@ -70,6 +79,13 @@ app AND monetize like a career tool."
 Tag every link you share: `hitony.vercel.app/landing?src=reddit` (or `?src=ambassador_name`, `?src=ig`, etc.).
 
 ## 7. Strategic recommendations log (most recent first)
+- 2026-07-04 — Finally executed the 2026-07-01/07-02 recommendation instead of re-queuing it: wrote
+  the investor demo script + 2-min walkthrough video spec (`standups/DEMO_SCRIPT.md`), so there's a
+  leave-behind asset ready the moment plan-gating/testimonials/GTM unlock. Also added a hard retention
+  benchmark (Character.AI D30 13–18% vs Rico's D7≥18% target) to sharpen the raise narrative once real
+  data lands. The three CEO-owned board tasks are unchanged since 2026-06-30 (5 days) — recommend the
+  CEO pick at least one this week; GTM push is the cheapest to start (no engineering dependency) and
+  would unblock the metric story fastest.
 - 2026-07-02 — Three CEO-owned board tasks (plan gating/Stripe, testimonials, GTM push) have sat in
   "todo" since 2026-06-30 — the team cannot progress them further without CEO action, and they are the
   actual blockers to an investor-ready metric story (activation/D7/reply-rate exist but need real
