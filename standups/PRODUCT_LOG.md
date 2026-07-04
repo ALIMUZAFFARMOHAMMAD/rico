@@ -61,7 +61,8 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - [x] Trust badge on sign-up screen (mirrors landing trust band at account creation). Code complete
       2026-07-02, `next build` + runtime smoke pass. On branch `feature/signup-trust-badge`
       (pushed to GitHub). ⏳ Awaiting CEO deploy approval.
-- [ ] Data-export button ("download everything Rico remembers") — GDPR-friendly, extends trust story. (Nova, queued)
+- [x] Data-export button ("download everything Rico remembers") — GDPR-friendly, extends trust story.
+      Code complete 2026-07-04. On branch `feature/memory-data-export` (pushed). ⏳ Awaiting CEO deploy approval.
 - [ ] Investor demo script + 2-min product walkthrough video.
 - [x] Living memory surfacing — "what Rico remembers about you" panel. SHIPPED to prod 2026-06-28.
 - [x] Instrumentation: activation event + Flagship-impact metrics. Code complete 2026-06-29 (awaiting deploy).
@@ -76,6 +77,16 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   proactive timing intelligence (fire around each user's habitual active hour).
 
 ## 5. Done log (most recent first)
+- 2026-07-04 — Data-export button in Memory Vault (Nova R&D → Forge): `pages/memory.js` adds a
+  "⬇ DOWNLOAD EVERYTHING RICO REMEMBERS" button, visible to signed-in users with vault data, that
+  builds a JSON export (per-friend message counts, traits, last-talked date, voice-note memories)
+  client-side from the already-fetched `/api/memory` data and triggers a browser download — no new
+  API endpoint needed. `next build` passes; runtime smoke (`next start` + curl `/memory`) confirms
+  the page renders with no server error. Committed on new branch `feature/memory-data-export`, pushed
+  to GitHub (PR not opened — no `gh` auth in this environment). Note: that branch's single commit also
+  bundled the already-reviewed sign-up trust-badge diff (staged incidentally from restoring it to the
+  working tree) — same code as `feature/signup-trust-badge`, harmless but not perfectly scoped.
+  ⏳ Awaiting CEO deploy approval (now 2 branches queued: signup-trust-badge, memory-data-export).
 - 2026-07-02 — Trust badge on sign-up screen (Nova R&D → Forge): `pages/sign-up/[[...index]].js`
   adds a compact honesty-pledge strip (AI clearly labeled · you control your data · no romance/
   manipulation) below the Clerk form + a link to `/landing#trust`. Mirrors yesterday's landing trust
@@ -126,6 +137,7 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 
 ## 6. Open approvals awaiting CEO
 - **Deploy `feature/signup-trust-badge`** (sign-up trust badge, code complete 2026-07-02) to production.
+- **Deploy `feature/memory-data-export`** (Memory Vault data-export button, code complete 2026-07-04) to production.
 - REMINDER (not a build task, board items assigned to CEO, unchanged since 2026-06-30): Plan gating +
   Stripe, Lock 3 named testimonials, Start 30-day GTM push. These three are the actual bottleneck to
   an investor-ready metric story — product is now ahead of distribution/monetization proof.

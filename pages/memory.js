@@ -37,6 +37,27 @@ export default function MemoryVault() {
     load();
   }
 
+  function downloadEverything() {
+    const exportData = {
+      exportedAt: new Date().toISOString(),
+      user: user.primaryEmailAddress?.emailAddress || user.id,
+      friends: (agents || []).map(a => ({
+        friend: getAgent(a.agentId)?.name || a.agentId,
+        messagesExchanged: a.msgCount,
+        lastTalked: a.updatedAt || null,
+        traits: a.traits || {},
+        whatTheyRememberFromCalls: a.voiceNotes || [],
+      })),
+    };
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `rico-memory-export-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (<>
     <Head>
       <title>Memory Vault — hitony.ai</title>
@@ -53,6 +74,15 @@ export default function MemoryVault() {
         <div style={{ fontSize: 12, fontWeight: 700, color: "#777", marginBottom: 14, lineHeight: 1.5 }}>
           Everything your friends remember about you, in your hands. Delete a single note, or make an agent forget you completely — no questions asked.
         </div>
+
+        {isSignedIn && agents && agents.length > 0 && (
+          <button
+            onClick={downloadEverything}
+            style={{ display: "block", width: "100%", background: "white", color: PURPLE, border: `3px solid ${PURPLE}`, padding: "10px 14px", fontFamily: "Bangers,cursive", fontSize: 14, letterSpacing: 1, cursor: "pointer", boxShadow: `3px 3px 0 ${PURPLE}`, marginBottom: 16 }}
+          >
+            ⬇ DOWNLOAD EVERYTHING RICO REMEMBERS
+          </button>
+        )}
 
         {!isLoaded ? null : !isSignedIn ? (
           <div style={{ textAlign: "center", padding: 30 }}>
