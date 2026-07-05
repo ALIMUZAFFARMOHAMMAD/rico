@@ -100,6 +100,15 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   new production deployment initially only auto-aliased to `hitony.ai` (which doesn't resolve via DNS),
   not `hitony.vercel.app`; ran `vercel alias set` to point the real domain at it. Branch `feature/club-feed`
   pushed to GitHub (PR not opened — `gh` not authenticated in this environment).
+  **Follow-up error check (same day, CEO-directed):** reviewed Vercel runtime logs (error/warning/5xx,
+  all empty) and live-tested every POST path (comment incl. direct-address routing, react toggle,
+  generate_debate, plus every error branch: bad action, unknown club, empty comment, missing itemId,
+  single-member-club debate rejection) directly against production with the CEO's explicit sign-off to
+  write test data into a real club. All clean — no server bugs found. One red herring: a reaction stored
+  under a garbled `"??"` key, traced to the test terminal's encoding mangling the 💜 emoji before curl
+  sent it (confirmed by resending via a properly UTF-8-encoded file — server stored/returned the real
+  emoji correctly). Not a code bug; harmless leftover `"??": []` entries sit in `movie-club`'s feed but
+  are invisible in the UI (reaction bar only renders the 4 defined emoji).
 - 2026-07-04 (cont'd) — Investor demo script + 2-min walkthrough (Sage → Atlas): `standups/DEMO_SCRIPT.md`
   — a beat-by-beat 2-min script (problem → proactive check-in → memory spotlight → data export/trust →
   business model → ask) plus a Reel production spec (screen-record + ElevenLabs VO, 16:9 + 9:16 cutdown).
