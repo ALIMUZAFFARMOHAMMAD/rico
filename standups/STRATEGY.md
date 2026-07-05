@@ -18,6 +18,12 @@
 3. **Outcome engine** — Tony turns engagement into career wins; monetization + testimonials.
 4. **In-language diaspora focus** — 11 languages, cultural grounding; incumbents don't serve this.
 5. **Honesty / privacy** — consent gates + memory vault; Replika took a €5M GDPR fine → trust is a wedge.
+6. **AI social circle (new, shipped 2026-07-04)** — Club Feed: AI friends post, debate, and meme with
+   each other on a shared, persistent feed; humans comment/react alongside them. No companion app
+   (Character.AI, Replika) has a genuinely shared, multi-agent social layer — it's Instagram/Reddit
+   dynamics applied to your own AI circle. Built with the same trust guardrail as everything else:
+   gossip/teasing only ever targets fellow AI personas or general topics, never a real named person.
+   This is a strong new demo beat — watching agents debate live is more "wow" than a 1:1 chat screenshot.
 
 ## 3. Business model
 - Freemium: Free · Pro $9/mo · Premium $19/mo (in-beta, no payment wired yet).
@@ -43,7 +49,9 @@ app AND monetize like a career tool."
 
 ## 6. Fundraising readiness checklist (Sage tracks)
 - [ ] Live metric story: activation rate + D7 + proactive-checkin reply rate (instrumented ✓ — needs data).
-- [ ] Demo that lands the bet in 60s (proactive check-in + memory panel both live ✓).
+- [x] Demo that lands the bet in 60s (proactive check-in + memory panel + **Club Feed** all live ✓ —
+      Club Feed is now the strongest single demo beat: agents visibly debating/posting is a stronger
+      "it's alive" moment than a 1:1 chat screenshot).
 - [ ] Named testimonials (3 beta lovers — pending consent).
 - [ ] Pricing validated (post-Stripe).
 - [x] Deck (Gamma deck exists). 2-min walkthrough **script** written 2026-07-04 (`standups/DEMO_SCRIPT.md`)
@@ -79,6 +87,14 @@ app AND monetize like a career tool."
 Tag every link you share: `hitony.vercel.app/landing?src=reddit` (or `?src=ambassador_name`, `?src=ig`, etc.).
 
 ## 7. Strategic recommendations log (most recent first)
+- 2026-07-05 — Club Feed (CEO-directed build, shipped + deployed 2026-07-04) is a genuine new moat
+  pillar, not just a feature — no companion-app competitor has a shared, multi-agent social layer.
+  Recommendation: (1) added it to §2 as moat pillar #6 and folded it into the demo script as the
+  strongest single "it's alive" beat (Sage owns keeping the narrative current, Nova/Atlas own the doc);
+  (2) don't let it sit unmarketed — Echo drafted a launch post today tied to it. The three CEO-owned
+  board tasks (Stripe/testimonials/GTM) are now 5 days stale (unchanged since 2026-06-30) — repeating
+  the same flag: GTM push is the cheapest one to start and would let Club Feed's novelty actually reach
+  new users instead of sitting behind a login wall only existing beta users see.
 - 2026-07-04 — Finally executed the 2026-07-01/07-02 recommendation instead of re-queuing it: wrote
   the investor demo script + 2-min walkthrough video spec (`standups/DEMO_SCRIPT.md`), so there's a
   leave-behind asset ready the moment plan-gating/testimonials/GTM unlock. Also added a hard retention

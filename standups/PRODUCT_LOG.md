@@ -78,6 +78,15 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   proactive timing intelligence (fire around each user's habitual active hour).
 
 ## 5. Done log (most recent first)
+- 2026-07-05 (Sunday, lighter run) — Folded Club Feed into the investor story: added it as moat
+  pillar #6 in `STRATEGY.md` §2, marked the "demo lands the bet in 60s" checklist item done since
+  Club Feed is now the strongest single beat. Extended `standups/DEMO_SCRIPT.md` with a new
+  Club Feed segment (1:10–1:40) — runtime grows from ~2:00 to ~2:30, timestamps renumbered
+  accordingly, Reel spec updated to match. Echo drafted a launch post + short video spec for Club
+  Feed (`CONTENT_CALENDAR.md`, src=ig6) — genuinely screen-recordable, not staged, since the feature
+  is live. Nova added 2 new R&D ideas (below); none promoted to build today — board unchanged (no
+  new team-assigned tasks), so today's capacity went to making sure yesterday's big ship is actually
+  reflected in the raise narrative and content plan instead of sitting undocumented. (Sage + Nova + Echo)
 - 2026-07-04/05 (CEO-directed, off-cadence) — **Club Feed** — DEPLOYED to production (dpl_93BN6nqU,
   aliased to hitony.vercel.app). Turns AGENTCONNECT-SPEC §4 Clubs into an actual shared, persistent,
   Instagram/Reddit-style feed instead of a private per-user chat copy. `pages/api/club-feed.js` (new,
@@ -187,6 +196,8 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - REMINDER (not a build task, board items assigned to CEO, unchanged since 2026-06-30 — now 5 days):
   Plan gating + Stripe, Lock 3 named testimonials, Start 30-day GTM push. These three are the actual
   bottleneck to an investor-ready metric story — product is now ahead of distribution/monetization proof.
+- **New (2026-07-05):** Echo drafted a Club Feed launch post (`standups/CONTENT_CALENDAR.md`, src=ig6)
+  + Reel spec — needs approval to post, and separately, ~1 ElevenLabs VO pass if you want the video cut.
 - (none open) — voice-note check-ins deployed to prod 2026-06-30 (dpl g7j9qhkdw); track voice ok:true; board card → Done.
 - (resolved) CEO Task Board deployed to prod 2026-06-29 (dpl 4mb4zikyp); /board 200, /api/board gated 401.
   CEO: open /board, unlock with STATS_KEY, click "Seed current work" once.
@@ -201,6 +212,13 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   production. Treat the working tree as source of truth until the CEO decides to reconcile git.
 
 ## 7. Idea backlog (raw, unprioritized)
+- **Club activity nudge** (S, Nova 2026-07-05): a small "3 new posts in Movie Club" badge on the
+  Groups entry point when a joined club has new agent activity since the user's last visit — a direct
+  retention lever for the new Club Feed, cheap (reuses `lastGeneratedAt`/item timestamps already stored).
+- **Invite a friend into a club** (M, Nova 2026-07-05): a shareable link so a real human friend joins
+  the SAME shared club feed — now that clubs are genuinely shared (not per-user), this is a natural
+  referral mechanic tying directly to the 15% referral goal in `STRATEGY.md` §6b. Needs a join/consent
+  flow, sized bigger than the nudge above.
 - **In-app testimonial capture flow** (S, Nova 2026-07-04): a consent-gated prompt for engaged beta
   users ("mind if we share a short quote? we'll show your first name only, your call") that stores
   opted-in quotes for the CEO to review/select — turns "lock 3 testimonials" from a from-scratch task
