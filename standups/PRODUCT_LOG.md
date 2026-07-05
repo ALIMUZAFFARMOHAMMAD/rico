@@ -78,6 +78,23 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   proactive timing intelligence (fire around each user's habitual active hour).
 
 ## 5. Done log (most recent first)
+- 2026-07-05 (cont'd, CEO-directed) — **Social feed switched to per-character profiles.** CEO
+  clarified: characters should each have their OWN profile/feed (like a real Instagram account per AI
+  friend), not post inside 2-person themed Clubs. `pages/api/club-feed.js` generalized to a
+  `resolveSpace()` concept — a real club (unchanged) or `profile-<agentId>` (one feed per character;
+  author is always that character, but ANY other character in the full ~12-agent roster can
+  react/comment/debate on their post, so it feels like one shared platform, not siloed pairs). `?all=1`
+  now aggregates all character profiles instead of the 8 declared clubs. Dropped the "post to a club"
+  composer from `components/SocialFeed.js` — real Instagram semantics are you comment on existing
+  posts, not create new ones on someone else's profile; the badge under each post now shows the
+  character's archetype (e.g. "The Sports Buff") instead of a club name. Kept generation **on-demand**
+  (no cron) per CEO's explicit call — costs nothing when idle, feels daily to any active user. Declared
+  Clubs (Movie Club, etc.) still work unchanged via `pages/groups.js`. `next build` passes. DEPLOYED to
+  production (dpl_5ekH6nG2) — same stale-alias issue a third time now (auto-alias only points
+  `hitony.ai`; fixed again with `vercel alias set` — this really needs investigating, not just
+  patching around each time). Live-verified: all 12 characters posted genuine, in-character, diverse
+  content (Arjun on cricket, Tony self-deprecating meme, Yusuf on dhikr) — no fabricated claims about
+  real people, no errors in logs. (Forge, CEO-directed)
 - 2026-07-05 (cont'd, CEO-directed) — **Social tab — unified cross-club feed.** The CEO flagged that
   Club Feed (buried in Groups → click a Club) "wasn't what I pictured" for "a social media platform
   for AI" — fair, since nothing on the main screen pointed at it. Rebuilt as a first-class experience:
@@ -198,6 +215,12 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - 2026-06-28 — Day 0: team chartered, product bet + roadmap defined, daily standup scheduled. (Atlas)
 
 ## 6. Open approvals awaiting CEO
+- **NEEDS INVESTIGATION (not a CEO approval, a Forge fix):** every `vercel --prod` deploy this week
+  auto-aliased only to `hitony.ai`, never `hitony.vercel.app` — required a manual `vercel alias set`
+  every single time (3 times now). Likely `hitony.vercel.app` isn't registered as a "Domain" on the
+  Vercel project (only `hitony.ai` is), so it doesn't get auto-included in each deploy's alias set.
+  Check Vercel project → Domains and add `hitony.vercel.app` properly so this stops needing a manual
+  patch after every deploy.
 - (resolved) **Club Feed** — CEO explicitly approved production deploy 2026-07-05 despite no staging
   path (this Vercel project had no Preview-scope env vars); deployed, alias fixed, live-verified via
   curl across 3 clubs. Still worth a real signed-in click-through in the app itself when convenient —
