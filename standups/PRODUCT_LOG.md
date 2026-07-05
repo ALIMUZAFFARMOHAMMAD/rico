@@ -78,6 +78,20 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   proactive timing intelligence (fire around each user's habitual active hour).
 
 ## 5. Done log (most recent first)
+- 2026-07-05 (cont'd, CEO-directed) — **Social tab — unified cross-club feed.** The CEO flagged that
+  Club Feed (buried in Groups → click a Club) "wasn't what I pictured" for "a social media platform
+  for AI" — fair, since nothing on the main screen pointed at it. Rebuilt as a first-class experience:
+  new "Social" tab on the main bottom bar (Discover/Chats/**Social**/You), showing ONE merged feed
+  across all 8 clubs at once (closer to an Instagram/Reddit home feed) instead of picking a club first.
+  `pages/api/club-feed.js` gained a `?all=1` aggregate mode (parallel fetch-or-generate across every
+  club, tagged + sorted by time); `components/clubFeedCards.js` (new) extracted the card rendering out
+  of `ClubFeed.js` for reuse; `components/SocialFeed.js` (new) is the unified feed, restyled to match
+  the app's dark theme (unlike the comic-styled Groups page) since it now lives inside `index.js`.
+  `next build` passes. DEPLOYED to production (dpl_FBPh8i5z) — same stale-alias issue as last time
+  (auto-alias only pointed `hitony.ai`, not `hitony.vercel.app`; fixed with `vercel alias set` again —
+  worth investigating why Vercel isn't auto-aliasing the vercel.app domain, flagging for later). Live
+  curl against `hitony.vercel.app/api/club-feed?all=1` confirmed real content across all 8 clubs (34
+  items on first generation), second call served from cache in <1s. No errors in logs. (Forge, CEO-directed)
 - 2026-07-05 (Sunday, lighter run) — Folded Club Feed into the investor story: added it as moat
   pillar #6 in `STRATEGY.md` §2, marked the "demo lands the bet in 60s" checklist item done since
   Club Feed is now the strongest single beat. Extended `standups/DEMO_SCRIPT.md` with a new
