@@ -78,23 +78,28 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   proactive timing intelligence (fire around each user's habitual active hour).
 
 ## 5. Done log (most recent first)
-- 2026-07-04 (CEO-directed, off-cadence) — **Club Feed**: turns AGENTCONNECT-SPEC §4 Clubs into an
-  actual shared, persistent, Instagram/Reddit-style feed instead of a private per-user chat copy.
-  `pages/api/club-feed.js` (new, lazy-cached ~6h generation per club — reuses the zero-DDL
-  `conversations` table via a `club::<clubId>::feed` row, shared not per-user) generates posts,
-  in-universe agent-to-agent debates, and text/CSS meme cards; `components/ClubFeed.js` (new) renders
-  them with AI-labeled avatars vs. human avatars, reactions, and reply threads; `pages/groups.js`
-  (modified) routes a club click to the shared feed instead of `createGroup()` — private user-created
-  Groups are untouched. CEO's original ask ("AI bots gossip/react/debate/meme, humans join in") was
-  reframed for safety: every generation prompt bans fabricated claims about any real named person —
-  gossip/teasing only ever targets fellow AI personas or general topics — since the literal ask
-  matched the exact harm pattern in the "feral AI gossip" research the CEO cited (Univ. of Exeter,
-  Krueger & Osler). `next build` passes; API smoke-tested via curl (short-circuits safely through the
-  existing `configured()` guard, same as every other route — this local env has no working Supabase
-  service key, matching `/api/checkin`'s identical local behavior). Full generation + signed-in
-  click-through NOT yet verified — needs real Supabase creds / Clerk sign-in, only available once
-  deployed. Committed on new branch `feature/club-feed`, pushed to GitHub (PR not opened — `gh` not
-  authenticated in this environment). ⏳ Awaiting CEO review + deploy approval.
+- 2026-07-04/05 (CEO-directed, off-cadence) — **Club Feed** — DEPLOYED to production (dpl_93BN6nqU,
+  aliased to hitony.vercel.app). Turns AGENTCONNECT-SPEC §4 Clubs into an actual shared, persistent,
+  Instagram/Reddit-style feed instead of a private per-user chat copy. `pages/api/club-feed.js` (new,
+  lazy-cached ~6h generation per club — reuses the zero-DDL `conversations` table via a
+  `club::<clubId>::feed` row, shared not per-user) generates posts, in-universe agent-to-agent debates,
+  and text/CSS meme cards; `components/ClubFeed.js` (new) renders them with AI-labeled avatars vs.
+  human avatars, reactions, and reply threads; `pages/groups.js` (modified) routes a club click to the
+  shared feed instead of `createGroup()` — private user-created Groups are untouched. CEO's original
+  ask ("AI bots gossip/react/debate/meme, humans join in") was reframed for safety: every generation
+  prompt bans fabricated claims about any real named person — gossip/teasing only ever targets fellow
+  AI personas or general topics — since the literal ask matched the exact harm pattern in the "feral AI
+  gossip" research the CEO cited (Univ. of Exeter, Krueger & Osler). `next build` passed; CEO explicitly
+  approved production deploy (no working preview path — this Vercel project's env vars were Production-
+  scope only, and adding secrets to Preview scope was a separate call the CEO chose to skip in favor of
+  verifying live). Post-deploy curl smoke test against the real `hitony.vercel.app` confirmed genuine
+  generation across multiple clubs — Movie Club (Luna/Pixel discussing real films, no fabricated claims
+  about real people), Game Day (Zara/Arjun), Career Corner (Tony/Meera), and a working meme card + the
+  single-member-club debate-skip (Gita Circle, `hari` alone, correctly produced a meme + post, no
+  debate since debate mode requires 2+ members). Note: this deploy also had to fix a stale alias — the
+  new production deployment initially only auto-aliased to `hitony.ai` (which doesn't resolve via DNS),
+  not `hitony.vercel.app`; ran `vercel alias set` to point the real domain at it. Branch `feature/club-feed`
+  pushed to GitHub (PR not opened — `gh` not authenticated in this environment).
 - 2026-07-04 (cont'd) — Investor demo script + 2-min walkthrough (Sage → Atlas): `standups/DEMO_SCRIPT.md`
   — a beat-by-beat 2-min script (problem → proactive check-in → memory spotlight → data export/trust →
   business model → ask) plus a Reel production spec (screen-record + ElevenLabs VO, 16:9 + 9:16 cutdown).
@@ -161,10 +166,10 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - 2026-06-28 — Day 0: team chartered, product bet + roadmap defined, daily standup scheduled. (Atlas)
 
 ## 6. Open approvals awaiting CEO
-- **Review + deploy `feature/club-feed`** (shared Club Feed — posts/debates/memes/reactions across
-  AI members and humans, code complete 2026-07-04) to production. Please click through once live —
-  generation and the signed-in comment flow couldn't be verified locally (no working Supabase key /
-  Clerk session in this environment).
+- (resolved) **Club Feed** — CEO explicitly approved production deploy 2026-07-05 despite no staging
+  path (this Vercel project had no Preview-scope env vars); deployed, alias fixed, live-verified via
+  curl across 3 clubs. Still worth a real signed-in click-through in the app itself when convenient —
+  the comment/react/report UI paths were only exercised via direct API calls, not the browser.
 - **Deploy `feature/signup-trust-badge`** (sign-up trust badge, code complete 2026-07-02) to production.
 - **Deploy `feature/memory-data-export`** (Memory Vault data-export button, code complete 2026-07-04) to production.
 - **Record/generate the 2-min investor walkthrough video** (`standups/DEMO_SCRIPT.md`) — mostly a live
