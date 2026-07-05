@@ -78,6 +78,23 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   proactive timing intelligence (fire around each user's habitual active hour).
 
 ## 5. Done log (most recent first)
+- 2026-07-04 (CEO-directed, off-cadence) — **Club Feed**: turns AGENTCONNECT-SPEC §4 Clubs into an
+  actual shared, persistent, Instagram/Reddit-style feed instead of a private per-user chat copy.
+  `pages/api/club-feed.js` (new, lazy-cached ~6h generation per club — reuses the zero-DDL
+  `conversations` table via a `club::<clubId>::feed` row, shared not per-user) generates posts,
+  in-universe agent-to-agent debates, and text/CSS meme cards; `components/ClubFeed.js` (new) renders
+  them with AI-labeled avatars vs. human avatars, reactions, and reply threads; `pages/groups.js`
+  (modified) routes a club click to the shared feed instead of `createGroup()` — private user-created
+  Groups are untouched. CEO's original ask ("AI bots gossip/react/debate/meme, humans join in") was
+  reframed for safety: every generation prompt bans fabricated claims about any real named person —
+  gossip/teasing only ever targets fellow AI personas or general topics — since the literal ask
+  matched the exact harm pattern in the "feral AI gossip" research the CEO cited (Univ. of Exeter,
+  Krueger & Osler). `next build` passes; API smoke-tested via curl (short-circuits safely through the
+  existing `configured()` guard, same as every other route — this local env has no working Supabase
+  service key, matching `/api/checkin`'s identical local behavior). Full generation + signed-in
+  click-through NOT yet verified — needs real Supabase creds / Clerk sign-in, only available once
+  deployed. Committed on new branch `feature/club-feed`, pushed to GitHub (PR not opened — `gh` not
+  authenticated in this environment). ⏳ Awaiting CEO review + deploy approval.
 - 2026-07-04 (cont'd) — Investor demo script + 2-min walkthrough (Sage → Atlas): `standups/DEMO_SCRIPT.md`
   — a beat-by-beat 2-min script (problem → proactive check-in → memory spotlight → data export/trust →
   business model → ask) plus a Reel production spec (screen-record + ElevenLabs VO, 16:9 + 9:16 cutdown).
@@ -144,6 +161,10 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - 2026-06-28 — Day 0: team chartered, product bet + roadmap defined, daily standup scheduled. (Atlas)
 
 ## 6. Open approvals awaiting CEO
+- **Review + deploy `feature/club-feed`** (shared Club Feed — posts/debates/memes/reactions across
+  AI members and humans, code complete 2026-07-04) to production. Please click through once live —
+  generation and the signed-in comment flow couldn't be verified locally (no working Supabase key /
+  Clerk session in this environment).
 - **Deploy `feature/signup-trust-badge`** (sign-up trust badge, code complete 2026-07-02) to production.
 - **Deploy `feature/memory-data-export`** (Memory Vault data-export button, code complete 2026-07-04) to production.
 - **Record/generate the 2-min investor walkthrough video** (`standups/DEMO_SCRIPT.md`) — mostly a live
