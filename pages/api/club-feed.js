@@ -128,32 +128,66 @@ async function pickResponder(apiKey, members, text) {
   }
 }
 
+// Fetch-or-generate the item list for a single club (shared by the single-club
+// GET path and the cross-club aggregate GET path below).
+async function getOrGenerateClubItems(apiKey, club, language) {
+  const members = membersOf(club);
+  const key = feedKey(club.id);
+  const row = await getRow(key);
+  const existing = (row && row.messages) || [];
+  const lastGen = row?.traits?.lastGeneratedAt ? new Date(row.traits.lastGeneratedAt).getTime() : 0;
+  const fresh = Date.now() - lastGen < FRESH_WINDOW_MS;
+
+  let items = existing;
+  if (!fresh) {
+    const batch = await generateBatch(apiKey, club, members, language);
+    items = [...existing, ...batch].slice(-MAX_ITEMS);
+    await upsertRow(key, { messages: items, traits: { ...(row?.traits || {}), lastGeneratedAt: new Date().toISOString() } });
+  }
+  return { items, fresh };
+}
+
 export default async function handler(req, res) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return res.status(500).json({ error: "No API key" });
   if (!configured()) return res.status(200).json({ ok: false, items: [], club: null });
 
+  if (req.method === "GET" && req.query.all) {
+    // Unified cross-club feed (Social tab): fetch-or-generate every club in
+    // parallel, tag each item with which club it came from, merge, sort by time.
+    const language = LANGS[req.query.lang] ? req.query.lang : "en";
+    try {
+      const results = await Promise.all(
+        CLUBS.map(async (club) => {
+          try {
+            const { items } = await getOrGenerateClubItems(apiKey, club, language);
+            return items.map((it) => ({ ...it, clubId: club.id, clubName: club.name, clubEmoji: club.emoji }));
+          } catch (e) {
+            console.error(`club-feed all: ${club.id} failed:`, e.message);
+            return [];
+          }
+        })
+      );
+      const merged = results.flat().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 60);
+      return res.status(200).json({
+        ok: true,
+        clubs: CLUBS.map((c) => ({ id: c.id, name: c.name, emoji: c.emoji, theme: c.theme, agentIds: c.agents })),
+        items: merged,
+      });
+    } catch (e) {
+      console.error("club-feed GET all error:", e.message);
+      return res.status(500).json({ error: "Failed to load feed" });
+    }
+  }
+
   if (req.method === "GET") {
     const { clubId, lang } = req.query;
     const club = CLUBS.find((c) => c.id === clubId);
     if (!club) return res.status(404).json({ error: "No such club" });
-    const members = membersOf(club);
     const language = LANGS[lang] ? lang : "en";
-    const key = feedKey(clubId);
 
     try {
-      const row = await getRow(key);
-      const existing = (row && row.messages) || [];
-      const lastGen = row?.traits?.lastGeneratedAt ? new Date(row.traits.lastGeneratedAt).getTime() : 0;
-      const fresh = Date.now() - lastGen < FRESH_WINDOW_MS;
-
-      let items = existing;
-      if (!fresh) {
-        const batch = await generateBatch(apiKey, club, members, language);
-        items = [...existing, ...batch].slice(-MAX_ITEMS);
-        await upsertRow(key, { messages: items, traits: { ...(row?.traits || {}), lastGeneratedAt: new Date().toISOString() } });
-      }
-
+      const { items, fresh } = await getOrGenerateClubItems(apiKey, club, language);
       return res.status(200).json({
         ok: true,
         fresh,

@@ -15,6 +15,7 @@ import GameBoard from "../components/GameBoard";
 import Dashboard from "../components/Dashboard";
 import ProactiveCheckin from "../components/ProactiveCheckin";
 import MemorySpotlight from "../components/MemorySpotlight";
+import SocialFeed from "../components/SocialFeed";
 import { captureSource, getSource } from "../lib/source";
 import { CONSENT_VERSION } from "../lib/consent";
 import Onboarding from "../components/Onboarding";
@@ -671,6 +672,21 @@ export default function Rico() {
           </div>
         )}
 
+        {/* ===== SOCIAL — unified cross-club feed ===== */}
+        {tab === "social" && (
+          <div style={{ flex: 1, overflowY: "auto", padding: "4px 18px 0", display: "flex", flexDirection: "column" }}>
+            {isSignedIn && userId ? (
+              <SocialFeed userId={userId} userName={userName} lang={langRef.current} T={T} font={font} />
+            ) : (
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "40px 20px" }}>
+                <div style={{ fontSize: 34, marginBottom: 10 }}>🌐</div>
+                <div style={{ color: T.text, fontWeight: 800, fontSize: 17 }}>See what your friends are up to</div>
+                <div style={{ color: T.sub, fontSize: 13, marginTop: 6, maxWidth: 260 }}>Sign in to see your AI friends post, debate, and meme — and jump in yourself.</div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* ===== ME ===== */}
         {tab === "me" && (
           <div style={{ flex: 1, overflowY: "auto", padding: "4px 18px 80px" }}>
@@ -797,7 +813,7 @@ export default function Rico() {
 
         {/* tab bar */}
         <div style={{ display: "flex", borderTop: `1px solid ${T.line}`, background: "rgba(15,14,23,0.82)", backdropFilter: "blur(16px)", padding: "8px 10px 12px", position: "relative", zIndex: 5 }}>
-          {[["discover", "✨", "Discover"], ["chats", "💬", "Chats"], ["me", "🧭", "You"]].map(([k, icon, label]) => (
+          {[["discover", "✨", "Discover"], ["chats", "💬", "Chats"], ["social", "🌐", "Social"], ["me", "🧭", "You"]].map(([k, icon, label]) => (
             <button key={k} onClick={() => setTab(k)} style={{ flex: 1, background: "transparent", border: "none", cursor: "pointer", fontFamily: font, position: "relative", padding: "6px 0" }}>
               {tab === k && <motion.div layoutId="tab-pill" style={{ position: "absolute", inset: "0 18%", borderRadius: 100, background: T.panel2 }} transition={{ type: "spring", stiffness: 380, damping: 32 }} />}
               <div style={{ position: "relative", fontSize: 16 }}>{icon}</div>
