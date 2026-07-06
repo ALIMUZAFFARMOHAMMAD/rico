@@ -26,12 +26,19 @@ Fix (do on the next deploy, alongside the pending auth-guard change): shared lim
 Upstash `@upstash/ratelimit` (survives serverless cold starts; in-memory does not).
 Needs a free Upstash Redis + `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` in env.
 
-## 3. Board key is brute-forceable
-`BOARD_KEY=752003` is 6 digits (10^6) with no rate limit → guessable. Rotate to a long
-random token (e.g. `openssl rand -hex 16`) on the next deploy, update Vercel env + `/board` login.
+## 3. Board key — DONE (2026-07-01)
+Rotated `BOARD_KEY` from `752003` to a 32-hex random token (Vercel + .env.local), and swapped
+the `/board` + `/stats` compares to constant-time `lib/keys.js` safeKeyEq (node:crypto).
+Deployed (dpl oq7stvmjr): new key → ok:true, old key → 401. New key is in the CEO's hands (chat).
 
-## 4. Pending (in working tree, NOT deployed — verify before shipping)
-`middleware.js` + `lib/auth.js` `ownsUser` guard on profile/memory/conversation/resume/matches
-closes the userId IDOR. Verify with a real login (self=200, app loads) before deploy, then
-fan the guard to the remaining user-data endpoints + rotate the board key + add the Upstash
-limiter — all in one deploy.
+## 4. userId IDOR guard — specified, NOT in tree (kept deploys clean)
+The fix (`middleware.js` Clerk v4 authMiddleware + `lib/auth.js` ownsUser + `if(!ownsUser(req,userId)) 403`)
+is fully specified here and backed up (scratchpad /tmp/authkeep). It was REMOVED from the working tree
+so unrelated deploys don't ship unverified auth. IMPLEMENT on the verified rollout:
+1. Add middleware.js (authMiddleware, publicRoutes:()=>true — gates nothing) + lib/auth.js.
+2. Verify on a real login: self=200, app loads (getAuth resolves). If everything 403s, Clerk cookie
+   isn't resolving — fix before proceeding.
+3. Fan `if(!ownsUser(req,userId)) return res.status(403).end()` across ALL user-data endpoints:
+   profile, memory, conversation, resume, matches, track, avatar, save-mascot, consent, checkin,
+   remembers, twin(POST) — and tighten results.js's dead `uid||userId` fallback.
+4. Then add the Upstash limiter (§2) in the same deploy.
