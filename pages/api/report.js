@@ -2,6 +2,7 @@
 // (voice_notes column = reports array) for review. Proper table in supabase-phase1.sql.
 import { configured, getRow, upsertRow, metaKey } from "../../lib/db";
 import { AGENTS } from "../../lib/agents";
+import { ownsUser } from "../../lib/auth";
 
 const REASONS = ["wrong", "harmful", "uncomfortable"];
 
@@ -9,6 +10,7 @@ export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
   if (!configured()) return res.status(500).json({ error: "Not configured" });
   const { userId, agentId, message, reason } = req.body || {};
+  if (userId && !ownsUser(req, userId)) return res.status(403).json({ error: "forbidden" });
   const validAgent = AGENTS[agentId] || (typeof agentId === "string" && agentId.startsWith("twin__"));
   if (!validAgent || !REASONS.includes(reason)) return res.status(400).json({ error: "Bad report" });
 

@@ -2,12 +2,14 @@
 // first-seen, last-seen, distinct active days, and counters for games & voice
 // calls in their meta row. No third-party analytics. Feeds the profile dashboard.
 import { configured, getRow, upsertRow, metaKey } from "../../lib/db";
+import { ownsUser } from "../../lib/auth";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
   if (!configured()) return res.status(200).json({ ok: false });
   const { userId, event, game, seconds, source } = req.body || {};
   if (!userId) return res.status(400).json({ error: "no userId" });
+  if (!ownsUser(req, userId)) return res.status(403).json({ error: "forbidden" });
   try {
     const key = metaKey(userId);
     const row = await getRow(key);

@@ -3,6 +3,7 @@
 // DELETE: remove the cloned voice and revert the twin to a stock voice.
 import { configured, getRow, upsertRow } from "../../lib/db";
 import { twinKey, twinVoice } from "../../lib/twins";
+import { ownsUser } from "../../lib/auth";
 
 export const config = { api: { bodyParser: { sizeLimit: "8mb" } } };
 
@@ -21,6 +22,7 @@ export default async function handler(req, res) {
   if (req.method === "POST") {
     const { userId, userName, audio, mime, consent } = req.body || {};
     if (!userId) return res.status(400).json({ error: "Sign in first" });
+    if (!ownsUser(req, userId)) return res.status(403).json({ error: "forbidden" });
     if (!consent) return res.status(400).json({ error: "Please confirm consent to clone your voice." });
     if (!audio) return res.status(400).json({ error: "No recording received." });
 
@@ -59,6 +61,7 @@ export default async function handler(req, res) {
   if (req.method === "DELETE") {
     const { userId } = req.body || {};
     if (!userId) return res.status(400).json({ error: "No userId" });
+    if (!ownsUser(req, userId)) return res.status(403).json({ error: "forbidden" });
     const row = await getRow(twinKey(userId));
     if (row?.traits?.voiceCloned && row.traits.voice) {
       await removeVoice(apiKey, row.traits.voice);

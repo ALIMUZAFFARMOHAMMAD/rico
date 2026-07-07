@@ -51,6 +51,7 @@ async function saveVoiceNotes(userId,callMessages,userName){
 }
 
 import { resolveAgent } from "../../lib/twins";
+import { ownsUser } from "../../lib/auth";
 
 const SYSTEM=(agent,userName,memory,language)=>`${agent.persona||`You are Tony, a warm perceptive AI companion at hitony.ai`} — you are on a VOICE CALL with the user, like calling your closest friend.
 ${userName?`The user's name is ${userName}.`:""}
@@ -65,6 +66,7 @@ export default async function handler(req,res){
   const apiKey=process.env.ANTHROPIC_API_KEY;
   if(!apiKey)return res.status(500).json({error:"No API key"});
   const{messages,mode,userName,userId,callMessages,language,agentId,build}=req.body;
+  if(userId&&!ownsUser(req,userId))return res.status(403).json({error:"forbidden"});
   const lang=LANGS[language]?language:"en";
   const agent=await resolveAgent(agentId);
   const memUserId=userId?(agent.id==="tony"?userId:`${userId}::agent::${agent.id}`):null;

@@ -1,10 +1,11 @@
 // Founder-only retention dashboard (JSON). Gated by ?key=STATS_KEY.
 // Computes signups + retention from the activity stamps in users' meta rows.
 import { sb, configured } from "../../lib/db";
+import { safeKeyEq } from "../../lib/keys";
 
 export default async function handler(req, res) {
   if (!configured()) return res.status(500).json({ error: "not configured" });
-  if (!process.env.STATS_KEY || (req.query.key || "") !== process.env.STATS_KEY) return res.status(401).json({ error: "unauthorized" });
+  if (!safeKeyEq(req.query.key, process.env.STATS_KEY)) return res.status(401).json({ error: "unauthorized" });
   try {
     const rows = await sb(`/conversations?user_id=like.*::meta&select=user_id,traits`);
     const DAY = 864e5, now = Date.now();

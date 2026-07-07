@@ -3,11 +3,13 @@
 // profile. Read-only; computed live from the existing memory rows (no new tables).
 import { configured, getUserRows, parseKey } from "../../lib/db";
 import { getAgent } from "../../lib/agents";
+import { ownsUser } from "../../lib/auth";
 
 export default async function handler(req, res) {
   if (!configured()) return res.status(200).json({ ok: false });
   const userId = req.query.userId;
   if (!userId) return res.status(400).json({ error: "no userId" });
+  if (!ownsUser(req, userId)) return res.status(403).json({ error: "forbidden" });
   try {
     const rows = await getUserRows(userId);
     const KEYS = ["O", "C", "E", "A", "N"];

@@ -4,6 +4,7 @@
 // background. Read back by /api/tony's loadMemory.
 import { configured, getRow, upsertRow } from "../../lib/db";
 import mammoth from "mammoth";
+import { ownsUser } from "../../lib/auth";
 
 const MODEL = "claude-sonnet-4-6";
 
@@ -81,6 +82,7 @@ export default async function handler(req, res) {
   if (!apiKey) return res.status(500).json({ error: "No API key" });
 
   const { mode, userId, text, fileData, fileMime, fileName } = req.body || {};
+  if (userId && !ownsUser(req, userId)) return res.status(403).json({ error: "forbidden" });
 
   try {
     if (mode === "get") {

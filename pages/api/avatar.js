@@ -2,6 +2,7 @@
 // palette for the SVG character rig. The raw photo is NEVER stored — only derived colors.
 import { configured, getRow, upsertRow } from "../../lib/db";
 import { twinKey } from "../../lib/twins";
+import { ownsUser } from "../../lib/auth";
 
 export const config = { api: { bodyParser: { sizeLimit: "8mb" } } };
 
@@ -21,6 +22,7 @@ export default async function handler(req, res) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   const { userId, image, mime } = req.body || {};
   if (!userId) return res.status(400).json({ error: "Sign in first" });
+  if (!ownsUser(req, userId)) return res.status(403).json({ error: "forbidden" });
   if (!image) return res.status(400).json({ error: "No photo received." });
 
   try {

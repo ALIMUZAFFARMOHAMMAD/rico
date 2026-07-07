@@ -5,6 +5,7 @@
 import { AGENTS, getAgent } from "../../lib/agents";
 import { languagePrompt, LANGS } from "../../lib/i18n";
 import { configured, getRow, upsertRow, getUserRows } from "../../lib/db";
+import { ownsUser } from "../../lib/auth";
 
 const MODEL = "claude-sonnet-4-6";
 const FAST = "claude-haiku-4-5-20251001";
@@ -76,6 +77,7 @@ export default async function handler(req, res) {
   if (!apiKey) return res.status(500).json({ error: "No API key" });
 
   const { mode, userId, subject, students, durationWeeks, resources, teacher, language, messages, week, doubt, image } = req.body || {};
+  if (userId && !ownsUser(req, userId)) return res.status(403).json({ error: "forbidden" });
   const lang = LANGS[language] ? language : "en";
   const subjSlug = slug(subject);
   const key = userId && configured() ? courseKey(userId, subjSlug) : null;

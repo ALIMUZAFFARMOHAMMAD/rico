@@ -1,5 +1,6 @@
 import { languagePrompt, LANGS } from "../../lib/i18n";
 import { resolveAgent } from "../../lib/twins";
+import { ownsUser } from "../../lib/auth";
 
 // Generic system prompt for catalog agents (Tony keeps his original full prompt)
 const AGENT_SYSTEM = (agent, userName, language, memory) => `${agent.persona}
@@ -169,6 +170,7 @@ export default async function handler(req, res) {
   if (!apiKey) return res.status(500).json({ error: "API key not configured" });
 
   const { messages, mode, traitsData, userName, userId, language, agentId } = req.body;
+  if (userId && !ownsUser(req, userId)) return res.status(403).json({ error: "forbidden" });
   const lang = LANGS[language] ? language : "en";
   const agent = await resolveAgent(agentId);
 

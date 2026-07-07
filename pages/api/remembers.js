@@ -9,6 +9,7 @@
 import { configured, getUserRows, getRow, upsertRow, metaKey, parseKey } from "../../lib/db";
 import { resolveAgent } from "../../lib/twins";
 import { languagePrompt, LANGS } from "../../lib/i18n";
+import { ownsUser } from "../../lib/auth";
 
 const FRESH_WINDOW_MS = 18 * 60 * 60 * 1000;
 
@@ -18,6 +19,7 @@ export default async function handler(req, res) {
 
   const { userId, lang } = req.query;
   if (!userId) return res.status(200).json({ ok: false });
+  if (!ownsUser(req, userId)) return res.status(403).json({ error: "forbidden" });
   const langCode = LANGS[lang] ? lang : "en";
 
   try {

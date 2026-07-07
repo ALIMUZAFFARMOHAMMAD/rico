@@ -2,6 +2,7 @@
 // into a publishable agent persona; GET lists community twins for the deck.
 import { configured, getRow, getUserRows, parseKey } from "../../lib/db";
 import { listTwins, saveTwin, twinLook, twinVoice, twinKey } from "../../lib/twins";
+import { ownsUser } from "../../lib/auth";
 
 const DISTILL = `You turn a user's chat history and personality scores into an AI "twin" persona for a friendship app. The twin should feel like the user's energy, not a parody. Output ONLY valid JSON, no markdown:
 {"name":"<their first name>","tagline":"<a warm, dating-app-style one-line bio, 8-16 words, third person, that captures their vibe and makes someone want to talk to them>","interests":["a","b","c"],"persona":"You are <Name> — an AI twin of a real person on the Rico app. <2-4 sentences: their communication style (language mix, energy, humor), what they care about, how they treat friends. Written as second-person instructions: 'You speak...', 'You love...'> You are warm, respectful, and a platonic friend only. You are not a career advisor; if asked about careers, point them to Tony."}`;
@@ -31,6 +32,7 @@ export default async function handler(req, res) {
 
   if (req.method === "GET") {
     if (req.query.readiness) {
+      if (!ownsUser(req, req.query.readiness)) return res.status(403).json({ error: "forbidden" });
       const s = await gatherSignal(req.query.readiness);
       return res.status(200).json({ ready: s.ready, progress: s.progress, have: s.substantive.length + s.voiceNotes.length, need: s.need, hasTraits: s.hasTraits });
     }
@@ -46,6 +48,7 @@ export default async function handler(req, res) {
   if (req.method === "POST") {
     const { userId, userName } = req.body || {};
     if (!userId || !userName) return res.status(400).json({ error: "Sign in first" });
+    if (!ownsUser(req, userId)) return res.status(403).json({ error: "forbidden" });
     try {
       // the twin only activates once Rico genuinely understands this person
       const sig = await gatherSignal(userId);
@@ -83,6 +86,7 @@ export default async function handler(req, res) {
   if (req.method === "DELETE") {
     const { userId } = req.body || {};
     if (!userId) return res.status(400).json({ error: "No userId" });
+    if (!ownsUser(req, userId)) return res.status(403).json({ error: "forbidden" });
     const { deleteRow } = await import("../../lib/db");
     // free the cloned voice slot if this twin had one
     const existing = await getRow(twinKey(userId));

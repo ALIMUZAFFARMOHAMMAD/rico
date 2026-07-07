@@ -7,6 +7,7 @@
 //   actions: add{title,assignee,status} · move{id,status} · assign{id,assignee} ·
 //            edit{id,title} · delete{id} · seed
 import { configured, getRow, upsertRow } from "../../lib/db";
+import { safeKeyEq } from "../../lib/keys";
 
 const KEY = "board::main";
 const COLS = ["todo", "inprogress", "done"];
@@ -39,11 +40,8 @@ const mkTask = (t) => ({
 });
 
 function gated(req) {
-  const k = req.query.key || req.headers["x-board-key"];
-  if (!k) return false;
-  // BOARD_KEY is the simple founder board key; STATS_KEY also works (shared founder access).
-  return (!!process.env.BOARD_KEY && k === process.env.BOARD_KEY) ||
-         (!!process.env.STATS_KEY && k === process.env.STATS_KEY);
+  // Constant-time compare (lib/keys). BOARD_KEY is the founder board key; STATS_KEY also works.
+  return safeKeyEq(req.query.key, process.env.BOARD_KEY) || safeKeyEq(req.query.key, process.env.STATS_KEY);
 }
 
 export default async function handler(req, res) {
