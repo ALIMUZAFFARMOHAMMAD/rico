@@ -78,6 +78,31 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   proactive timing intelligence (fire around each user's habitual active hour).
 
 ## 5. Done log (most recent first)
+- 2026-07-07 — **IDOR auth guard completed + two stray regressions caught in review.** Picked up the
+  in-progress security work from 2026-07-06 (`standups/SECURITY.md` §4 — the userId-ownership guard
+  was specified but deliberately kept out of the working tree "so unrelated deploys don't ship
+  unverified auth"; found sitting uncommitted with all the code actually written). Reviewed it file by
+  file rather than trusting it blind: `lib/auth.js` (new, `ownsUser(req,userId)` via Clerk's real
+  session) + `middleware.js` (new, `authMiddleware({publicRoutes:()=>true})` — gates nothing itself,
+  just makes `getAuth()` resolve) fanned as `if(!ownsUser(req,userId)) return res.status(403)` across
+  profile/conversation/memory/matches/track/avatar/consent/checkin/remembers/twin/resume/tony/tutor/
+  twin-voice/voice/report — matches the spec exactly, clean. `results.js` now trusts only the session's
+  real userId instead of a spoofable `body.uid` fallback. `stats.js`/`board.js` swapped to
+  `lib/keys.js`'s constant-time `safeKeyEq` (the board-key rotation's other half, deployed live per
+  SECURITY.md but never actually committed until now).
+  **Caught two regressions before they could ship:** (1) the working tree's `board.js` was missing the
+  `by` field and the entire `edit` action that are live in production right now (confirmed via a real
+  GET showing `by:"ceo"` on every task) — restored both, kept the security fix; (2) `lib/source.js` had
+  silently lost its `document.referrer` fallback for signup-source attribution — not part of the
+  security spec, not explained anywhere, and it would have quietly undermined the GTM-tracking system
+  Sage built specifically to measure the upcoming GTM push. Restored. Both fixes came from diffing the
+  uncommitted working tree against git HEAD *and* against what's actually live (curl), since this
+  repo's `main` and working tree have diverged in ways plain `git diff` alone can't fully explain.
+  `next build` passes clean (Middleware bundle now present, 119kB). Committed to new branch
+  `security/idor-auth-guard`, pushed — **NOT deployed.** Per SECURITY.md's own caution, the IDOR guard
+  needs a real signed-in login to confirm `getAuth()` actually resolves through the new middleware
+  (if the Clerk cookie doesn't resolve, every request 403s instead of working) — no way to test that
+  in this non-interactive environment. (Forge, continuing 2026-07-06's security work)
 - 2026-07-05 (cont'd, CEO-directed) — **Social feed switched to per-character profiles.** CEO
   clarified: characters should each have their OWN profile/feed (like a real Instagram account per AI
   friend), not post inside 2-person themed Clubs. `pages/api/club-feed.js` generalized to a
@@ -215,6 +240,11 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - 2026-06-28 — Day 0: team chartered, product bet + roadmap defined, daily standup scheduled. (Atlas)
 
 ## 6. Open approvals awaiting CEO
+- **Verify + deploy `security/idor-auth-guard`** — the userId-ownership guard (§4 of SECURITY.md) is
+  code-complete and pushed, but needs YOU (or someone with a real login) to sign in once after this
+  deploys and confirm the app still works (loads, chats, memory all function normally). If everything
+  suddenly 403s, the Clerk cookie isn't resolving through the new middleware — don't leave it deployed
+  in that state, roll back immediately. This can't be verified in this non-interactive environment.
 - **NEEDS INVESTIGATION (not a CEO approval, a Forge fix):** every `vercel --prod` deploy this week
   auto-aliased only to `hitony.ai`, never `hitony.vercel.app` — required a manual `vercel alias set`
   every single time (3 times now). Likely `hitony.vercel.app` isn't registered as a "Domain" on the
