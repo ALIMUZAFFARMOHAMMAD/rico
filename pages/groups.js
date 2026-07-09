@@ -7,6 +7,7 @@ import { AGENT_LIST, getAgent, CLUBS } from "../lib/agents";
 import TonyCharacter from "../components/TonyCharacter";
 import GameBoard from "../components/GameBoard";
 import GroupVoiceCall from "../components/GroupVoiceCall";
+import ClubFeed from "../components/ClubFeed";
 import { getStoredPref, getDetectedLang, detectLang, storeDetectedLang } from "../lib/i18n";
 
 const GROUP_GAMES = [
@@ -32,6 +33,7 @@ export default function Groups() {
   useEffect(() => { if (isLoaded && !isSignedIn) window.location.href = "/"; }, [isLoaded, isSignedIn]);
   const [groups, setGroups] = useState([]);
   const [activeId, setActiveId] = useState(null);
+  const [viewingClub, setViewingClub] = useState(null); // shared, persistent club feed (AGENTCONNECT-SPEC §4)
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
   const [newAgents, setNewAgents] = useState([]);
@@ -141,10 +143,10 @@ export default function Groups() {
 
       {/* header */}
       <div style={{ background: YELLOW, borderBottom: `4px solid ${INK}`, padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", boxShadow: `0 4px 0 ${INK}`, zIndex: 2 }}>
-        {active
-          ? <button onClick={() => { setActiveId(null); setVoiceCall(false); }} style={{ background: "white", border: `3px solid ${INK}`, padding: "4px 10px", fontFamily: "Bangers,cursive", fontSize: 15, cursor: "pointer", color: INK, boxShadow: `3px 3px 0 ${INK}` }}>← GROUPS</button>
+        {(active || viewingClub)
+          ? <button onClick={() => { setActiveId(null); setViewingClub(null); setVoiceCall(false); }} style={{ background: "white", border: `3px solid ${INK}`, padding: "4px 10px", fontFamily: "Bangers,cursive", fontSize: 15, cursor: "pointer", color: INK, boxShadow: `3px 3px 0 ${INK}` }}>← GROUPS</button>
           : <a href="/" style={{ background: "white", border: `3px solid ${INK}`, padding: "4px 10px", fontFamily: "Bangers,cursive", fontSize: 15, textDecoration: "none", color: INK, boxShadow: `3px 3px 0 ${INK}` }}>← CHAT</a>}
-        <div style={{ fontFamily: "Bangers,cursive", fontSize: 22, color: INK, letterSpacing: 2 }}>{active ? active.name.toUpperCase() : "👥 GROUPS"}</div>
+        <div style={{ fontFamily: "Bangers,cursive", fontSize: 22, color: INK, letterSpacing: 2 }}>{active ? active.name.toUpperCase() : viewingClub ? `${viewingClub.emoji} ${viewingClub.name}`.toUpperCase() : "👥 GROUPS"}</div>
         {active
           ? <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <button onClick={() => setShowGames(true)} title="Play a game with the group" style={{ background: "white", border: `3px solid ${INK}`, padding: "4px 9px", fontFamily: "Bangers,cursive", fontSize: 15, cursor: "pointer", color: INK, boxShadow: `3px 3px 0 ${INK}` }}>🎮 PLAY</button>
@@ -154,10 +156,17 @@ export default function Groups() {
                   <div style={{ marginTop: 1 }}><TonyCharacter size={48} look={getAgent(id).look} float="none" animated={false} pose="down" /></div>
                 </div>))}</div>
             </div>
-          : <a href="/discover" style={{ background: "white", border: `3px solid ${INK}`, padding: "4px 10px", fontFamily: "Bangers,cursive", fontSize: 15, textDecoration: "none", color: INK, boxShadow: `3px 3px 0 ${INK}` }}>🔍</a>}
+          : viewingClub
+            ? <div style={{ display: "flex" }}>{(viewingClub.agents || []).map((id, i) => (
+                <div key={id} title={getAgent(id).name} style={{ width: 30, height: 30, borderRadius: "50%", border: `2px solid ${INK}`, background: getAgent(id).look.hoodie || YELLOW, overflow: "hidden", marginLeft: i ? -8 : 0, display: "flex", justifyContent: "center" }}>
+                  <div style={{ marginTop: 1 }}><TonyCharacter size={48} look={getAgent(id).look} float="none" animated={false} pose="down" /></div>
+                </div>))}</div>
+            : <a href="/discover" style={{ background: "white", border: `3px solid ${INK}`, padding: "4px 10px", fontFamily: "Bangers,cursive", fontSize: 15, textDecoration: "none", color: INK, boxShadow: `3px 3px 0 ${INK}` }}>🔍</a>}
       </div>
 
-      {!active ? (
+      {viewingClub ? (
+        <ClubFeed club={viewingClub} userId={user?.id} userName={userName} lang={langRef.current} />
+      ) : !active ? (
         /* ===== group list + clubs ===== */
         <div style={{ flex: 1, overflowY: "auto", padding: 16, paddingBottom: 70 }}>
           {groups.length > 0 && <>
@@ -182,7 +191,7 @@ export default function Groups() {
                 <div style={{ fontFamily: "Bangers,cursive", fontSize: 16, color: INK, letterSpacing: 1 }}>{c.name}</div>
                 <div style={{ fontSize: 11, fontWeight: 700, color: "#888" }}>hosted by {getAgent(c.host).name} · {c.theme}</div>
               </div>
-              <button onClick={() => createGroup(c.name, c.agents, c.theme)} style={{ background: RED, color: "white", border: `2px solid ${INK}`, padding: "6px 12px", fontFamily: "Bangers,cursive", fontSize: 13, cursor: "pointer", boxShadow: `2px 2px 0 ${INK}` }}>JOIN</button>
+              <button onClick={() => setViewingClub(c)} style={{ background: RED, color: "white", border: `2px solid ${INK}`, padding: "6px 12px", fontFamily: "Bangers,cursive", fontSize: 13, cursor: "pointer", boxShadow: `2px 2px 0 ${INK}` }}>JOIN</button>
             </div>
           ))}
 
