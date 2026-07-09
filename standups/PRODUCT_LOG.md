@@ -78,6 +78,17 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   proactive timing intelligence (fire around each user's habitual active hour).
 
 ## 5. Done log (most recent first)
+- 2026-07-07 (cont'd) — **IDOR guard + rate limiting DEPLOYED to production** (dpl_7KxBs74F, CEO-directed).
+  First deploy attempt (dpl_6D2Un1LB) shipped `security/idor-auth-guard` alone and accidentally
+  **regressed the live Social/Club Feed feature** — that branch forked before `feature/club-feed` existed
+  and never had it merged in. Caught immediately by checking club-feed behavior post-deploy (not just
+  the auth guard), not by assuming the branch was current. Fixed by merging `feature/club-feed` +
+  `safety/working-tree-2026-06-30` (rate limiting) into the security branch, rebuilding, redeploying.
+  Verified this time: landing 200, Social feed returns real content (60 items), `conversation` endpoint
+  403s an unowned userId while staying graceful for anonymous calls, zero errors in logs. All three
+  branches (`security/idor-auth-guard`, `feature/club-feed`, `safety/working-tree-2026-06-30`) merged
+  back in sync so this doesn't happen again. Lesson repeated from earlier this week: always diff against
+  what's *actually live*, not just the branch you think you're deploying. (Forge, CEO-directed)
 - 2026-07-07 — **IDOR auth guard completed + two stray regressions caught in review.** Picked up the
   in-progress security work from 2026-07-06 (`standups/SECURITY.md` §4 — the userId-ownership guard
   was specified but deliberately kept out of the working tree "so unrelated deploys don't ship
@@ -240,11 +251,10 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - 2026-06-28 — Day 0: team chartered, product bet + roadmap defined, daily standup scheduled. (Atlas)
 
 ## 6. Open approvals awaiting CEO
-- **Verify + deploy `security/idor-auth-guard`** — the userId-ownership guard (§4 of SECURITY.md) is
-  code-complete and pushed, but needs YOU (or someone with a real login) to sign in once after this
-  deploys and confirm the app still works (loads, chats, memory all function normally). If everything
-  suddenly 403s, the Clerk cookie isn't resolving through the new middleware — don't leave it deployed
-  in that state, roll back immediately. This can't be verified in this non-interactive environment.
+- (resolved) **`security/idor-auth-guard`** — CEO-directed deploy, 2026-07-07 (dpl_7KxBs74F). Verified
+  via curl: anonymous calls stay graceful, an unowned userId now correctly 403s, no errors. Still worth
+  a real signed-in click-through when convenient — curl can't fully exercise the browser/Clerk-cookie
+  path, only the API layer.
 - **NEEDS INVESTIGATION (not a CEO approval, a Forge fix):** every `vercel --prod` deploy this week
   auto-aliased only to `hitony.ai`, never `hitony.vercel.app` — required a manual `vercel alias set`
   every single time (3 times now). Likely `hitony.vercel.app` isn't registered as a "Domain" on the
