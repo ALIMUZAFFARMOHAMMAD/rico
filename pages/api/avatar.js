@@ -3,6 +3,7 @@
 import { configured, getRow, upsertRow } from "../../lib/db";
 import { twinKey } from "../../lib/twins";
 import { ownsUser } from "../../lib/auth";
+import { rateLimited } from "../../lib/ratelimit";
 
 export const config = { api: { bodyParser: { sizeLimit: "8mb" } } };
 
@@ -18,6 +19,7 @@ const isHex = v => typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v);
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
+  if (rateLimited(req)) return res.status(429).json({ error: "Too many requests, slow down." });
   if (!configured()) return res.status(500).json({ error: "Not configured" });
   const apiKey = process.env.ANTHROPIC_API_KEY;
   const { userId, image, mime } = req.body || {};

@@ -3,9 +3,11 @@
 // client can start playback before generation finishes.
 
 import { resolveAgent } from "../../lib/twins";
+import { rateLimited } from "../../lib/ratelimit";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
+  if (rateLimited(req)) return res.status(429).json({ error: "Too many requests, slow down." });
   const apiKey = process.env.ELEVENLABS_API_KEY;
   const { text, agentId } = req.body || {};
   // each agent (and each twin) has their own licensed voice; Tony uses the founder's clone

@@ -3,6 +3,7 @@
 import { configured, getRow, getUserRows, parseKey } from "../../lib/db";
 import { listTwins, saveTwin, twinLook, twinVoice, twinKey } from "../../lib/twins";
 import { ownsUser } from "../../lib/auth";
+import { rateLimited } from "../../lib/ratelimit";
 
 const DISTILL = `You turn a user's chat history and personality scores into an AI "twin" persona for a friendship app. The twin should feel like the user's energy, not a parody. Output ONLY valid JSON, no markdown:
 {"name":"<their first name>","tagline":"<a warm, dating-app-style one-line bio, 8-16 words, third person, that captures their vibe and makes someone want to talk to them>","interests":["a","b","c"],"persona":"You are <Name> — an AI twin of a real person on the Rico app. <2-4 sentences: their communication style (language mix, energy, humor), what they care about, how they treat friends. Written as second-person instructions: 'You speak...', 'You love...'> You are warm, respectful, and a platonic friend only. You are not a career advisor; if asked about careers, point them to Tony."}`;
@@ -29,6 +30,7 @@ async function gatherSignal(userId) {
 
 export default async function handler(req, res) {
   if (!configured()) return res.status(500).json({ error: "Not configured" });
+  if (rateLimited(req)) return res.status(429).json({ error: "Too many requests, slow down." });
 
   if (req.method === "GET") {
     if (req.query.readiness) {
