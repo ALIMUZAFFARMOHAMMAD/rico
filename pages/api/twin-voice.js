@@ -3,6 +3,7 @@
 // DELETE: remove the cloned voice and revert the twin to a stock voice.
 import { configured, getRow, upsertRow } from "../../lib/db";
 import { twinKey, twinVoice } from "../../lib/twins";
+import { rateLimited } from "../../lib/ratelimit";
 
 export const config = { api: { bodyParser: { sizeLimit: "8mb" } } };
 
@@ -15,6 +16,7 @@ async function removeVoice(apiKey, voiceId) {
 
 export default async function handler(req, res) {
   if (!configured()) return res.status(500).json({ error: "Not configured" });
+  if (rateLimited(req)) return res.status(429).json({ error: "Too many requests, slow down." });
   const apiKey = process.env.ELEVENLABS_API_KEY;
   if (!apiKey) return res.status(503).json({ error: "Voice cloning isn't available right now." });
 

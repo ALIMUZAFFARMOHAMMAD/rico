@@ -1,5 +1,6 @@
 import { languagePrompt, LANGS } from "../../lib/i18n";
 import { resolveAgent } from "../../lib/twins";
+import { rateLimited } from "../../lib/ratelimit";
 
 // Generic system prompt for catalog agents (Tony keeps his original full prompt)
 const AGENT_SYSTEM = (agent, userName, language, memory) => `${agent.persona}
@@ -161,6 +162,7 @@ Use this to give deeply personalised, grounded responses. You know this person.`
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
+  if (rateLimited(req)) return res.status(429).json({ error: "Too many requests, slow down." });
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;

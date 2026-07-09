@@ -2,6 +2,7 @@
 // from one language to another (or auto-detects the source). Uses the fast model
 // for low latency. Text only; audio is synthesized client-side via /api/tts.
 import { LANGS } from "../../lib/i18n";
+import { rateLimited } from "../../lib/ratelimit";
 
 const FAST = "claude-haiku-4-5-20251001";
 
@@ -18,6 +19,7 @@ async function claude(apiKey, system, userText, maxTokens) {
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
+  if (rateLimited(req)) return res.status(429).json({ error: "Too many requests, slow down." });
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return res.status(500).json({ error: "No API key" });
 

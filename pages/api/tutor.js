@@ -5,6 +5,7 @@
 import { AGENTS, getAgent } from "../../lib/agents";
 import { languagePrompt, LANGS } from "../../lib/i18n";
 import { configured, getRow, upsertRow, getUserRows } from "../../lib/db";
+import { rateLimited } from "../../lib/ratelimit";
 
 const MODEL = "claude-sonnet-4-6";
 const FAST = "claude-haiku-4-5-20251001";
@@ -72,6 +73,7 @@ const mergeConcepts = (base, add) => {
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
+  if (rateLimited(req)) return res.status(429).json({ error: "Too many requests, slow down." });
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return res.status(500).json({ error: "No API key" });
 

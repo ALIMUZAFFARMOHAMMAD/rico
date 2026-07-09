@@ -9,11 +9,13 @@
 import { configured, getUserRows, getRow, upsertRow, metaKey, parseKey } from "../../lib/db";
 import { resolveAgent } from "../../lib/twins";
 import { languagePrompt, LANGS } from "../../lib/i18n";
+import { rateLimited } from "../../lib/ratelimit";
 
 const FRESH_WINDOW_MS = 18 * 60 * 60 * 1000;
 
 export default async function handler(req, res) {
   if (req.method !== "GET") return res.status(405).end();
+  if (rateLimited(req)) return res.status(429).json({ error: "Too many requests, slow down." });
   if (!configured()) return res.status(200).json({ ok: false });
 
   const { userId, lang } = req.query;

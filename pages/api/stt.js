@@ -1,9 +1,12 @@
 // Speech-to-text via ElevenLabs Scribe — reliable for languages the browser can't
 // transcribe (Telugu, etc.). Takes a recorded audio turn, returns the text.
+import { rateLimited } from "../../lib/ratelimit";
+
 export const config = { api: { bodyParser: { sizeLimit: "12mb" } } };
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
+  if (rateLimited(req)) return res.status(429).json({ error: "Too many requests, slow down." });
   const apiKey = process.env.ELEVENLABS_API_KEY;
   if (!apiKey) return res.status(503).json({ error: "Speech recognition unavailable" });
   const { audio, mime, language } = req.body || {};
