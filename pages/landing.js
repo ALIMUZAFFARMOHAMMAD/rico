@@ -135,7 +135,7 @@ export default function Landing() {
             <span style={{ fontWeight: 900, fontSize: 22, letterSpacing: -1, background: T.grad, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>rico</span>
           </a>
           <div className="navlinks" style={{ display: "flex", gap: 22, marginLeft: 14 }}>
-            {[["Features", "#features"], ["Friends", "#friends"], ["How it works", "#how"], ["Why Rico", "#why"], ["Pricing", "#pricing"], ["FAQ", "#faq"]].map(([l, h]) => (
+            {[["Features", "#features"], ["Friends", "#friends"], ["How it works", "#how"], ["Why Rico", "#why"], ["Trust", "#trust"], ["Pricing", "#pricing"], ["FAQ", "#faq"]].map(([l, h]) => (
               <a key={l} href={h} style={{ color: T.sub, textDecoration: "none", fontSize: 14, fontWeight: 600 }}>{l}</a>
             ))}
           </div>
@@ -325,6 +325,33 @@ export default function Landing() {
               </div>
             ))}
           </div>
+        </div>
+      </Section>
+
+      {/* honest by design — trust band */}
+      <Section style={{ padding: "56px 22px" }} id="trust">
+        <div style={{ textAlign: "center", marginBottom: 8 }}>
+          <Eyebrow>Built to be trusted</Eyebrow>
+          <h2 style={{ fontSize: "clamp(26px, 4vw, 38px)", fontWeight: 900, letterSpacing: -1, margin: "0 0 10px" }}>Honest by design</h2>
+          <p style={{ color: T.sub, fontSize: 14, maxWidth: 560, margin: "0 auto" }}>Companionship without the creepiness. The things other AI apps blur, we make clear.</p>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: 16, marginTop: 26 }}>
+          {[
+            { icon: "🤖", title: "Always labeled AI", body: "Every friend is clearly an AI — we never pretend otherwise. No deception, no blurred lines, ever." },
+            { icon: "🔒", title: "Your memory, your control", body: "See everything Rico remembers about you, and wipe any of it anytime. Your data stays yours." },
+            { icon: "💛", title: "Friendship, not romance", body: "Rico is built for genuine, supportive companionship — never manipulation, romance-baiting, or dependency." },
+          ].map((c, i) => (
+            <div key={i} className="card" style={{ background: `linear-gradient(150deg, ${T.violet}14, ${T.pink}0a)`, border: `1px solid ${T.line}`, borderRadius: 20, padding: 22 }}>
+              <div style={{ fontSize: 26, marginBottom: 10 }}>{c.icon}</div>
+              <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6 }}>{c.title}</div>
+              <div style={{ color: T.sub, fontSize: 13.5, lineHeight: 1.6 }}>{c.body}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{ textAlign: "center", marginTop: 20 }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 8, background: T.panel, border: `1px solid ${T.line}`, borderRadius: 100, padding: "8px 16px", fontSize: 12.5, color: T.sub }}>
+            ✅ AI clearly labeled · 🔒 You control your data · 💛 No romance, no manipulation
+          </span>
         </div>
       </Section>
 
