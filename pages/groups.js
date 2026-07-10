@@ -27,6 +27,8 @@ const PURPLE = "#7c4fcd";
 
 const load = () => { try { return JSON.parse(localStorage.getItem("hitony_groups") || "[]"); } catch (e) { return []; } };
 const save = (g) => localStorage.setItem("hitony_groups", JSON.stringify(g));
+const loadSeen = () => { try { return JSON.parse(localStorage.getItem("hitony_club_seen") || "{}"); } catch (e) { return {}; } };
+const saveSeen = (s) => localStorage.setItem("hitony_club_seen", JSON.stringify(s));
 
 export default function Groups() {
   const { user, isLoaded, isSignedIn } = useUser();
@@ -43,15 +45,25 @@ export default function Groups() {
   const [showGames, setShowGames] = useState(false);
   const [boardGame, setBoardGame] = useState(null);
   const [voiceCall, setVoiceCall] = useState(false);
+  const [clubActivity, setClubActivity] = useState({}); // clubId -> { count, latest }
+  const [clubSeen, setClubSeen] = useState({}); // clubId -> ISO string of last visit
   const panelRef = useRef(null);
   const langRef = useRef("en");
   const userName = user?.firstName || "";
 
   useEffect(() => {
     setGroups(load());
+    setClubSeen(loadSeen());
     const p = getStoredPref();
     langRef.current = p === "auto" ? (getDetectedLang() || "en") : p;
     setReady(true);
+    Promise.all(CLUBS.map(c =>
+      fetch(`/api/club-feed?clubId=${c.id}&peek=1`).then(r => r.json()).then(d => [c.id, d]).catch(() => [c.id, null])
+    )).then(pairs => {
+      const next = {};
+      for (const [id, d] of pairs) if (d?.ok) next[id] = { count: d.count, latest: d.latest };
+      setClubActivity(next);
+    });
   }, []);
   useEffect(() => { if (panelRef.current) panelRef.current.scrollTop = panelRef.current.scrollHeight; }, [groups, typing, activeId]);
 
@@ -128,6 +140,12 @@ export default function Groups() {
     setTyping(null);
   }
 
+  function joinClub(c) {
+    setViewingClub(c);
+    const next = { ...clubSeen, [c.id]: new Date().toISOString() };
+    setClubSeen(next); saveSeen(next);
+  }
+
   function deleteGroup(id) {
     const next = groups.filter(g => g.id !== id); setGroups(next); save(next);
     if (activeId === id) { setActiveId(null); setVoiceCall(false); }
@@ -184,16 +202,24 @@ export default function Groups() {
           </>}
 
           <div style={{ fontFamily: "Bangers,cursive", fontSize: 15, color: "#999", letterSpacing: 1, margin: "14px 0 8px" }}>CLUBS — HOSTED BY YOUR FRIENDS</div>
-          {CLUBS.map(c => (
+          {CLUBS.map(c => {
+            const activity = clubActivity[c.id];
+            const seen = clubSeen[c.id];
+            const isNew = activity?.latest && seen && new Date(activity.latest) > new Date(seen);
+            return (
             <div key={c.id} style={{ border: `3px solid ${PURPLE}`, background: "white", boxShadow: `4px 4px 0 ${PURPLE}`, padding: 12, marginBottom: 10, display: "flex", alignItems: "center", gap: 10 }}>
               <div style={{ fontSize: 26 }}>{c.emoji}</div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontFamily: "Bangers,cursive", fontSize: 16, color: INK, letterSpacing: 1 }}>{c.name}</div>
+                <div style={{ fontFamily: "Bangers,cursive", fontSize: 16, color: INK, letterSpacing: 1, display: "flex", alignItems: "center", gap: 6 }}>
+                  {c.name}
+                  {isNew && <span style={{ background: RED, color: "white", fontFamily: "'Comic Neue',cursive", fontSize: 10, fontWeight: 800, borderRadius: 100, padding: "2px 8px", letterSpacing: 0 }}>NEW POSTS</span>}
+                </div>
                 <div style={{ fontSize: 11, fontWeight: 700, color: "#888" }}>hosted by {getAgent(c.host).name} · {c.theme}</div>
               </div>
-              <button onClick={() => setViewingClub(c)} style={{ background: RED, color: "white", border: `2px solid ${INK}`, padding: "6px 12px", fontFamily: "Bangers,cursive", fontSize: 13, cursor: "pointer", boxShadow: `2px 2px 0 ${INK}` }}>JOIN</button>
+              <button onClick={() => joinClub(c)} style={{ background: RED, color: "white", border: `2px solid ${INK}`, padding: "6px 12px", fontFamily: "Bangers,cursive", fontSize: 13, cursor: "pointer", boxShadow: `2px 2px 0 ${INK}` }}>JOIN</button>
             </div>
-          ))}
+            );
+          })}
 
           {!creating ? (
             <button onClick={() => setCreating(true)} style={{ width: "100%", marginTop: 12, background: YELLOW, border: `3px solid ${INK}`, padding: 12, fontFamily: "Bangers,cursive", fontSize: 17, cursor: "pointer", boxShadow: `4px 4px 0 ${INK}`, color: INK, letterSpacing: 1 }}>+ CREATE YOUR OWN GROUP</button>
