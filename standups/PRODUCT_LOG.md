@@ -78,6 +78,23 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   proactive timing intelligence (fire around each user's habitual active hour).
 
 ## 5. Done log (most recent first)
+- 2026-07-09 — **Club activity nudge** (smallest queued Nova idea, promoted per 2026-07-07's "tomorrow's
+  plan"): `pages/api/club-feed.js` gained a `?peek=1` GET mode that reads the cached feed row only — no
+  `generateBatch` call — so the Groups list can check activity without ever spending an LLM call.
+  `pages/groups.js` fetches peek data for all 8 declared clubs on mount, compares each club's latest
+  cached item timestamp against a per-club last-visit timestamp in `localStorage`
+  (`hitony_club_seen`), and shows a "NEW POSTS" badge on any club with unseen activity; visiting a club
+  (JOIN) marks it seen. First-time users see no badges (no baseline to compare against yet) — avoids
+  every club looking "new" on first launch. `next build` passes clean. Could not runtime-verify in the
+  browser this run: this environment's `.env.local` has `CLERK_SECRET_KEY=""` (blank), so the Clerk
+  middleware 500s on every request in local dev — a pre-existing gap already flagged in the 2026-07-06/07
+  standups ("no way to test [Clerk-dependent flows] in this non-interactive environment"), not something
+  introduced today. Committed to new branch `feature/club-activity-nudge`, pushed. No board card (not a
+  CEO-assigned task — promoted from the Nova backlog). (Nova → Forge)
+- 2026-07-09 — Housekeeping: found one stray uncommitted change sitting in the working tree (the
+  honest-AI trust band on `pages/landing.js`, already live in production since 2026-07-01 per this log,
+  but never actually committed to git on the current branch) — committed it, closing one more instance
+  of the git/production drift repeatedly flagged in past standups.
 - 2026-07-07 (cont'd) — **IDOR guard + rate limiting DEPLOYED to production** (dpl_7KxBs74F, CEO-directed).
   First deploy attempt (dpl_6D2Un1LB) shipped `security/idor-auth-guard` alone and accidentally
   **regressed the live Social/Club Feed feature** — that branch forked before `feature/club-feed` existed
@@ -267,6 +284,9 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   the comment/react/report UI paths were only exercised via direct API calls, not the browser.
 - **Deploy `feature/signup-trust-badge`** (sign-up trust badge, code complete 2026-07-02) to production.
 - **Deploy `feature/memory-data-export`** (Memory Vault data-export button, code complete 2026-07-04) to production.
+- **New (2026-07-09):** **Deploy `feature/club-activity-nudge`** (Groups list "NEW POSTS" badge, code
+  complete 2026-07-09) to production. Low-risk (additive UI + a read-only API branch), but untested in a
+  real signed-in browser session for the same Clerk-env reason as the security branch below.
 - **Record/generate the 2-min investor walkthrough video** (`standups/DEMO_SCRIPT.md`) — mostly a live
   screen-record, but the voiceover pass (ElevenLabs, unless the CEO records their own narration) spends
   credits. New as of 2026-07-04.
@@ -289,9 +309,6 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   production. Treat the working tree as source of truth until the CEO decides to reconcile git.
 
 ## 7. Idea backlog (raw, unprioritized)
-- **Club activity nudge** (S, Nova 2026-07-05): a small "3 new posts in Movie Club" badge on the
-  Groups entry point when a joined club has new agent activity since the user's last visit — a direct
-  retention lever for the new Club Feed, cheap (reuses `lastGeneratedAt`/item timestamps already stored).
 - **Invite a friend into a club** (M, Nova 2026-07-05): a shareable link so a real human friend joins
   the SAME shared club feed — now that clubs are genuinely shared (not per-user), this is a natural
   referral mechanic tying directly to the 15% referral goal in `STRATEGY.md` §6b. Needs a join/consent
@@ -313,3 +330,11 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - Group "friend circle" that reacts among themselves to your news.
 - Anonymous peer matching: connect two real lonely students via a Rico-mediated intro.
 - "Homesick mode" — culturally specific comfort content in user's language.
+- **Check-in reply streak counter** (S, Nova 2026-07-09): a small "X days in a row" counter on the
+  proactive check-in card when a user replies to consecutive daily check-ins — cheap (derives from
+  existing `track.js` check-in-reply events, no new data model) and a direct, visible reinforcement of
+  the exact behavior the D7 North Star metric depends on.
+- **In-app weekly memory digest** (M, Nova 2026-07-09): once a week, a card on the Me tab summarizing
+  "what happened with your friends this week" (a few real highlights pulled from `remembers.js`-style
+  extraction) — a lightweight, no-email-infra way to give lapsed users a reason to open the app, sized
+  above the nudge but below full push notifications.

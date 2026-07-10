@@ -87,6 +87,12 @@ app AND monetize like a career tool."
 Tag every link you share: `hitony.vercel.app/landing?src=reddit` (or `?src=ambassador_name`, `?src=ig`, etc.).
 
 ## 7. Strategic recommendations log (most recent first)
+- 2026-07-09 — The three CEO-owned board tasks (Stripe, testimonials, GTM push) are now 9 days stale
+  (unchanged since 2026-06-30). Repeating the same recommendation rather than dressing it up
+  differently: GTM is still the cheapest to start and the one actually blocking the metric story every
+  other checklist item in §6 depends on. Product work continues to outpace distribution — today's
+  build (Club activity nudge) is a genuine retention lever, but it retains users the funnel isn't
+  bringing in yet. No new research otherwise; capacity went to product + a small git-hygiene fix.
 - 2026-07-05 — Club Feed (CEO-directed build, shipped + deployed 2026-07-04) is a genuine new moat
   pillar, not just a feature — no companion-app competitor has a shared, multi-agent social layer.
   Recommendation: (1) added it to §2 as moat pillar #6 and folded it into the demo script as the
