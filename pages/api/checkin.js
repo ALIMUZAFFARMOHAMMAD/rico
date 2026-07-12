@@ -15,6 +15,22 @@ import { rateLimited } from "../../lib/ratelimit";
 // Regenerate at most ~once per visit/day to keep cost down and the message stable.
 const FRESH_WINDOW_MS = 18 * 60 * 60 * 1000;
 
+// Consecutive-day reply streak, counted back from today (or yesterday, if today's
+// check-in hasn't been replied to yet — a streak stays "alive" until the day ends).
+function computeStreak(days) {
+  if (!Array.isArray(days) || !days.length) return 0;
+  const set = new Set(days);
+  const DAY = 864e5;
+  let cursor = new Date();
+  if (!set.has(cursor.toISOString().slice(0, 10))) cursor = new Date(cursor.getTime() - DAY);
+  let streak = 0;
+  while (set.has(cursor.toISOString().slice(0, 10))) {
+    streak++;
+    cursor = new Date(cursor.getTime() - DAY);
+  }
+  return streak;
+}
+
 export default async function handler(req, res) {
   if (req.method !== "GET") return res.status(405).end();
   if (rateLimited(req)) return res.status(429).json({ error: "Too many requests, slow down." });
@@ -28,10 +44,11 @@ export default async function handler(req, res) {
   try {
     // 1) Serve a cached check-in if it's still fresh (throttle tokens + keep it stable).
     const meta = await getRow(metaKey(userId));
+    const streak = computeStreak(meta?.traits?.stats?.checkin?.replyDays);
     const cached = meta?.traits?.proactive;
     if (cached?.text && cached.lang === langCode &&
         Date.now() - new Date(cached.at).getTime() < FRESH_WINDOW_MS) {
-      return res.status(200).json({ ok: true, ...cached, message: cached.text, fresh: false });
+      return res.status(200).json({ ok: true, ...cached, message: cached.text, fresh: false, streak });
     }
 
     // 2) Find the agent the user most recently had a real conversation with.
@@ -101,7 +118,7 @@ ${recent}`;
       await upsertRow(metaKey(userId), { traits: { ...((meta && meta.traits) || {}), proactive: payload } });
     } catch (e) { /* non-fatal: still return the check-in */ }
 
-    return res.status(200).json({ ok: true, ...payload, message, fresh: true });
+    return res.status(200).json({ ok: true, ...payload, message, fresh: true, streak });
   } catch (e) {
     console.error("checkin error:", e.message);
     return res.status(200).json({ ok: false });

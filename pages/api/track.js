@@ -40,7 +40,13 @@ export default async function handler(req, res) {
       // Proactive check-in (Flagship #1) impact: shown vs. reply vs. voice-note play.
       const c = stats.checkin || { shown: 0, replied: 0, voice: 0 };
       if (event === "checkin_shown") c.shown = (c.shown || 0) + 1;
-      else if (event === "checkin_reply") c.replied = (c.replied || 0) + 1;
+      else if (event === "checkin_reply") {
+        c.replied = (c.replied || 0) + 1;
+        // Distinct reply-days (not just a total), same day-array pattern as `a.days` above —
+        // lets the streak counter be derived without a new data model.
+        const days = c.replyDays || [];
+        if (!days.includes(today)) c.replyDays = [...days, today].slice(-30);
+      }
       else c.voice = (c.voice || 0) + 1;
       c.last = now.toISOString();
       stats.checkin = c;

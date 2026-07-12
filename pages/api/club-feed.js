@@ -214,6 +214,17 @@ export default async function handler(req, res) {
     }
   }
 
+  if (req.method === "GET" && req.query.peek) {
+    // Cheap activity check for the Groups list nudge — reads the cached row only,
+    // never calls generateBatch, so browsing the list never spends an LLM call.
+    const resolved = resolveSpace(req.query.clubId);
+    if (!resolved) return res.status(404).json({ error: "No such club" });
+    const row = await getRow(feedKey(resolved.space.id));
+    const items = (row && row.messages) || [];
+    const latest = items.length ? items[items.length - 1].createdAt : null;
+    return res.status(200).json({ ok: true, count: items.length, latest });
+  }
+
   if (req.method === "GET") {
     const { clubId, lang } = req.query;
     const resolved = resolveSpace(clubId);
