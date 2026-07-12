@@ -69,8 +69,8 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - [x] Instrumentation: activation event + Flagship-impact metrics. Code complete 2026-06-29 (awaiting deploy).
 - [x] Club activity nudge — "NEW POSTS" badges on Groups list. Code complete 2026-07-09. On branch
       `feature/club-activity-nudge` (pushed). ⏳ Awaiting CEO deploy approval.
-- [x] Check-in reply streak counter — "🔥 N days in a row" on the proactive check-in card. Code complete
-      2026-07-12. On branch `feature/checkin-streak-counter` (pushed). ⏳ Awaiting CEO deploy approval.
+- [x] Check-in reply streak counter — "🔥 N days in a row" on the proactive check-in card. DEPLOYED to
+      prod 2026-07-12 (dpl_6UfYU6Ai4o8p8KH3bAXLuMnVXxEJ).
 
 **LATER:**
 - [ ] Outcome engine v2: track interviews/offers attributed to Tony; surface as user "wins."
@@ -82,6 +82,13 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   proactive timing intelligence (fire around each user's habitual active hour).
 
 ## 5. Done log (most recent first)
+- 2026-07-12 (cont'd, CEO-directed) — **Check-in reply streak counter DEPLOYED to production**
+  (dpl_6UfYU6Ai4o8p8KH3bAXLuMnVXxEJ). Deployed straight from `feature/checkin-streak-counter` (it sat
+  directly on top of the already-live code, nothing else bundled). Same recurring alias gap as every
+  prior deploy — only auto-aliased to `hitony.ai`, fixed with `vercel alias set` for `hitony.vercel.app`.
+  Verified: landing/home/board 200, club-feed peek 200 with real content, `/api/checkin` correctly 403s
+  an unauthenticated request (real Clerk auth enforced in prod), zero errors in `vercel logs`. No
+  regression to existing features. (Keeper, CEO-directed)
 - 2026-07-12 (Sunday, lighter run; first run since 2026-07-09 — 07-10/07-11 had no run) — **Check-in
   reply streak counter** (Nova's 2026-07-09 idea, promoted per that day's "tomorrow's plan"):
   `pages/api/track.js`'s `checkin_reply` handler now also appends today's date to a `replyDays` array
@@ -307,9 +314,8 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - **New (2026-07-09):** **Deploy `feature/club-activity-nudge`** (Groups list "NEW POSTS" badge, code
   complete 2026-07-09) to production. Low-risk (additive UI + a read-only API branch), but untested in a
   real signed-in browser session for the same Clerk-env reason as the security branch below.
-- **New (2026-07-12):** **Deploy `feature/checkin-streak-counter`** (streak pill on the proactive
-  check-in card, code complete 2026-07-12) to production. Low-risk (additive UI + a small tracking
-  field), same untested-in-a-signed-in-session caveat.
+- (resolved) **`feature/checkin-streak-counter`** — CEO-directed deploy, 2026-07-12
+  (dpl_6UfYU6Ai4o8p8KH3bAXLuMnVXxEJ). Verified via curl + `vercel logs`: no regressions, no errors.
 - **Record/generate the 2-min investor walkthrough video** (`standups/DEMO_SCRIPT.md`) — mostly a live
   screen-record, but the voiceover pass (ElevenLabs, unless the CEO records their own narration) spends
   credits. New as of 2026-07-04.
