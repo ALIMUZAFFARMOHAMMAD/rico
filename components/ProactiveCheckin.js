@@ -98,6 +98,14 @@ export default function ProactiveCheckin({ userId, lang, T, font, onOpen }) {
               }}>
                 {data.lapsed ? "missed you 💜" : "texted you"}
               </span>
+              {data.streak >= 2 && (
+                <span style={{
+                  fontSize: 9.5, fontWeight: 800, letterSpacing: 0.3,
+                  color: T.text, background: `${T.pink}22`, padding: "2px 7px", borderRadius: 100,
+                }}>
+                  🔥 {data.streak} days in a row
+                </span>
+              )}
             </div>
             <div style={{ color: T.text, fontSize: 13.5, lineHeight: 1.45, opacity: 0.95 }}>{data.message}</div>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8 }}>
