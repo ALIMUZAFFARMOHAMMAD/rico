@@ -87,6 +87,14 @@ app AND monetize like a career tool."
 Tag every link you share: `hitony.vercel.app/landing?src=reddit` (or `?src=ambassador_name`, `?src=ig`, etc.).
 
 ## 7. Strategic recommendations log (most recent first)
+- 2026-07-12 (Sunday, lighter run; no run 2026-07-10/11) — Same recommendation, now overdue by nearly
+  two weeks: the three CEO-owned board tasks (Stripe, testimonials, GTM push) are unchanged since
+  2026-06-30 — 12 days now. Today's build (check-in reply streak counter) is another retention lever,
+  not a distribution one — the team keeps making the funnel's top-of-funnel users stickier while the
+  funnel itself stays empty of new traffic. Flagging plainly rather than reformulating: of the three,
+  GTM push is still the cheapest to start (zero engineering dependency, the `?src=` tracking has been
+  ready since 2026-06-29) and is the one every other fundraising-readiness checklist item in §6 depends
+  on for real data.
 - 2026-07-09 — The three CEO-owned board tasks (Stripe, testimonials, GTM push) are now 9 days stale
   (unchanged since 2026-06-30). Repeating the same recommendation rather than dressing it up
   differently: GTM is still the cheapest to start and the one actually blocking the metric story every

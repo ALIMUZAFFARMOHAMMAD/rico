@@ -67,6 +67,10 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
       spec. [ ] Video itself not generated (screen-record + ElevenLabs VO — needs CEO approval).
 - [x] Living memory surfacing — "what Rico remembers about you" panel. SHIPPED to prod 2026-06-28.
 - [x] Instrumentation: activation event + Flagship-impact metrics. Code complete 2026-06-29 (awaiting deploy).
+- [x] Club activity nudge — "NEW POSTS" badges on Groups list. Code complete 2026-07-09. On branch
+      `feature/club-activity-nudge` (pushed). ⏳ Awaiting CEO deploy approval.
+- [x] Check-in reply streak counter — "🔥 N days in a row" on the proactive check-in card. Code complete
+      2026-07-12. On branch `feature/checkin-streak-counter` (pushed). ⏳ Awaiting CEO deploy approval.
 
 **LATER:**
 - [ ] Outcome engine v2: track interviews/offers attributed to Tony; surface as user "wins."
@@ -78,6 +82,22 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   proactive timing intelligence (fire around each user's habitual active hour).
 
 ## 5. Done log (most recent first)
+- 2026-07-12 (Sunday, lighter run; first run since 2026-07-09 — 07-10/07-11 had no run) — **Check-in
+  reply streak counter** (Nova's 2026-07-09 idea, promoted per that day's "tomorrow's plan"):
+  `pages/api/track.js`'s `checkin_reply` handler now also appends today's date to a `replyDays` array
+  on the check-in stats (same day-array pattern already used for `activity.days` — no new data model).
+  `pages/api/checkin.js` derives a consecutive-day streak from `replyDays` (counts backward from today,
+  or from yesterday if today's check-in hasn't been replied to yet, so a streak stays "alive" until the
+  day actually ends) and returns it on both the cached and freshly-generated check-in payload.
+  `components/ProactiveCheckin.js` shows a small "🔥 N days in a row" pill next to the existing "texted
+  you"/"missed you" badge once the streak reaches 2+ (a 1-day streak isn't a streak yet, so it stays
+  quiet on first reply). Directly reinforces the exact daily-reply behavior the D7 North Star metric
+  depends on. `next build` passes clean. Could not runtime-verify in a signed-in browser session — same
+  pre-existing gap flagged in the 2026-07-06/07/09 standups (`.env.local`'s `CLERK_SECRET_KEY` is blank,
+  so Clerk middleware 500s on every request in local dev); confirmed via `next start` + curl that the
+  500 is the known Clerk-config error, not a syntax/runtime bug introduced today. Committed to new
+  branch `feature/checkin-streak-counter`, pushed. No board card (not a CEO-assigned task — promoted
+  from the Nova backlog). (Nova → Forge)
 - 2026-07-09 — **Club activity nudge** (smallest queued Nova idea, promoted per 2026-07-07's "tomorrow's
   plan"): `pages/api/club-feed.js` gained a `?peek=1` GET mode that reads the cached feed row only — no
   `generateBatch` call — so the Groups list can check activity without ever spending an LLM call.
@@ -287,6 +307,9 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - **New (2026-07-09):** **Deploy `feature/club-activity-nudge`** (Groups list "NEW POSTS" badge, code
   complete 2026-07-09) to production. Low-risk (additive UI + a read-only API branch), but untested in a
   real signed-in browser session for the same Clerk-env reason as the security branch below.
+- **New (2026-07-12):** **Deploy `feature/checkin-streak-counter`** (streak pill on the proactive
+  check-in card, code complete 2026-07-12) to production. Low-risk (additive UI + a small tracking
+  field), same untested-in-a-signed-in-session caveat.
 - **Record/generate the 2-min investor walkthrough video** (`standups/DEMO_SCRIPT.md`) — mostly a live
   screen-record, but the voiceover pass (ElevenLabs, unless the CEO records their own narration) spends
   credits. New as of 2026-07-04.
@@ -330,10 +353,6 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - Group "friend circle" that reacts among themselves to your news.
 - Anonymous peer matching: connect two real lonely students via a Rico-mediated intro.
 - "Homesick mode" — culturally specific comfort content in user's language.
-- **Check-in reply streak counter** (S, Nova 2026-07-09): a small "X days in a row" counter on the
-  proactive check-in card when a user replies to consecutive daily check-ins — cheap (derives from
-  existing `track.js` check-in-reply events, no new data model) and a direct, visible reinforcement of
-  the exact behavior the D7 North Star metric depends on.
 - **In-app weekly memory digest** (M, Nova 2026-07-09): once a week, a card on the Me tab summarizing
   "what happened with your friends this week" (a few real highlights pulled from `remembers.js`-style
   extraction) — a lightweight, no-email-infra way to give lapsed users a reason to open the app, sized
