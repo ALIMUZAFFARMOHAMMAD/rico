@@ -67,8 +67,8 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
       spec. [ ] Video itself not generated (screen-record + ElevenLabs VO — needs CEO approval).
 - [x] Living memory surfacing — "what Rico remembers about you" panel. SHIPPED to prod 2026-06-28.
 - [x] Instrumentation: activation event + Flagship-impact metrics. Code complete 2026-06-29 (awaiting deploy).
-- [x] Club activity nudge — "NEW POSTS" badges on Groups list. Code complete 2026-07-09. On branch
-      `feature/club-activity-nudge` (pushed). ⏳ Awaiting CEO deploy approval.
+- [x] Club activity nudge — "NEW POSTS" badges on Groups list. DEPLOYED to prod 2026-07-12
+      (dpl_GJwZaY7Q8ndfpdzqS5fRCj7hLFXF).
 - [x] Check-in reply streak counter — "🔥 N days in a row" on the proactive check-in card. DEPLOYED to
       prod 2026-07-12 (dpl_6UfYU6Ai4o8p8KH3bAXLuMnVXxEJ).
 
@@ -82,6 +82,15 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   proactive timing intelligence (fire around each user's habitual active hour).
 
 ## 5. Done log (most recent first)
+- 2026-07-12 (cont'd, CEO-directed) — **Club activity nudge DEPLOYED to production**
+  (dpl_GJwZaY7Q8ndfpdzqS5fRCj7hLFXF). `feature/club-activity-nudge` was a sibling branch of the
+  just-deployed streak counter (both forked from the same 2026-07-09 commit) — deploying it alone would
+  have regressed the streak counter that just went live, the exact mistake flagged in the 2026-07-07
+  standup. Merged both onto `deploy/club-activity-nudge` first (clean merge, no conflicting files), then
+  deployed that. Same recurring alias gap, fixed with `vercel alias set`. Verified: landing/groups 200,
+  `/api/club-feed?peek=1` returns the new `{count,latest}` shape live, `/api/checkin` still 403s
+  unauthenticated requests correctly, zero errors in `vercel logs`. Folded the merged branch back into
+  `safety/working-tree-2026-06-30` so git matches what's actually live again. (Keeper, CEO-directed)
 - 2026-07-12 (cont'd, CEO-directed) — **Check-in reply streak counter DEPLOYED to production**
   (dpl_6UfYU6Ai4o8p8KH3bAXLuMnVXxEJ). Deployed straight from `feature/checkin-streak-counter` (it sat
   directly on top of the already-live code, nothing else bundled). Same recurring alias gap as every
@@ -311,9 +320,9 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   the comment/react/report UI paths were only exercised via direct API calls, not the browser.
 - **Deploy `feature/signup-trust-badge`** (sign-up trust badge, code complete 2026-07-02) to production.
 - **Deploy `feature/memory-data-export`** (Memory Vault data-export button, code complete 2026-07-04) to production.
-- **New (2026-07-09):** **Deploy `feature/club-activity-nudge`** (Groups list "NEW POSTS" badge, code
-  complete 2026-07-09) to production. Low-risk (additive UI + a read-only API branch), but untested in a
-  real signed-in browser session for the same Clerk-env reason as the security branch below.
+- (resolved) **`feature/club-activity-nudge`** — CEO-directed deploy, 2026-07-12
+  (dpl_GJwZaY7Q8ndfpdzqS5fRCj7hLFXF). Merged onto the already-live streak-counter branch first to avoid
+  regressing it; verified via curl + `vercel logs`: no regressions, no errors.
 - (resolved) **`feature/checkin-streak-counter`** — CEO-directed deploy, 2026-07-12
   (dpl_6UfYU6Ai4o8p8KH3bAXLuMnVXxEJ). Verified via curl + `vercel logs`: no regressions, no errors.
 - **Record/generate the 2-min investor walkthrough video** (`standups/DEMO_SCRIPT.md`) — mostly a live
