@@ -15,6 +15,7 @@ import GameBoard from "../components/GameBoard";
 import Dashboard from "../components/Dashboard";
 import ProactiveCheckin from "../components/ProactiveCheckin";
 import MemorySpotlight from "../components/MemorySpotlight";
+import WeeklyDigest from "../components/WeeklyDigest";
 import SocialFeed from "../components/SocialFeed";
 import { captureSource, getSource } from "../lib/source";
 import { CONSENT_VERSION } from "../lib/consent";
@@ -698,6 +699,9 @@ export default function Rico() {
 
             {/* LIVING MEMORY — what your friends remember about you (the moat, made visible) */}
             {isSignedIn && userId && <MemorySpotlight userId={userId} lang={langRef.current} T={T} font={font} />}
+
+            {/* WEEKLY DIGEST — "your week with Rico" recap, a lightweight re-engagement reason */}
+            {isSignedIn && userId && <WeeklyDigest userId={userId} lang={langRef.current} T={T} font={font} />}
 
             {/* PERSONALITY DASHBOARD — your scores from chat, voice & games */}
             {isSignedIn && <Dashboard userId={userId} userName={userName} onOpenGroups={() => { window.location.href = "/groups"; }} />}
