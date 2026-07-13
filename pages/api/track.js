@@ -3,6 +3,8 @@
 // calls in their meta row. No third-party analytics. Feeds the profile dashboard.
 import { configured, getRow, upsertRow, metaKey } from "../../lib/db";
 import { ownsUser } from "../../lib/auth";
+import { clerkClient } from "@clerk/nextjs/server";
+import { submitSignupToHubspot } from "../../lib/hubspot";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
@@ -20,6 +22,7 @@ export default async function handler(req, res) {
 
     // always refresh the activity stamp
     const a = traits.activity || { first: null, last: null, days: [] };
+    const isNewSignup = !a.first;
     if (!a.first) a.first = now.toISOString();
     a.last = now.toISOString();
     if (!a.days.includes(today)) a.days = [...a.days, today].slice(-90);
@@ -65,6 +68,16 @@ export default async function handler(req, res) {
     }
 
     await upsertRow(key, { traits: { ...traits, activity: a, stats } });
+
+    // Marketing automation hook: new signup -> HubSpot form submission (fires once).
+    if (isNewSignup) {
+      try {
+        const user = await clerkClient.users.getUser(userId);
+        const email = user?.emailAddresses?.[0]?.emailAddress;
+        await submitSignupToHubspot({ email, source: a.source });
+      } catch (e) { /* non-fatal — never block tracking on the marketing sync */ }
+    }
+
     return res.status(200).json({ ok: true });
   } catch (e) {
     return res.status(200).json({ ok: false });
