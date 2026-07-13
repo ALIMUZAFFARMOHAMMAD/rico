@@ -87,6 +87,17 @@ app AND monetize like a career tool."
 Tag every link you share: `hitony.vercel.app/landing?src=reddit` (or `?src=ambassador_name`, `?src=ig`, etc.).
 
 ## 7. Strategic recommendations log (most recent first)
+- 2026-07-13 (Monday) — Same flag, now 13 days: the three CEO-owned board tasks (Stripe, testimonials,
+  GTM push) are unchanged since 2026-06-30. Today's build (weekly memory digest) is, again, a retention
+  lever aimed at users already in the funnel, not a distribution one — four builds running (streak
+  counter, club nudge, digest, plus the still-undeployed trust badge/data-export) are all pointed at the
+  same side of the funnel while the top stays empty. Not re-arguing the point differently: GTM push
+  remains the cheapest of the three to unblock (zero engineering dependency, `?src=` tracking has been
+  live since 2026-06-29) and every fundraising-readiness item in this file's §6 waits on it for real
+  data. New angle worth flagging once traffic exists: Rico now has FIVE built retention levers
+  (proactive check-in, "missed you," memory spotlight, streak counter, weekly digest) stacked before a
+  single cohort has been measured against any of them — worth deciding, once GTM starts, whether to
+  ship a sixth or instead spend a cycle instrumenting which of the five actually moves D7.
 - 2026-07-12 (Sunday, lighter run; no run 2026-07-10/11) — Same recommendation, now overdue by nearly
   two weeks: the three CEO-owned board tasks (Stripe, testimonials, GTM push) are unchanged since
   2026-06-30 — 12 days now. Today's build (check-in reply streak counter) is another retention lever,

@@ -71,6 +71,8 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
       (dpl_GJwZaY7Q8ndfpdzqS5fRCj7hLFXF).
 - [x] Check-in reply streak counter — "🔥 N days in a row" on the proactive check-in card. DEPLOYED to
       prod 2026-07-12 (dpl_6UfYU6Ai4o8p8KH3bAXLuMnVXxEJ).
+- [x] In-app weekly memory digest — "Your week with Rico" recap card on the Me tab. Code complete
+      2026-07-13. On branch `feature/weekly-memory-digest` (pushed). ⏳ Awaiting CEO deploy approval.
 
 **LATER:**
 - [ ] Outcome engine v2: track interviews/offers attributed to Tony; surface as user "wins."
@@ -78,10 +80,22 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - [ ] Plan gating + Stripe (separate backlog item, CEO drives credentials).
 
 ## 4. In progress (carries across days)
-- Next up: notification/push so Rico reaches out even when the app is closed (Capacitor android shell exists);
-  proactive timing intelligence (fire around each user's habitual active hour).
+- Next up: retention-lever attribution (Nova 2026-07-13, see backlog) so the next feature build is
+  data-driven rather than another blind lever; notification/push so Rico reaches out even when the app
+  is closed (Capacitor android shell exists); proactive timing intelligence (fire around each user's
+  habitual active hour).
 
 ## 5. Done log (most recent first)
+- 2026-07-13 — **In-app weekly memory digest** shipped to a branch: `pages/api/digest.js` (same
+  "extract real, honest highlights" approach as `remembers.js`, but time-boxed to conversations
+  touched in the last 7 days and framed as a past-tense recap — 2-5 items, cached 7 days on the meta
+  row under a separate `traits.digest` key so it doesn't collide with `remembers`'s cache) +
+  `components/WeeklyDigest.js` ("Your week with Rico" card, same render-nothing-until-real-content
+  pattern as `MemorySpotlight`), wired into the Me tab in `pages/index.js` right below the memory
+  spotlight. `next build` passes; `next start` + curl smoke clean (same known local Clerk-auth gap as
+  every recent branch — see Challenges). Committed to new branch `feature/weekly-memory-digest`, pushed.
+  Promoted from Nova's 2026-07-09 backlog per the 2026-07-12 "tomorrow's plan" (no CEO board tasks were
+  open to prioritize instead). (Nova → Forge)
 - 2026-07-12 (cont'd, CEO-directed) — **Club activity nudge DEPLOYED to production**
   (dpl_GJwZaY7Q8ndfpdzqS5fRCj7hLFXF). `feature/club-activity-nudge` was a sibling branch of the
   just-deployed streak counter (both forked from the same 2026-07-09 commit) — deploying it alone would
@@ -304,6 +318,9 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - 2026-06-28 — Day 0: team chartered, product bet + roadmap defined, daily standup scheduled. (Atlas)
 
 ## 6. Open approvals awaiting CEO
+- **New: Deploy `feature/weekly-memory-digest`** (weekly recap card on the Me tab, code complete
+  2026-07-13) to production. Low-risk (additive card + a new cached AI-summary field), same
+  unverified-in-a-signed-in-session caveat as the items below.
 - (resolved) **`security/idor-auth-guard`** — CEO-directed deploy, 2026-07-07 (dpl_7KxBs74F). Verified
   via curl: anonymous calls stay graceful, an unowned userId now correctly 403s, no errors. Still worth
   a real signed-in click-through when convenient — curl can't fully exercise the browser/Clerk-cookie
@@ -347,6 +364,21 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   production. Treat the working tree as source of truth until the CEO decides to reconcile git.
 
 ## 7. Idea backlog (raw, unprioritized)
+- **Retention-lever attribution** (S, Nova 2026-07-13): Rico now has 5 built retention surfaces
+  (proactive check-in, "missed you," memory spotlight, streak counter, weekly digest) but zero data on
+  which ones actually correlate with D7 return — `track.js` already stamps activity per-day, this just
+  adds an impression/interaction tag per surface so `/api/stats` can rank them once real traffic exists.
+  Cheap, and directly de-risks building a 6th lever blind. Do this before or right alongside GTM start.
+- **First-session "proof moment" tour** (S, Nova 2026-07-13): all 5 retention levers need conversation
+  history to say anything real — a brand-new signup's first session is empty of them. A one-time,
+  skippable 3-card intro shown right after signup (sample "how'd your exam go?" check-in + sample
+  memory chip, clearly marked as a preview) shows the bet immediately instead of after days of chatting.
+  Targets the ≥60% activation-in-24h goal, which the memory/proactive features don't touch for day-0 users.
+- **Shareable weekly digest card** (S, Nova 2026-07-13): let a user tap "Your week with Rico" (shipped
+  today) to export it as a redacted, no-PII image card ("this week I talked about my exam, missed home,
+  practiced Spanish 💜 — with Rico") for their own Story/WhatsApp. A soft, opt-in growth loop riding on
+  content that already exists, distinct from the ambassador-link mechanic below (this is organic sharing
+  by users themselves, not a referral code).
 - **Invite a friend into a club** (M, Nova 2026-07-05): a shareable link so a real human friend joins
   the SAME shared club feed — now that clubs are genuinely shared (not per-user), this is a natural
   referral mechanic tying directly to the 15% referral goal in `STRATEGY.md` §6b. Needs a join/consent
@@ -368,7 +400,3 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - Group "friend circle" that reacts among themselves to your news.
 - Anonymous peer matching: connect two real lonely students via a Rico-mediated intro.
 - "Homesick mode" — culturally specific comfort content in user's language.
-- **In-app weekly memory digest** (M, Nova 2026-07-09): once a week, a card on the Me tab summarizing
-  "what happened with your friends this week" (a few real highlights pulled from `remembers.js`-style
-  extraction) — a lightweight, no-email-infra way to give lapsed users a reason to open the app, sized
-  above the nudge but below full push notifications.
