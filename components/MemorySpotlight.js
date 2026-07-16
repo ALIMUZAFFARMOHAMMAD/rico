@@ -12,7 +12,13 @@ export default function MemorySpotlight({ userId, lang, T, font }) {
     let alive = true;
     fetch(`/api/remembers?userId=${encodeURIComponent(userId)}&lang=${encodeURIComponent(lang || "en")}`)
       .then(r => r.json())
-      .then(d => { if (alive && d?.ok && Array.isArray(d.items) && d.items.length) setItems(d.items); })
+      .then(d => {
+        if (alive && d?.ok && Array.isArray(d.items) && d.items.length) {
+          setItems(d.items);
+          // Instrument: the living-memory panel actually rendered (Pillar #2 impact).
+          fetch("/api/track", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, event: "spotlight_shown" }) }).catch(() => {});
+        }
+      })
       .catch(() => {});
     return () => { alive = false; };
   }, [userId, lang]);

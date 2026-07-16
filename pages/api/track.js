@@ -7,7 +7,7 @@ import { ownsUser } from "../../lib/auth";
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
   if (!configured()) return res.status(200).json({ ok: false });
-  const { userId, event, game, seconds, source } = req.body || {};
+  const { userId, event, game, seconds, source, variant } = req.body || {};
   if (!userId) return res.status(400).json({ error: "no userId" });
   if (!ownsUser(req, userId)) return res.status(403).json({ error: "forbidden" });
   try {
@@ -39,9 +39,13 @@ export default async function handler(req, res) {
     } else if (event === "checkin_shown" || event === "checkin_reply" || event === "checkin_voice") {
       // Proactive check-in (Flagship #1) impact: shown vs. reply vs. voice-note play.
       const c = stats.checkin || { shown: 0, replied: 0, voice: 0 };
-      if (event === "checkin_shown") c.shown = (c.shown || 0) + 1;
-      else if (event === "checkin_reply") {
+      const missed = variant === "missed";
+      if (event === "checkin_shown") {
+        c.shown = (c.shown || 0) + 1;
+        if (missed) c.missedShown = (c.missedShown || 0) + 1;
+      } else if (event === "checkin_reply") {
         c.replied = (c.replied || 0) + 1;
+        if (missed) c.missedReplied = (c.missedReplied || 0) + 1;
         // Distinct reply-days (not just a total), same day-array pattern as `a.days` above —
         // lets the streak counter be derived without a new data model.
         const days = c.replyDays || [];
@@ -50,6 +54,12 @@ export default async function handler(req, res) {
       else c.voice = (c.voice || 0) + 1;
       c.last = now.toISOString();
       stats.checkin = c;
+    } else if (event === "spotlight_shown") {
+      // Living-memory panel (Pillar #2) impact: how often does it actually render for a user?
+      const sp = stats.spotlight || { shown: 0 };
+      sp.shown = (sp.shown || 0) + 1;
+      sp.last = now.toISOString();
+      stats.spotlight = sp;
     } else if (event === "game") {
       const gs = stats.games || { total: 0, byKey: {} };
       gs.total = (gs.total || 0) + 1;

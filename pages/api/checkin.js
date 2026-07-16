@@ -17,7 +17,7 @@ const FRESH_WINDOW_MS = 18 * 60 * 60 * 1000;
 
 // Consecutive-day reply streak, counted back from today (or yesterday, if today's
 // check-in hasn't been replied to yet — a streak stays "alive" until the day ends).
-function computeStreak(days) {
+export function computeStreak(days) {
   if (!Array.isArray(days) || !days.length) return 0;
   const set = new Set(days);
   const DAY = 864e5;

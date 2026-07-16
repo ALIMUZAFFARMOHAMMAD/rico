@@ -24,7 +24,8 @@ export default function ProactiveCheckin({ userId, lang, T, font, onOpen }) {
         if (dismissed === d.message) return; // already waved this one away
         setData(d);
         // Instrument: the proactive check-in was actually shown (Flagship #1 impact).
-        fetch("/api/track", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, event: "checkin_shown" }) }).catch(() => {});
+        // Tagged by variant (normal vs. "missed you") so /api/stats can rank which pulls more replies.
+        fetch("/api/track", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, event: "checkin_shown", variant: d.lapsed ? "missed" : "checkin" }) }).catch(() => {});
       })
       .catch(() => {});
     return () => { alive = false; };
@@ -69,7 +70,7 @@ export default function ProactiveCheckin({ userId, lang, T, font, onOpen }) {
           transition={{ type: "spring", stiffness: 320, damping: 26 }}
           onClick={() => {
             // Instrument: the check-in earned a reply (user tapped through to chat).
-            fetch("/api/track", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, event: "checkin_reply" }) }).catch(() => {});
+            fetch("/api/track", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, event: "checkin_reply", variant: data.lapsed ? "missed" : "checkin" }) }).catch(() => {});
             dismiss();
             onOpen?.(data.agentId);
           }}
