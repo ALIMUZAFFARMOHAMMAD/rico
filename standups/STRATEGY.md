@@ -87,6 +87,15 @@ app AND monetize like a career tool."
 Tag every link you share: `hitony.vercel.app/landing?src=reddit` (or `?src=ambassador_name`, `?src=ig`, etc.).
 
 ## 7. Strategic recommendations log (most recent first)
+- 2026-07-16 (Thursday; no runs 2026-07-14/15) — Same flag, now 16 days: the three CEO-owned board
+  tasks (Stripe, testimonials, GTM push) are unchanged since 2026-06-30. Not repeating the ask a fifth
+  time with new words — instead, today's build (retention-lever attribution) is the team's own answer to
+  its own previous flag: rather than shipping a 6th blind retention lever, `/api/stats` can now rank the
+  4 already-deployed levers (checkin, missed-you, spotlight, streak) by returned/D7 rate the moment real
+  users exist. That means the GTM push is now not just "the cheapest of the three to unblock" but also
+  the one piece of missing data every other roadmap decision downstream of it (which lever to double
+  down on, which to cut) is waiting on. Nothing left to build to make that case stronger — it's now
+  purely a distribution problem, not a measurement one.
 - 2026-07-13 (Monday) — Same flag, now 13 days: the three CEO-owned board tasks (Stripe, testimonials,
   GTM push) are unchanged since 2026-06-30. Today's build (weekly memory digest) is, again, a retention
   lever aimed at users already in the funnel, not a distribution one — four builds running (streak

@@ -80,12 +80,35 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - [ ] Plan gating + Stripe (separate backlog item, CEO drives credentials).
 
 ## 4. In progress (carries across days)
-- Next up: retention-lever attribution (Nova 2026-07-13, see backlog) so the next feature build is
-  data-driven rather than another blind lever; notification/push so Rico reaches out even when the app
-  is closed (Capacitor android shell exists); proactive timing intelligence (fire around each user's
-  habitual active hour).
+- Next up: notification/push so Rico reaches out even when the app is closed (Capacitor android shell
+  exists); proactive timing intelligence (fire around each user's habitual active hour); once real GTM
+  traffic exists, read `/api/stats`'s new `retention_by_lever` to decide the next lever vs. a 6th one.
 
 ## 5. Done log (most recent first)
+- 2026-07-16 (Thursday; no runs 2026-07-14/15) — **Retention-lever attribution** (Nova's 2026-07-13 #1
+  idea, promoted — board unchanged, no CEO task to prioritize instead): `pages/api/track.js`'s
+  `checkin_shown`/`checkin_reply` events now accept an optional `variant` field so the "missed you"
+  lapse-reengagement variant is counted separately from a normal check-in
+  (`stats.checkin.missedShown`/`missedReplied`); a new `spotlight_shown` event does the same for the
+  Living-Memory panel (`stats.spotlight.shown`). `components/ProactiveCheckin.js` passes
+  `variant: data.lapsed ? "missed" : "checkin"` on both existing track calls (already had `data.lapsed`
+  from `/api/checkin`, no new fetch); `components/MemorySpotlight.js` fires `spotlight_shown` once real
+  memory items actually render, mirroring the check-in impression pattern exactly. `pages/api/checkin.js`
+  exports its existing `computeStreak()` (was already private) so `/api/stats.js` can reuse the same
+  streak math instead of a duplicate; `/api/stats.js` now returns `retention_by_lever` — for each of 4
+  built levers (checkin, missed_you, spotlight, streak_2plus) the users who saw it plus their
+  returned_pct/d7_pct, comparable against the overall `retention_rate_pct`/`retained_7day` to see which
+  lever actually correlates with retention, once real GTM traffic exists. Weekly digest (5th lever) not
+  included — it's still on its own undeployed branch (`feature/weekly-memory-digest`), nothing to
+  attribute until it ships; add its `digest_shown` event the same way when that branch deploys.
+  `next build` passes clean. Could not runtime-verify against real Supabase data locally — same
+  known-gap category as the Clerk issue in every recent standup, except this time it's
+  `SUPABASE_SERVICE_ROLE_KEY` that's blank in this sandboxed `.env.local` (confirmed by checking value
+  length only, never printing the key); `/api/stats` and `/api/track` both correctly return their
+  existing `configured()`-false fallback, same as before this change, so this is a pre-existing local-env
+  gap, not a regression. Committed to new branch `feature/retention-lever-attribution`, pushed; folded
+  (clean fast-forward, no conflicts) into `safety/working-tree-2026-06-30` so working tree matches, also
+  pushed. (Nova → Forge)
 - 2026-07-13 — **In-app weekly memory digest** shipped to a branch: `pages/api/digest.js` (same
   "extract real, honest highlights" approach as `remembers.js`, but time-boxed to conversations
   touched in the last 7 days and framed as a past-tense recap — 2-5 items, cached 7 days on the meta
@@ -318,6 +341,9 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - 2026-06-28 — Day 0: team chartered, product bet + roadmap defined, daily standup scheduled. (Atlas)
 
 ## 6. Open approvals awaiting CEO
+- **New: Deploy `feature/retention-lever-attribution`** (per-lever impression tracking + `/api/stats`
+  ranking, code complete 2026-07-16) to production. Lowest-risk item in this queue — instrumentation
+  only, no visible UI change, additive fields on the existing meta-row stats object.
 - **New: Deploy `feature/weekly-memory-digest`** (weekly recap card on the Me tab, code complete
   2026-07-13) to production. Low-risk (additive card + a new cached AI-summary field), same
   unverified-in-a-signed-in-session caveat as the items below.
@@ -345,7 +371,7 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - **Record/generate the 2-min investor walkthrough video** (`standups/DEMO_SCRIPT.md`) — mostly a live
   screen-record, but the voiceover pass (ElevenLabs, unless the CEO records their own narration) spends
   credits. New as of 2026-07-04.
-- REMINDER (not a build task, board items assigned to CEO, unchanged since 2026-06-30 — now 5 days):
+- REMINDER (not a build task, board items assigned to CEO, unchanged since 2026-06-30 — now 16 days):
   Plan gating + Stripe, Lock 3 named testimonials, Start 30-day GTM push. These three are the actual
   bottleneck to an investor-ready metric story — product is now ahead of distribution/monetization proof.
 - **New (2026-07-05):** Echo drafted a Club Feed launch post (`standups/CONTENT_CALENDAR.md`, src=ig6)
@@ -364,11 +390,16 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   production. Treat the working tree as source of truth until the CEO decides to reconcile git.
 
 ## 7. Idea backlog (raw, unprioritized)
-- **Retention-lever attribution** (S, Nova 2026-07-13): Rico now has 5 built retention surfaces
-  (proactive check-in, "missed you," memory spotlight, streak counter, weekly digest) but zero data on
-  which ones actually correlate with D7 return — `track.js` already stamps activity per-day, this just
-  adds an impression/interaction tag per surface so `/api/stats` can rank them once real traffic exists.
-  Cheap, and directly de-risks building a 6th lever blind. Do this before or right alongside GTM start.
+- ~~Retention-lever attribution~~ — DONE 2026-07-16 (see Done log). `digest_shown` still needs adding
+  once `feature/weekly-memory-digest` deploys.
+- **Digest attribution follow-up** (XS, Nova 2026-07-16): the moment `feature/weekly-memory-digest`
+  deploys, add a `digest_shown` track event to `components/WeeklyDigest.js` (same one-line pattern as
+  spotlight) so all 5 levers — not 4 — show up in `/api/stats`'s `retention_by_lever`. A five-minute
+  follow-up, not a new feature; do it same-day as that deploy so the ranking isn't missing a lever.
+- **Founder board cohort view** (S, Nova 2026-07-16): `/board` already shows the CEO task kanban —
+  once `retention_by_lever` has real numbers, surface a tiny read-only summary table there (or a new
+  `/board?view=stats` section) so the CEO sees "which lever wins" without pulling `/api/stats` JSON by
+  hand. Purely a founder-UX nicety, not blocking; do after real GTM traffic exists (no data to show yet).
 - **First-session "proof moment" tour** (S, Nova 2026-07-13): all 5 retention levers need conversation
   history to say anything real — a brand-new signup's first session is empty of them. A one-time,
   skippable 3-card intro shown right after signup (sample "how'd your exam go?" check-in + sample
