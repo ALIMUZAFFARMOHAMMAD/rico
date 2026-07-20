@@ -85,6 +85,25 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   traffic exists, read `/api/stats`'s new `retention_by_lever` to decide the next lever vs. a 6th one.
 
 ## 5. Done log (most recent first)
+- 2026-07-19 (Sunday, lighter run; no runs 2026-07-17/18) — **First-session "proof moment"**
+  (Nova's 2026-07-13 #2 idea, promoted per 2026-07-16's "tomorrow's plan" — no CEO board task to
+  prioritize instead): the existing 7-step `components/Onboarding.js` tour only *described* the
+  proactive-checkin and living-memory flagships in text ("they message you first") — a brand-new
+  signup has zero chat history, so neither feature says anything real until day 2+. Folded the fix
+  into the existing tour instead of building Nova's proposed new 3-card modal (smaller diff, and
+  avoids stacking a 4th sequential overlay on top of Intro → ConsentGate → Onboarding): one new step
+  now renders a static, non-fetching mock of the real `ProactiveCheckin` card ("Tony texted you:
+  'how'd your exam go?...'"), and the closing step now also renders a static mock of the real
+  `MemorySpotlight` chips — both labeled "preview". Reuses the tour's existing skip/localStorage/
+  progress-dot mechanics; no new component file, no new state. `next build` passes clean; `next
+  start` + curl confirms `/` and `/landing` both 200. Could not click through the tour itself in a
+  signed-in session — same long-flagged local gap (`CLERK_SECRET_KEY`/`SUPABASE_SERVICE_ROLE_KEY`
+  both blank in this sandboxed `.env.local`, confirmed by length only, not printed); this only
+  changes static JSX inside an already-shipped, already-tested modal shell, so the risk surface is
+  low. Committed to new branch `feature/proof-moment-tour`, pushed; fast-forwarded into
+  `safety/working-tree-2026-06-30`, also pushed. Targets the ≥60% activation-in-24h goal exactly
+  as Nova specified — no visible-metric change until real GTM traffic exists to measure it against.
+  (Nova → Forge)
 - 2026-07-16 (Thursday; no runs 2026-07-14/15) — **Retention-lever attribution** (Nova's 2026-07-13 #1
   idea, promoted — board unchanged, no CEO task to prioritize instead): `pages/api/track.js`'s
   `checkin_shown`/`checkin_reply` events now accept an optional `variant` field so the "missed you"
@@ -341,6 +360,9 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - 2026-06-28 — Day 0: team chartered, product bet + roadmap defined, daily standup scheduled. (Atlas)
 
 ## 6. Open approvals awaiting CEO
+- **New: Deploy `feature/proof-moment-tour`** (onboarding tour now shows a real check-in card + memory
+  chips instead of only describing them, code complete 2026-07-19) to production. Low-risk — static
+  JSX added to an already-shipped modal, no new data flow, no new API surface.
 - **New: Deploy `feature/retention-lever-attribution`** (per-lever impression tracking + `/api/stats`
   ranking, code complete 2026-07-16) to production. Lowest-risk item in this queue — instrumentation
   only, no visible UI change, additive fields on the existing meta-row stats object.
@@ -390,6 +412,13 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   production. Treat the working tree as source of truth until the CEO decides to reconcile git.
 
 ## 7. Idea backlog (raw, unprioritized)
+- **Tour completion signal** (XS, Nova 2026-07-19): fire a `tour_done` track event (variant:
+  complete/skip) from `finishTour` in `pages/index.js` when the now-enriched Onboarding tour closes.
+  Cheap (`/api/track` already accepts arbitrary events) and is the natural companion metric to today's
+  proof-moment build — once GTM traffic exists, Pulse can check whether seeing the real check-in/memory
+  preview during onboarding correlates with next-day activation, same ranking idea as
+  `retention_by_lever` but for the top of the funnel instead of retention. Not built today (Sunday,
+  kept to one item) — smallest queued candidate for the next run if no CEO board task outranks it.
 - ~~Retention-lever attribution~~ — DONE 2026-07-16 (see Done log). `digest_shown` still needs adding
   once `feature/weekly-memory-digest` deploys.
 - **Digest attribution follow-up** (XS, Nova 2026-07-16): the moment `feature/weekly-memory-digest`
@@ -400,11 +429,8 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   once `retention_by_lever` has real numbers, surface a tiny read-only summary table there (or a new
   `/board?view=stats` section) so the CEO sees "which lever wins" without pulling `/api/stats` JSON by
   hand. Purely a founder-UX nicety, not blocking; do after real GTM traffic exists (no data to show yet).
-- **First-session "proof moment" tour** (S, Nova 2026-07-13): all 5 retention levers need conversation
-  history to say anything real — a brand-new signup's first session is empty of them. A one-time,
-  skippable 3-card intro shown right after signup (sample "how'd your exam go?" check-in + sample
-  memory chip, clearly marked as a preview) shows the bet immediately instead of after days of chatting.
-  Targets the ≥60% activation-in-24h goal, which the memory/proactive features don't touch for day-0 users.
+- ~~First-session "proof moment" tour~~ — DONE 2026-07-19 (see Done log; shipped as an enhancement to
+  the existing Onboarding tour rather than Nova's proposed standalone modal).
 - **Shareable weekly digest card** (S, Nova 2026-07-13): let a user tap "Your week with Rico" (shipped
   today) to export it as a redacted, no-PII image card ("this week I talked about my exam, missed home,
   practiced Spanish 💜 — with Rico") for their own Story/WhatsApp. A soft, opt-in growth loop riding on
