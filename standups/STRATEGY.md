@@ -87,6 +87,20 @@ app AND monetize like a career tool."
 Tag every link you share: `hitony.vercel.app/landing?src=reddit` (or `?src=ambassador_name`, `?src=ig`, etc.).
 
 ## 7. Strategic recommendations log (most recent first)
+- 2026-07-22 (Wednesday) — **Change of recommendation: pause the "unblock Stripe/testimonials/GTM"
+  ask for one beat.** Today's routine board-check found `/api/board` and `/api/stats` both 500ing in
+  production with a raw Supabase network failure — not an app bug, a fetch that never completes (see
+  PRODUCT_LOG §5/§6 for the diagnosis). Because the DB helper it's failing in (`lib/db.js`) is shared by
+  every user-facing route, this likely means chat memory, proactive check-ins, and Club Feed are
+  currently broken for any real signed-in user too — invisible only because there's been zero real
+  traffic in 7 days to surface it. Starting the 30-day GTM push onto a product whose core loop may be
+  silently down would spend the CEO's one shot at first impressions on an outage instead of the bet.
+  Recommendation, in order: (1) CEO confirms the Supabase project's status + Vercel env vars match it —
+  this is dashboard/account access this sandbox doesn't have, so it can't be verified from here; (2)
+  once fixed, deploy today's `feature/health-check` and confirm `ok:true`; (3) *then* resume the GTM
+  push. Stripe and testimonials are unaffected by this and can proceed in parallel — only the "send
+  users to the product" step should wait. This doesn't reduce urgency on the three CEO-owned items, it
+  reorders one step in front of them.
 - 2026-07-19 (Sunday, lighter run; no runs 2026-07-17/18) — Same flag, now 19 days: the three
   CEO-owned board tasks (Stripe, testimonials, GTM push) are unchanged since 2026-06-30. Not
   repeating the ask a sixth time — today's build (first-session proof moment) is a deliberately

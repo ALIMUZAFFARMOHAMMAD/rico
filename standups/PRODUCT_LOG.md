@@ -80,11 +80,34 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - [ ] Plan gating + Stripe (separate backlog item, CEO drives credentials).
 
 ## 4. In progress (carries across days)
+- **URGENT, carries first:** production Supabase connectivity is broken (see 2026-07-22 done log +
+  Open approvals #0) — every DB-backed route (`/api/board`, `/api/stats`, and by extension chat/memory/
+  check-ins for any real signed-in user) fails with a raw "fetch failed". Nothing else in this section
+  matters until this is confirmed fixed.
 - Next up: notification/push so Rico reaches out even when the app is closed (Capacitor android shell
   exists); proactive timing intelligence (fire around each user's habitual active hour); once real GTM
   traffic exists, read `/api/stats`'s new `retention_by_lever` to decide the next lever vs. a 6th one.
 
 ## 5. Done log (most recent first)
+- 2026-07-22 (Wednesday) — **Discovered prod DB outage + built `/api/health`.** Routine board-check
+  (`curl /api/board`) came back `{"error":"fetch failed"}` HTTP 500 instead of JSON. Pulled Vercel
+  runtime logs/errors for `prj_M1NuDrJTVsJChVGW4Mgv9LEoUjJC`: `/api/stats` 500s the same way, both from
+  `lib/db.js`'s `sb()` — a raw network-level fetch failure to Supabase's REST endpoint, not an HTTP error
+  *from* Supabase (that would throw `Supabase 4xx/5xx: ...` instead). Checked the last 7 days of prod
+  logs: only 5 requests total, all from this run's own diagnostic curls — confirms zero real user
+  traffic in a week (consistent with GTM still not started), which also means this outage could have
+  started any time in that window with nothing to surface it. Tried the connected Supabase MCP
+  (`list_projects`) to check the project's own status/pause state directly — it returned zero projects,
+  so either it's not authorized to the org this app's Supabase project lives in, or that's a second data
+  point worth the CEO's own dashboard check. Given no Vercel/Supabase dashboard credentials in this
+  sandbox and no ability to edit prod env vars, could not fix this directly — built the smallest thing
+  that turns "grep Vercel logs to notice this" into "curl one URL": `pages/api/health.js`, a public,
+  unauthenticated endpoint returning which env vars are set (booleans only, never values) plus a live
+  Supabase reachability check (`ok`/`error: <truncated message>`). `next build` passes clean. Committed
+  to new branch `feature/health-check`, pushed; fast-forwarded into `safety/working-tree-2026-06-30`,
+  also pushed. Not yet deployed — same approval gate as everything else — but this one specifically
+  should jump the queue since it's how the CEO (or a future uptime check) confirms the fix worked
+  without needing this level of log-diving again.
 - 2026-07-19 (Sunday, lighter run; no runs 2026-07-17/18) — **First-session "proof moment"**
   (Nova's 2026-07-13 #2 idea, promoted per 2026-07-16's "tomorrow's plan" — no CEO board task to
   prioritize instead): the existing 7-step `components/Onboarding.js` tour only *described* the
@@ -360,6 +383,20 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - 2026-06-28 — Day 0: team chartered, product bet + roadmap defined, daily standup scheduled. (Atlas)
 
 ## 6. Open approvals awaiting CEO
+- **🚨 URGENT, new (2026-07-22): Check the Supabase project's status** (paused/billing/deleted?) in the
+  Supabase dashboard, and confirm `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` in Vercel →
+  Project → Environment Variables (Production) still match it. `/api/board` and `/api/stats` are both
+  currently 500ing in production with a raw "fetch failed" — a network-level failure reaching Supabase,
+  not an app bug. This isn't something Forge can fix with a code PR (no code path can be wrong if the
+  network call itself never completes); it needs dashboard/account access this sandbox doesn't have.
+  Because `lib/db.js` is shared by every DB-backed route, this likely also means chat memory, proactive
+  check-ins, and Club Feed are silently broken right now for any real signed-in user — worth treating as
+  higher priority than the routine deploy approvals below. Once fixed, `curl hitony.vercel.app/api/health`
+  (needs today's `feature/health-check` deployed first) confirms it in one request.
+- **New: Deploy `feature/health-check`** (`/api/health` — public, no secrets, booleans for which env
+  vars are set + live Supabase reachability, code complete 2026-07-22) to production. Deploy this one
+  first/independently of the queue below — it's how you'll confirm the Supabase fix above actually
+  worked.
 - **New: Deploy `feature/proof-moment-tour`** (onboarding tour now shows a real check-in card + memory
   chips instead of only describing them, code complete 2026-07-19) to production. Low-risk — static
   JSX added to an already-shipped modal, no new data flow, no new API surface.
@@ -412,6 +449,12 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   production. Treat the working tree as source of truth until the CEO decides to reconcile git.
 
 ## 7. Idea backlog (raw, unprioritized)
+- **Uptime canary for `/api/health`** (S, Nova 2026-07-22): today's outage discovery only happened
+  because this run manually curled the board endpoint — with zero real GTM traffic, nothing else would
+  ever notice a silent Supabase outage. Once `feature/health-check` is deployed, wire a scheduled task
+  (this environment already has scheduled-task tooling) to hit it every hour or so and alert if `ok`
+  flips to `false`. Cheap, and turns "found by luck during a standup" into "found within an hour."
+  Not built today — depends on the health endpoint being deployed first.
 - **Tour completion signal** (XS, Nova 2026-07-19): fire a `tour_done` track event (variant:
   complete/skip) from `finishTour` in `pages/index.js` when the now-enriched Onboarding tour closes.
   Cheap (`/api/track` already accepts arbitrary events) and is the natural companion metric to today's
