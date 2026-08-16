@@ -80,15 +80,84 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - [ ] Plan gating + Stripe (separate backlog item, CEO drives credentials).
 
 ## 4. In progress (carries across days)
-- **URGENT, carries first:** production Supabase connectivity is broken (see 2026-07-22 done log +
-  Open approvals #0) — every DB-backed route (`/api/board`, `/api/stats`, and by extension chat/memory/
-  check-ins for any real signed-in user) fails with a raw "fetch failed". Nothing else in this section
-  matters until this is confirmed fixed.
-- Next up: notification/push so Rico reaches out even when the app is closed (Capacitor android shell
+- (RESOLVED 2026-08-16) Supabase outage — CEO restored the paused project; `/api/health` confirms
+  `ok:true`, all data intact. Full writeup in §5/§6. GTM push is now unblocked on this front — see
+  STRATEGY.md §7 for whether Sage still flags anything else before it resumes.
+- Next up: build the uptime canary for `/api/health` (Nova, 2026-07-22 idea) now that the endpoint is
+  live and there's a real outage-to-recovery story motivating it; notification/push so Rico reaches out
+  even when the app is closed (Capacitor android shell
   exists); proactive timing intelligence (fire around each user's habitual active hour); once real GTM
   traffic exists, read `/api/stats`'s new `retention_by_lever` to decide the next lever vs. a 6th one.
 
 ## 5. Done log (most recent first)
+- 2026-08-16 (cont'd, CEO-directed) — **`feature/memory-data-export` DEPLOYED to production**
+  (dpl_EMS6bude9vBKsrb5Uc1NLLhk5oXo) — the last remaining undeployed branch. Merged in first (`--no-ff`,
+  clean; this branch also carried a duplicate copy of the sign-up trust-badge diff per the 2026-07-04
+  note below, which merged as a no-op since identical code was already live from the prior deploy),
+  `next build` passed clean, deployed, aliased `hitony.vercel.app`. Verified: the download-button text
+  is compiled into the shipped `/memory` bundle (confirms the code is genuinely live) — not visible via a
+  raw curl of the static HTML since it's client-rendered and gated behind sign-in + having vault data,
+  same known pattern as every other feature in this app. Landing/home/board/groups/sign-up/memory all
+  200, zero errors in `vercel logs`. **Every branch that was sitting in the deploy queue is now live** —
+  the "awaiting CEO deploy approval" backlog in §6 is empty for the first time since this file existed.
+  (Forge + Keeper, CEO-directed)
+- 2026-08-16 (cont'd, CEO-directed) — **`feature/weekly-memory-digest` and `feature/signup-trust-badge`
+  DEPLOYED to production** (dpl_95hrEDF16iEKozH2At3b7PNJTbFC). Unlike the earlier batch today, these two
+  weren't already folded into `safety/working-tree-2026-06-30` — merged both in first (`--no-ff`, both
+  clean auto-merges, no conflicts; `weekly-memory-digest` touched the same `pages/index.js` as today's
+  earlier `tour_done` change but merged without incident), then `next build` passed clean before
+  deploying. Same recurring alias gap, fixed with `vercel alias set` for `hitony.vercel.app`. Verified
+  against the now-healthy DB (first deploy verification since the outage that could actually exercise
+  DB-backed behavior, not just curl-for-200): `/api/health` still `ok:true`; sign-up page confirmed
+  serving the real trust-badge copy ("AI clearly labeled"); landing/home/board/groups/sign-up all 200,
+  zero errors in `vercel logs`. Pushed the merged working tree before deploying. (Forge + Keeper,
+  CEO-directed)
+- 2026-08-16 (cont'd, CEO-directed) — **Sharpened the Supabase outage diagnosis + wrote the missing base
+  schema.** `nslookup` on the project's own subdomain returns NXDOMAIN (compared against both a
+  known-good Supabase domain and a deliberately fake project ref to rule out a general DNS problem) —
+  strong evidence the project was deleted, not just paused; see Open approvals #0 for the full writeup.
+  Also grepped every `pages/api/*.js` + `lib/db.js` DB call to confirm the app touches exactly one real
+  table (`conversations`; everything else is a JSON blob under a synthetic `user_id` key — genuinely
+  zero-DDL) and to enumerate its actual columns (`messages`, `traits`, `riasec`, `msg_count`,
+  `voice_notes`, `updated_at` + implicit `id`) — none of which were ever captured as a `create table`
+  anywhere in this repo; `supabase-phase1.sql` only *alters* an already-existing table. Wrote
+  `supabase-base-schema.sql` (new) with the reconstructed DDL, deliberately **without** a unique
+  constraint on `user_id` — `lib/db.js`'s `upsertRow` does its own lookup-then-write with no
+  `ON CONFLICT`, so a real unique constraint would turn a race into a 500 instead of the harmless
+  duplicate-row-picked-by-`updated_at` behavior the app already tolerates. Not run against anything (no
+  new project exists yet to run it against) — ready for the moment the CEO confirms a new project is
+  needed. (Forge, CEO-directed)
+- 2026-08-16 (CEO-directed) — **Four queued branches DEPLOYED to production**
+  (dpl_EHQVP5FNzW5cev4GkSqmuVZijTrE): `feature/tour-completion-signal`, `feature/health-check`,
+  `feature/proof-moment-tour`, `feature/retention-lever-attribution` — all four were already folded into
+  `safety/working-tree-2026-06-30`, so one `vercel --prod` from that working tree shipped all of them
+  together (this project deploys from the working directory, not git — see repeated notes below). Same
+  recurring alias gap as every deploy: only auto-aliased to `hitony.ai`; fixed with `vercel alias set` for
+  `hitony.vercel.app`. Verified: landing/home/board/groups all 200, zero unexpected errors in
+  `vercel logs`. **`/api/health` is now live and gives a precise diagnosis for the first time:**
+  `{"ok":false,"env":{"supabase":true,...},"db":"error: fetch failed"}` — env vars ARE correctly set in
+  Vercel, so this rules out a misconfiguration; the failure is a genuine network-level issue reaching the
+  Supabase project itself (paused project, deleted project, or a network/firewall rule), not an env-var
+  typo. `/api/board` still 500s as expected — the DB outage itself is unrelated to this deploy and remains
+  open (see Open approvals #0). `security/idor-auth-guard` was also in the working tree but was already
+  live since 2026-07-07 — no new exposure from today. (Forge + Keeper, CEO-directed)
+- 2026-08-15 (Saturday; **24-day scheduler gap, no runs 2026-07-23 through 2026-08-14**) — Re-checked
+  the outage first thing: `curl /api/board` still `{"error":"fetch failed"}`, `curl /api/health` still
+  404 (never deployed). Nothing about the outage has changed since 2026-07-22 — see Open approvals #0,
+  now escalated harder. Since almost everything DB-backed is unverifiable either way, built the smallest
+  safe, DB-independent item left in the backlog: **tour completion signal** (Nova's 2026-07-19 idea,
+  XS). `pages/api/track.js` gained a `tour_done` event (counts `stats.tour.complete` / `stats.tour.skip`,
+  same day-array-free counter pattern as `spotlight_shown`); `components/Onboarding.js`'s Skip button and
+  final-step `next()` now pass `"skip"`/`"complete"` into `onDone`; `pages/index.js`'s `finishTour` fires
+  the track call. Once real traffic exists this is the top-of-funnel companion to `retention_by_lever` —
+  whether seeing the check-in/memory preview during onboarding (shipped 2026-07-19) correlates with
+  next-day activation. Deliberately did not wire it into `retention_by_lever` itself (that's for
+  mid-funnel repeat-engagement levers; this is a one-time funnel-top signal) — Pulse can query
+  `stats.tour` directly once there's data. `next build` passes clean; `next start` + curl confirms
+  `/`, `/landing` 200 and `POST /api/track {event:"tour_done"}` returns `{"ok":false}` — the same
+  known local-env gap as every recent run (`SUPABASE_SERVICE_ROLE_KEY` blank), not a new bug; the
+  handler executes without a 500. Committed to new branch `feature/tour-completion-signal`, pushed;
+  fast-forwarded into `safety/working-tree-2026-06-30`, also pushed. (Nova → Forge)
 - 2026-07-22 (Wednesday) — **Discovered prod DB outage + built `/api/health`.** Routine board-check
   (`curl /api/board`) came back `{"error":"fetch failed"}` HTTP 500 instead of JSON. Pulled Vercel
   runtime logs/errors for `prj_M1NuDrJTVsJChVGW4Mgv9LEoUjJC`: `/api/stats` 500s the same way, both from
@@ -383,29 +452,38 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - 2026-06-28 — Day 0: team chartered, product bet + roadmap defined, daily standup scheduled. (Atlas)
 
 ## 6. Open approvals awaiting CEO
-- **🚨 URGENT, new (2026-07-22): Check the Supabase project's status** (paused/billing/deleted?) in the
-  Supabase dashboard, and confirm `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` in Vercel →
-  Project → Environment Variables (Production) still match it. `/api/board` and `/api/stats` are both
-  currently 500ing in production with a raw "fetch failed" — a network-level failure reaching Supabase,
-  not an app bug. This isn't something Forge can fix with a code PR (no code path can be wrong if the
-  network call itself never completes); it needs dashboard/account access this sandbox doesn't have.
-  Because `lib/db.js` is shared by every DB-backed route, this likely also means chat memory, proactive
-  check-ins, and Club Feed are silently broken right now for any real signed-in user — worth treating as
-  higher priority than the routine deploy approvals below. Once fixed, `curl hitony.vercel.app/api/health`
-  (needs today's `feature/health-check` deployed first) confirms it in one request.
-- **New: Deploy `feature/health-check`** (`/api/health` — public, no secrets, booleans for which env
-  vars are set + live Supabase reachability, code complete 2026-07-22) to production. Deploy this one
-  first/independently of the queue below — it's how you'll confirm the Supabase fix above actually
-  worked.
+- (RESOLVED 2026-08-16, 25 days open) **Supabase outage — fixed by the CEO restoring the paused
+  project in the dashboard.** `/api/health` now returns `{"ok":true,"db":"ok"}`; `/api/board` and
+  `/api/stats` both confirmed live with ALL original data intact (same 11 board tasks/IDs from
+  2026-06-30, real signup/activation/retention numbers) — **no data was lost.** Correcting this file's own
+  earlier (2026-08-16, same day) diagnosis: DNS NXDOMAIN + Cloudflare 521 + a transient `PGRST205`
+  ("table not found in schema cache") looked exactly like a deleted project, but watching the full resume
+  sequence live made the real cause clear — it was **paused**, not deleted. Restoring a paused project
+  goes through: DNS reprovisions → Cloudflare edge comes up before the Postgres origin does (the 521) →
+  Postgres boots before PostgREST reloads its schema cache (the `PGRST205`) → fully healthy. Each stage
+  looked like harder evidence of deletion in isolation; only watching it resolve live disambiguated it.
+  `supabase-base-schema.sql` (written earlier today) wasn't needed this time since the table already
+  existed — keeping it committed anyway as disaster-recovery documentation, since the original DDL still
+  isn't captured anywhere else. GTM push can now resume per Sage's repeated recommendation (see
+  STRATEGY.md §7) — this was the one blocker on that call.
+- (resolved 2026-08-16) **`feature/health-check`, `feature/tour-completion-signal`,
+  `feature/proof-moment-tour`, `feature/retention-lever-attribution`** — CEO-directed deploy
+  (dpl_EHQVP5FNzW5cev4GkSqmuVZijTrE). Verified via curl + `vercel logs`: no regressions.
+  `curl hitony.vercel.app/api/health` now works and confirms the outage is a genuine Supabase-side
+  network issue, not a Vercel env-var problem — see Done log and item #0 above.
+- (resolved 2026-08-15) **`gh` CLI PR access** — `Muzaffar-07` was invited as a collaborator (via the
+  already-working push credential) and the invite accepted the same run; `gh repo view` now shows WRITE
+  permission and `gh pr create` succeeds. First PR opened: `feature/tour-completion-signal` →
+  https://github.com/ALIMUZAFFARMOHAMMAD/rico/pull/1. Future runs can open PRs directly instead of
+  leaving a compare link.
 - **New: Deploy `feature/proof-moment-tour`** (onboarding tour now shows a real check-in card + memory
   chips instead of only describing them, code complete 2026-07-19) to production. Low-risk — static
   JSX added to an already-shipped modal, no new data flow, no new API surface.
 - **New: Deploy `feature/retention-lever-attribution`** (per-lever impression tracking + `/api/stats`
   ranking, code complete 2026-07-16) to production. Lowest-risk item in this queue — instrumentation
   only, no visible UI change, additive fields on the existing meta-row stats object.
-- **New: Deploy `feature/weekly-memory-digest`** (weekly recap card on the Me tab, code complete
-  2026-07-13) to production. Low-risk (additive card + a new cached AI-summary field), same
-  unverified-in-a-signed-in-session caveat as the items below.
+- (resolved 2026-08-16) **`feature/weekly-memory-digest`** — CEO-directed deploy
+  (dpl_95hrEDF16iEKozH2At3b7PNJTbFC). Verified via curl + `vercel logs`: no regressions.
 - (resolved) **`security/idor-auth-guard`** — CEO-directed deploy, 2026-07-07 (dpl_7KxBs74F). Verified
   via curl: anonymous calls stay graceful, an unowned userId now correctly 403s, no errors. Still worth
   a real signed-in click-through when convenient — curl can't fully exercise the browser/Clerk-cookie
@@ -420,8 +498,11 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   path (this Vercel project had no Preview-scope env vars); deployed, alias fixed, live-verified via
   curl across 3 clubs. Still worth a real signed-in click-through in the app itself when convenient —
   the comment/react/report UI paths were only exercised via direct API calls, not the browser.
-- **Deploy `feature/signup-trust-badge`** (sign-up trust badge, code complete 2026-07-02) to production.
-- **Deploy `feature/memory-data-export`** (Memory Vault data-export button, code complete 2026-07-04) to production.
+- (resolved 2026-08-16) **`feature/signup-trust-badge`** — CEO-directed deploy
+  (dpl_95hrEDF16iEKozH2At3b7PNJTbFC). Verified live: sign-up page serves the real trust-badge copy.
+- (resolved 2026-08-16) **`feature/memory-data-export`** — CEO-directed deploy
+  (dpl_EMS6bude9vBKsrb5Uc1NLLhk5oXo). Verified via curl + `vercel logs`: no regressions. This was the
+  last item in the deploy queue.
 - (resolved) **`feature/club-activity-nudge`** — CEO-directed deploy, 2026-07-12
   (dpl_GJwZaY7Q8ndfpdzqS5fRCj7hLFXF). Merged onto the already-live streak-counter branch first to avoid
   regressing it; verified via curl + `vercel logs`: no regressions, no errors.
@@ -430,9 +511,11 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - **Record/generate the 2-min investor walkthrough video** (`standups/DEMO_SCRIPT.md`) — mostly a live
   screen-record, but the voiceover pass (ElevenLabs, unless the CEO records their own narration) spends
   credits. New as of 2026-07-04.
-- REMINDER (not a build task, board items assigned to CEO, unchanged since 2026-06-30 — now 16 days):
+- REMINDER (not a build task, board items assigned to CEO, unchanged since 2026-06-30 — now 46 days):
   Plan gating + Stripe, Lock 3 named testimonials, Start 30-day GTM push. These three are the actual
-  bottleneck to an investor-ready metric story — product is now ahead of distribution/monetization proof.
+  bottleneck to an investor-ready metric story. **The one thing sequenced in front of GTM — the Supabase
+  fix — is now resolved (2026-08-16)**, so GTM push no longer has a product-side reason to wait; it's back
+  to being purely the CEO's call on when to start, same as the other two.
 - **New (2026-07-05):** Echo drafted a Club Feed launch post (`standups/CONTENT_CALENDAR.md`, src=ig6)
   + Reel spec — needs approval to post, and separately, ~1 ElevenLabs VO pass if you want the video cut.
 - (none open) — voice-note check-ins deployed to prod 2026-06-30 (dpl g7j9qhkdw); track voice ok:true; board card → Done.
