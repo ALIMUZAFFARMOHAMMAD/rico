@@ -90,6 +90,17 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   traffic exists, read `/api/stats`'s new `retention_by_lever` to decide the next lever vs. a 6th one.
 
 ## 5. Done log (most recent first)
+- 2026-08-16 (cont'd, CEO-directed) — **`feature/weekly-memory-digest` and `feature/signup-trust-badge`
+  DEPLOYED to production** (dpl_95hrEDF16iEKozH2At3b7PNJTbFC). Unlike the earlier batch today, these two
+  weren't already folded into `safety/working-tree-2026-06-30` — merged both in first (`--no-ff`, both
+  clean auto-merges, no conflicts; `weekly-memory-digest` touched the same `pages/index.js` as today's
+  earlier `tour_done` change but merged without incident), then `next build` passed clean before
+  deploying. Same recurring alias gap, fixed with `vercel alias set` for `hitony.vercel.app`. Verified
+  against the now-healthy DB (first deploy verification since the outage that could actually exercise
+  DB-backed behavior, not just curl-for-200): `/api/health` still `ok:true`; sign-up page confirmed
+  serving the real trust-badge copy ("AI clearly labeled"); landing/home/board/groups/sign-up all 200,
+  zero errors in `vercel logs`. Pushed the merged working tree before deploying. (Forge + Keeper,
+  CEO-directed)
 - 2026-08-16 (cont'd, CEO-directed) — **Sharpened the Supabase outage diagnosis + wrote the missing base
   schema.** `nslookup` on the project's own subdomain returns NXDOMAIN (compared against both a
   known-good Supabase domain and a deliberately fake project ref to rule out a general DNS problem) —
@@ -460,9 +471,8 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - **New: Deploy `feature/retention-lever-attribution`** (per-lever impression tracking + `/api/stats`
   ranking, code complete 2026-07-16) to production. Lowest-risk item in this queue — instrumentation
   only, no visible UI change, additive fields on the existing meta-row stats object.
-- **New: Deploy `feature/weekly-memory-digest`** (weekly recap card on the Me tab, code complete
-  2026-07-13) to production. Low-risk (additive card + a new cached AI-summary field), same
-  unverified-in-a-signed-in-session caveat as the items below.
+- (resolved 2026-08-16) **`feature/weekly-memory-digest`** — CEO-directed deploy
+  (dpl_95hrEDF16iEKozH2At3b7PNJTbFC). Verified via curl + `vercel logs`: no regressions.
 - (resolved) **`security/idor-auth-guard`** — CEO-directed deploy, 2026-07-07 (dpl_7KxBs74F). Verified
   via curl: anonymous calls stay graceful, an unowned userId now correctly 403s, no errors. Still worth
   a real signed-in click-through when convenient — curl can't fully exercise the browser/Clerk-cookie
@@ -477,8 +487,10 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   path (this Vercel project had no Preview-scope env vars); deployed, alias fixed, live-verified via
   curl across 3 clubs. Still worth a real signed-in click-through in the app itself when convenient —
   the comment/react/report UI paths were only exercised via direct API calls, not the browser.
-- **Deploy `feature/signup-trust-badge`** (sign-up trust badge, code complete 2026-07-02) to production.
-- **Deploy `feature/memory-data-export`** (Memory Vault data-export button, code complete 2026-07-04) to production.
+- (resolved 2026-08-16) **`feature/signup-trust-badge`** — CEO-directed deploy
+  (dpl_95hrEDF16iEKozH2At3b7PNJTbFC). Verified live: sign-up page serves the real trust-badge copy.
+- **Deploy `feature/memory-data-export`** (Memory Vault data-export button, code complete 2026-07-04) to
+  production. Only remaining undeployed branch not yet folded into the working tree.
 - (resolved) **`feature/club-activity-nudge`** — CEO-directed deploy, 2026-07-12
   (dpl_GJwZaY7Q8ndfpdzqS5fRCj7hLFXF). Merged onto the already-live streak-counter branch first to avoid
   regressing it; verified via curl + `vercel logs`: no regressions, no errors.
