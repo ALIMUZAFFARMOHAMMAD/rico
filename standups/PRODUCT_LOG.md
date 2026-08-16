@@ -90,6 +90,17 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   traffic exists, read `/api/stats`'s new `retention_by_lever` to decide the next lever vs. a 6th one.
 
 ## 5. Done log (most recent first)
+- 2026-08-16 (cont'd, CEO-directed) — **`feature/memory-data-export` DEPLOYED to production**
+  (dpl_EMS6bude9vBKsrb5Uc1NLLhk5oXo) — the last remaining undeployed branch. Merged in first (`--no-ff`,
+  clean; this branch also carried a duplicate copy of the sign-up trust-badge diff per the 2026-07-04
+  note below, which merged as a no-op since identical code was already live from the prior deploy),
+  `next build` passed clean, deployed, aliased `hitony.vercel.app`. Verified: the download-button text
+  is compiled into the shipped `/memory` bundle (confirms the code is genuinely live) — not visible via a
+  raw curl of the static HTML since it's client-rendered and gated behind sign-in + having vault data,
+  same known pattern as every other feature in this app. Landing/home/board/groups/sign-up/memory all
+  200, zero errors in `vercel logs`. **Every branch that was sitting in the deploy queue is now live** —
+  the "awaiting CEO deploy approval" backlog in §6 is empty for the first time since this file existed.
+  (Forge + Keeper, CEO-directed)
 - 2026-08-16 (cont'd, CEO-directed) — **`feature/weekly-memory-digest` and `feature/signup-trust-badge`
   DEPLOYED to production** (dpl_95hrEDF16iEKozH2At3b7PNJTbFC). Unlike the earlier batch today, these two
   weren't already folded into `safety/working-tree-2026-06-30` — merged both in first (`--no-ff`, both
@@ -489,8 +500,9 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   the comment/react/report UI paths were only exercised via direct API calls, not the browser.
 - (resolved 2026-08-16) **`feature/signup-trust-badge`** — CEO-directed deploy
   (dpl_95hrEDF16iEKozH2At3b7PNJTbFC). Verified live: sign-up page serves the real trust-badge copy.
-- **Deploy `feature/memory-data-export`** (Memory Vault data-export button, code complete 2026-07-04) to
-  production. Only remaining undeployed branch not yet folded into the working tree.
+- (resolved 2026-08-16) **`feature/memory-data-export`** — CEO-directed deploy
+  (dpl_EMS6bude9vBKsrb5Uc1NLLhk5oXo). Verified via curl + `vercel logs`: no regressions. This was the
+  last item in the deploy queue.
 - (resolved) **`feature/club-activity-nudge`** — CEO-directed deploy, 2026-07-12
   (dpl_GJwZaY7Q8ndfpdzqS5fRCj7hLFXF). Merged onto the already-live streak-counter branch first to avoid
   regressing it; verified via curl + `vercel logs`: no regressions, no errors.
