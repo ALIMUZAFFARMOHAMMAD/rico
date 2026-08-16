@@ -80,15 +80,34 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - [ ] Plan gating + Stripe (separate backlog item, CEO drives credentials).
 
 ## 4. In progress (carries across days)
-- **URGENT, carries first:** production Supabase connectivity is broken (see 2026-07-22 done log +
-  Open approvals #0) — every DB-backed route (`/api/board`, `/api/stats`, and by extension chat/memory/
-  check-ins for any real signed-in user) fails with a raw "fetch failed". Nothing else in this section
-  matters until this is confirmed fixed.
+- **URGENT, still broken 24 days later:** production Supabase connectivity remains down as of this run
+  (2026-08-15) — `curl /api/board` still returns `{"error":"fetch failed"}`, identical to 2026-07-22.
+  `feature/health-check` (`/api/health`) was never deployed (still 404 on prod), so nothing has been
+  running even the cheap diagnostic in the meantime. Also: **no run happened between 2026-07-22 and
+  2026-08-15 — a 24-day scheduler gap**, the largest yet (see Challenges). Nothing else in this section
+  matters until the outage is confirmed fixed.
 - Next up: notification/push so Rico reaches out even when the app is closed (Capacitor android shell
   exists); proactive timing intelligence (fire around each user's habitual active hour); once real GTM
   traffic exists, read `/api/stats`'s new `retention_by_lever` to decide the next lever vs. a 6th one.
 
 ## 5. Done log (most recent first)
+- 2026-08-15 (Saturday; **24-day scheduler gap, no runs 2026-07-23 through 2026-08-14**) — Re-checked
+  the outage first thing: `curl /api/board` still `{"error":"fetch failed"}`, `curl /api/health` still
+  404 (never deployed). Nothing about the outage has changed since 2026-07-22 — see Open approvals #0,
+  now escalated harder. Since almost everything DB-backed is unverifiable either way, built the smallest
+  safe, DB-independent item left in the backlog: **tour completion signal** (Nova's 2026-07-19 idea,
+  XS). `pages/api/track.js` gained a `tour_done` event (counts `stats.tour.complete` / `stats.tour.skip`,
+  same day-array-free counter pattern as `spotlight_shown`); `components/Onboarding.js`'s Skip button and
+  final-step `next()` now pass `"skip"`/`"complete"` into `onDone`; `pages/index.js`'s `finishTour` fires
+  the track call. Once real traffic exists this is the top-of-funnel companion to `retention_by_lever` —
+  whether seeing the check-in/memory preview during onboarding (shipped 2026-07-19) correlates with
+  next-day activation. Deliberately did not wire it into `retention_by_lever` itself (that's for
+  mid-funnel repeat-engagement levers; this is a one-time funnel-top signal) — Pulse can query
+  `stats.tour` directly once there's data. `next build` passes clean; `next start` + curl confirms
+  `/`, `/landing` 200 and `POST /api/track {event:"tour_done"}` returns `{"ok":false}` — the same
+  known local-env gap as every recent run (`SUPABASE_SERVICE_ROLE_KEY` blank), not a new bug; the
+  handler executes without a 500. Committed to new branch `feature/tour-completion-signal`, pushed;
+  fast-forwarded into `safety/working-tree-2026-06-30`, also pushed. (Nova → Forge)
 - 2026-07-22 (Wednesday) — **Discovered prod DB outage + built `/api/health`.** Routine board-check
   (`curl /api/board`) came back `{"error":"fetch failed"}` HTTP 500 instead of JSON. Pulled Vercel
   runtime logs/errors for `prj_M1NuDrJTVsJChVGW4Mgv9LEoUjJC`: `/api/stats` 500s the same way, both from
@@ -383,20 +402,22 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - 2026-06-28 — Day 0: team chartered, product bet + roadmap defined, daily standup scheduled. (Atlas)
 
 ## 6. Open approvals awaiting CEO
-- **🚨 URGENT, new (2026-07-22): Check the Supabase project's status** (paused/billing/deleted?) in the
-  Supabase dashboard, and confirm `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` in Vercel →
-  Project → Environment Variables (Production) still match it. `/api/board` and `/api/stats` are both
-  currently 500ing in production with a raw "fetch failed" — a network-level failure reaching Supabase,
-  not an app bug. This isn't something Forge can fix with a code PR (no code path can be wrong if the
-  network call itself never completes); it needs dashboard/account access this sandbox doesn't have.
-  Because `lib/db.js` is shared by every DB-backed route, this likely also means chat memory, proactive
-  check-ins, and Club Feed are silently broken right now for any real signed-in user — worth treating as
-  higher priority than the routine deploy approvals below. Once fixed, `curl hitony.vercel.app/api/health`
-  (needs today's `feature/health-check` deployed first) confirms it in one request.
-- **New: Deploy `feature/health-check`** (`/api/health` — public, no secrets, booleans for which env
-  vars are set + live Supabase reachability, code complete 2026-07-22) to production. Deploy this one
-  first/independently of the queue below — it's how you'll confirm the Supabase fix above actually
-  worked.
+- **🚨🚨 URGENT, now 24 days unresolved (first flagged 2026-07-22, re-confirmed still broken 2026-08-15):
+  Check the Supabase project's status** (paused/billing/deleted?) in the Supabase dashboard, and confirm
+  `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` in Vercel → Project → Environment Variables
+  (Production) still match it. `/api/board` and `/api/stats` are STILL 500ing in production with a raw
+  "fetch failed" — a network-level failure reaching Supabase, not an app bug. This isn't something Forge
+  can fix with a code PR (no code path can be wrong if the network call itself never completes); it needs
+  dashboard/account access this sandbox doesn't have. Because `lib/db.js` is shared by every DB-backed
+  route, this likely also means chat memory, proactive check-ins, and Club Feed have been silently broken
+  this entire time for any real signed-in user. This is now the single highest-priority item in this
+  entire file — every other approval below is secondary until this is fixed.
+- **Deploy `feature/health-check`** (`/api/health` — public, no secrets, booleans for which env vars are
+  set + live Supabase reachability, code complete 2026-07-22, **still not deployed 24 days later** —
+  confirmed via `curl hitony.vercel.app/api/health` → 404). Deploy this one first/independently of the
+  queue below — it's how you'll confirm the Supabase fix above actually worked without needing a log dive.
+- **New: Deploy `feature/tour-completion-signal`** (`tour_done` track event, complete/skip variant, code
+  complete 2026-08-15) to production. Lowest-risk item in the queue — instrumentation only, no UI change.
 - **New: Deploy `feature/proof-moment-tour`** (onboarding tour now shows a real check-in card + memory
   chips instead of only describing them, code complete 2026-07-19) to production. Low-risk — static
   JSX added to an already-shipped modal, no new data flow, no new API surface.
@@ -430,9 +451,10 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - **Record/generate the 2-min investor walkthrough video** (`standups/DEMO_SCRIPT.md`) — mostly a live
   screen-record, but the voiceover pass (ElevenLabs, unless the CEO records their own narration) spends
   credits. New as of 2026-07-04.
-- REMINDER (not a build task, board items assigned to CEO, unchanged since 2026-06-30 — now 16 days):
+- REMINDER (not a build task, board items assigned to CEO, unchanged since 2026-06-30 — now 46 days):
   Plan gating + Stripe, Lock 3 named testimonials, Start 30-day GTM push. These three are the actual
-  bottleneck to an investor-ready metric story — product is now ahead of distribution/monetization proof.
+  bottleneck to an investor-ready metric story — but per Sage, GTM specifically should still wait behind
+  the Supabase fix above (sending first users into a possibly-broken core loop would waste the shot).
 - **New (2026-07-05):** Echo drafted a Club Feed launch post (`standups/CONTENT_CALENDAR.md`, src=ig6)
   + Reel spec — needs approval to post, and separately, ~1 ElevenLabs VO pass if you want the video cut.
 - (none open) — voice-note check-ins deployed to prod 2026-06-30 (dpl g7j9qhkdw); track voice ok:true; board card → Done.

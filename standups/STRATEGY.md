@@ -87,6 +87,23 @@ app AND monetize like a career tool."
 Tag every link you share: `hitony.vercel.app/landing?src=reddit` (or `?src=ambassador_name`, `?src=ig`, etc.).
 
 ## 7. Strategic recommendations log (most recent first)
+- 2026-08-15 (Saturday; 24-day scheduler gap since the last run) — **Escalating, not repeating.** The
+  Supabase outage flagged 2026-07-22 is confirmed STILL live 24 days later (`/api/board` still
+  `{"error":"fetch failed"}`), and the diagnostic endpoint built specifically to make this a one-curl
+  check (`feature/health-check`) was never deployed, so there's no evidence anyone has looked since. Two
+  compounding risks this creates: (1) if any real user *did* sign up in the last 24 days via an old
+  content link or organic discovery, their entire experience — chat memory, proactive check-ins, Club
+  Feed — has likely been silently broken the whole time, which is worse for an investor narrative than
+  zero users; (2) the CEO-owned board tasks (Stripe, testimonials, GTM push) are now 46 days stale, and
+  GTM specifically should not start until this is fixed regardless of how stale the ask gets — starting
+  it onto a broken core loop would still be the wrong call today, same as 2026-07-22. Recommendation,
+  unchanged in substance but now urgent given the gap: (1) CEO checks the Supabase dashboard + Vercel env
+  vars (5-minute task, cannot be done from this sandbox); (2) deploy `feature/health-check` immediately
+  after so `/api/health` confirms the fix in one request going forward; (3) resume GTM only once that
+  reads `ok:true`. Also flagging the 24-day scheduler gap itself as worth the CEO's attention separately
+  from the product content — three prior gaps (07-14/15, 07-17/18, 07-20/21) were 2-3 days each and each
+  got flagged; this one is an order of magnitude larger and suggests something about the schedule itself
+  may need a look, not just a one-off miss.
 - 2026-07-22 (Wednesday) — **Change of recommendation: pause the "unblock Stripe/testimonials/GTM"
   ask for one beat.** Today's routine board-check found `/api/board` and `/api/stats` both 500ing in
   production with a raw Supabase network failure — not an app bug, a fetch that never completes (see
