@@ -5,14 +5,13 @@ export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
 
   const { userId } = getAuth(req);
-  const { userId: uid, results } = req.body;
-  const saveId = uid || userId;
+  const { results } = req.body;
 
-  if (!saveId || !results) return res.status(400).json({ error: "Missing data" });
+  if (!userId || !results) return res.status(400).json({ error: "Missing data" });
 
   try {
     await supabaseAdmin.from("career_results").insert({
-      user_id: saveId,
+      user_id: userId,
       personality_type: results.personalityType,
       riasec: results.riasec,
       summary: results.summary,

@@ -19,7 +19,6 @@ export default function MascotPage() {
   return (<>
     <Head>
       <title>Tony — mascot kit · hitony.ai</title>
-      <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Comic+Neue:wght@400;700&display=swap" rel="stylesheet" />
     </Head>
     <div style={{ minHeight: "100vh", background: "#fdf8f0", fontFamily: "'Comic Neue',cursive", padding: 24, backgroundImage: "linear-gradient(rgba(26,16,8,0.05) 1px,transparent 1px),linear-gradient(90deg,rgba(26,16,8,0.05) 1px,transparent 1px)", backgroundSize: "28px 28px" }}>
       <div style={{ maxWidth: 1100, margin: "0 auto" }}>

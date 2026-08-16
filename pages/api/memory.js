@@ -1,6 +1,7 @@
 // Memory Vault — see, prune, or wipe what each agent remembers about you.
 import { configured, getUserRows, deleteRow, upsertRow, getRow, memKey, parseKey } from "../../lib/db";
 import { AGENTS } from "../../lib/agents";
+import { ownsUser } from "../../lib/auth";
 
 export default async function handler(req, res) {
   if (!configured()) return res.status(500).json({ error: "Not configured" });
@@ -8,6 +9,7 @@ export default async function handler(req, res) {
   if (req.method === "GET") {
     const { userId } = req.query;
     if (!userId) return res.status(400).json({ error: "No userId" });
+    if (!ownsUser(req, userId)) return res.status(403).json({ error: "forbidden" });
     try {
       const rows = await getUserRows(userId);
       const agents = rows
@@ -31,6 +33,7 @@ export default async function handler(req, res) {
   if (req.method === "POST") {
     const { action, userId, agentId, index } = req.body || {};
     if (!userId) return res.status(400).json({ error: "No userId" });
+    if (!ownsUser(req, userId)) return res.status(403).json({ error: "forbidden" });
     try {
       if (action === "forgetAgent" && AGENTS[agentId]) {
         await deleteRow(memKey(userId, agentId));

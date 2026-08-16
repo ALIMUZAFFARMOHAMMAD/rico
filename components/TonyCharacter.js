@@ -93,7 +93,8 @@ const RIGHT_ARMS = {
   thumbs:  { d: "M130,138 Q152,154 163,148", hand: { x: 166, y: 144, type: "thumb" } },
 };
 
-export default function TonyCharacter({ size = 140, expr = "😊", state = "idle", float = "drift", pose = "auto", animated = true, look = {} }) {
+export default function TonyCharacter({ size = 140, expr = "😊", state = "idle", float = "drift", pose = "auto", animated = true, look = {}, emote = "none" }) {
+  const emoting = emote && emote !== "none";
   // look: { hoodie, hoodieD, skin, skinD, hair, pants } — agent cast variants share the rig
   const C = {
     hoodie: look.hoodie || YELLOW,
@@ -103,10 +104,12 @@ export default function TonyCharacter({ size = 140, expr = "😊", state = "idle
     hair: look.hair || HAIR,
     pants: look.pants || PANTS,
   };
-  const face = state === "thinking" ? "think" : mapExpr(expr);
+  const face = (["laugh", "dance", "wave", "celebrate"].includes(emote)) ? "big" : emote === "shuffle" ? "think" : state === "thinking" ? "think" : mapExpr(expr);
   const talking = animated && state === "talking";
   const listening = state === "listening";
   const effPose = pose !== "auto" ? pose
+    : emote === "wave" || emote === "leave" || emote === "celebrate" ? "wave"
+    : emote === "dance" || emote === "laugh" || emote === "shuffle" ? "gesture"
     : state === "talking" ? "gesture"
     : state === "thinking" ? "think"
     : state === "listening" ? "listen"
@@ -116,23 +119,61 @@ export default function TonyCharacter({ size = 140, expr = "😊", state = "idle
   const pupilsUp = face === "think" || face === "idea";
   const bigEyes = face === "surprise" || listening;
   const floatClass = !animated ? "" : float === "drift" ? "tony-drift" : float === "bob" ? "tony-bob" : "";
+  const emoteClass = emoting ? `tony-em tony-em-${emote}` : "";
   const w = Math.round(size * 0.77);
 
   return (
-    <div className={`tony-wrap ${floatClass}`} style={{ width: w, height: size, display: "inline-block", lineHeight: 0 }}>
+    <div className={`tony-wrap ${emoting ? emoteClass : floatClass}`} style={{ width: w, height: size, display: "inline-block", lineHeight: 0 }}>
+      {emoting && <style>{`
+        .tony-em { transform-origin: 50% 92%; }
+        .tony-em-dance { animation: tony-dance 0.8s ease-in-out infinite; }
+        @keyframes tony-dance { 0%,100% { transform: translateX(-5px) rotate(-5deg); } 50% { transform: translateX(5px) rotate(5deg); } }
+        .tony-em-laugh { animation: tony-laugh 0.45s ease-in-out infinite; }
+        @keyframes tony-laugh { 0%,100% { transform: translateY(0) rotate(-2deg) scale(1); } 50% { transform: translateY(-5px) rotate(2deg) scale(1.03); } }
+        .tony-em-wave { animation: tony-em-rock 1.1s ease-in-out infinite; }
+        @keyframes tony-em-rock { 0%,100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
+        .tony-em-peek { animation: tony-peek-in 0.9s cubic-bezier(.2,1.2,.3,1) both; }
+        @keyframes tony-peek-in { 0% { transform: translateX(-60%) rotate(-12deg); opacity: 0; } 60% { transform: translateX(6%) rotate(4deg); opacity: 1; } 100% { transform: translateX(0) rotate(0); opacity: 1; } }
+        .tony-em-leave { animation: tony-leave-out 0.7s cubic-bezier(.5,0,.9,.4) both; }
+        @keyframes tony-leave-out { 0% { transform: translateX(0) rotate(0); opacity: 1; } 100% { transform: translateX(-160%) rotate(-16deg); opacity: 0; } }
+        /* walking */
+        .tony-em-walk { animation: tony-walkbob 0.5s ease-in-out infinite; }
+        @keyframes tony-walkbob { 0%,100% { transform: translateY(0) rotate(-1deg); } 50% { transform: translateY(-3px) rotate(1deg); } }
+        .tony-walkL { animation: tony-stepL 0.5s ease-in-out infinite; }
+        .tony-walkR { animation: tony-stepR 0.5s ease-in-out infinite; }
+        @keyframes tony-stepL { 0%,100% { transform: rotate(17deg); } 50% { transform: rotate(-17deg); } }
+        @keyframes tony-stepR { 0%,100% { transform: rotate(-17deg); } 50% { transform: rotate(17deg); } }
+        /* celebrate jump */
+        .tony-em-celebrate { animation: tony-jump 0.7s cubic-bezier(.3,1.4,.4,1) infinite; }
+        @keyframes tony-jump { 0%,100% { transform: translateY(0) scale(1,1); } 20% { transform: translateY(0) scale(1.05,0.92); } 50% { transform: translateY(-22px) scale(0.96,1.06) rotate(2deg); } 80% { transform: translateY(0) scale(1.05,0.92); } }
+        /* nod yes */
+        .tony-nod { animation: tony-nod 0.7s ease-in-out infinite; }
+        @keyframes tony-nod { 0%,100% { transform: rotate(0deg); } 25% { transform: rotate(7deg); } 50% { transform: rotate(0deg); } 75% { transform: rotate(7deg); } }
+        /* shy look-away */
+        .tony-shy { animation: tony-shy 2.4s ease-in-out infinite; }
+        @keyframes tony-shy { 0%,100% { transform: rotate(0deg); } 40% { transform: rotate(-9deg) translateX(-2px); } 70% { transform: rotate(-9deg) translateX(-2px); } }
+        /* card shuffle */
+        .tony-card-a { animation: tony-shuffleA 0.55s ease-in-out infinite; }
+        .tony-card-b { animation: tony-shuffleB 0.55s ease-in-out infinite; }
+        @keyframes tony-shuffleA { 0%,100% { transform: translate(0,0) rotate(-4deg); } 50% { transform: translate(14px,-8px) rotate(6deg); } }
+        @keyframes tony-shuffleB { 0%,100% { transform: translate(0,0) rotate(4deg); } 50% { transform: translate(-14px,-8px) rotate(-6deg); } }
+      `}</style>}
       <svg viewBox="0 0 200 262" width={w} height={size} xmlns="http://www.w3.org/2000/svg" aria-label="Tony, the HiTony mascot">
         {/* ground shadow */}
         {animated && <ellipse cx="100" cy="256" rx="46" ry="6" fill={INK} opacity="0.14" />}
 
         <g className={animated ? "tony-sway" : ""}>
-          {/* legs */}
-          <path d="M76,196 L76,234 Q76,240 82,240 L92,240 L94,198 Z" fill={C.pants} stroke={INK} strokeWidth="3.5" strokeLinejoin="round" />
-          <path d="M124,196 L124,234 Q124,240 118,240 L108,240 L106,198 Z" fill={C.pants} stroke={INK} strokeWidth="3.5" strokeLinejoin="round" />
-          {/* sneakers */}
-          <path d="M74,238 Q66,252 78,253 L96,253 Q100,251 97,238 Z" fill="white" stroke={INK} strokeWidth="3.5" strokeLinejoin="round" />
-          <path d="M126,238 Q134,252 122,253 L104,253 Q100,251 103,238 Z" fill="white" stroke={INK} strokeWidth="3.5" strokeLinejoin="round" />
-          <line x1="74" y1="247" x2="98" y2="247" stroke={INK} strokeWidth="2" />
-          <line x1="102" y1="247" x2="126" y2="247" stroke={INK} strokeWidth="2" />
+          {/* legs (grouped so they can walk) */}
+          <g className={emote === "walk" ? "tony-walkL" : ""} style={{ transformOrigin: "85px 198px" }}>
+            <path d="M76,196 L76,234 Q76,240 82,240 L92,240 L94,198 Z" fill={C.pants} stroke={INK} strokeWidth="3.5" strokeLinejoin="round" />
+            <path d="M74,238 Q66,252 78,253 L96,253 Q100,251 97,238 Z" fill="white" stroke={INK} strokeWidth="3.5" strokeLinejoin="round" />
+            <line x1="74" y1="247" x2="98" y2="247" stroke={INK} strokeWidth="2" />
+          </g>
+          <g className={emote === "walk" ? "tony-walkR" : ""} style={{ transformOrigin: "115px 198px" }}>
+            <path d="M124,196 L124,234 Q124,240 118,240 L108,240 L106,198 Z" fill={C.pants} stroke={INK} strokeWidth="3.5" strokeLinejoin="round" />
+            <path d="M126,238 Q134,252 122,253 L104,253 Q100,251 103,238 Z" fill="white" stroke={INK} strokeWidth="3.5" strokeLinejoin="round" />
+            <line x1="102" y1="247" x2="126" y2="247" stroke={INK} strokeWidth="2" />
+          </g>
 
           {/* left arm (relaxed) */}
           <Arm d="M70,138 Q59,162 56,184" sleeve={C.hoodie} />
@@ -167,8 +208,16 @@ export default function TonyCharacter({ size = 140, expr = "😊", state = "idle
             <Hand {...right.hand} skin={C.skin} />
           </g>
 
+          {/* shuffling cards */}
+          {emote === "shuffle" && (
+            <g>
+              <g className="tony-card-b"><rect x="94" y="150" width="28" height="38" rx="4" fill="#fff" stroke={INK} strokeWidth="2.5" /><circle cx="108" cy="169" r="4.5" fill={PURPLE} /></g>
+              <g className="tony-card-a"><rect x="78" y="150" width="28" height="38" rx="4" fill="#fff" stroke={INK} strokeWidth="2.5" /><path d="M92,162 c-2,-3 -7,-1.5 -6,2 c0.7,2.5 4,4.5 6,6 c2,-1.5 5.3,-3.5 6,-6 c1,-3.5 -4,-5 -6,-2 Z" fill={RED} /></g>
+            </g>
+          )}
+
           {/* head group */}
-          <g className={animated ? "tony-headtilt" : ""} style={{ transformOrigin: "100px 110px" }}>
+          <g className={emote === "nod" ? "tony-nod" : emote === "shy" ? "tony-shy" : (animated && !emoting ? "tony-headtilt" : "")} style={{ transformOrigin: "100px 110px" }}>
             {/* ears */}
             <ellipse cx="51" cy="74" rx="7" ry="10" fill={C.skin} stroke={INK} strokeWidth="3" />
             <ellipse cx="149" cy="74" rx="7" ry="10" fill={C.skin} stroke={INK} strokeWidth="3" />

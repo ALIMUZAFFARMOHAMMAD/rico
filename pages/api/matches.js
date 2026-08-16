@@ -1,11 +1,13 @@
 // Accounts-backed matches. Stored in the user's meta row (messages column = matches array).
 import { configured, getRow, upsertRow, metaKey } from "../../lib/db";
 import { AGENTS } from "../../lib/agents";
+import { ownsUser } from "../../lib/auth";
 
 export default async function handler(req, res) {
   if (!configured()) return res.status(500).json({ error: "Not configured" });
   const userId = req.method === "GET" ? req.query.userId : req.body?.userId;
   if (!userId) return res.status(400).json({ error: "No userId" });
+  if (!ownsUser(req, userId)) return res.status(403).json({ error: "forbidden" });
   const key = metaKey(userId);
 
   try {

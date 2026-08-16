@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Rico</string>
+    <string name="title_activity_main">Rico</string>
+    <string name="package_name">chat.rico.app</string>
+    <string name="custom_url_scheme">chat.rico.app</string>
+</resources>
