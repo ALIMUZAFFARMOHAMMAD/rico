@@ -91,6 +91,21 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   traffic exists, read `/api/stats`'s new `retention_by_lever` to decide the next lever vs. a 6th one.
 
 ## 5. Done log (most recent first)
+- 2026-08-16 (cont'd, CEO-directed) — **Sharpened the Supabase outage diagnosis + wrote the missing base
+  schema.** `nslookup` on the project's own subdomain returns NXDOMAIN (compared against both a
+  known-good Supabase domain and a deliberately fake project ref to rule out a general DNS problem) —
+  strong evidence the project was deleted, not just paused; see Open approvals #0 for the full writeup.
+  Also grepped every `pages/api/*.js` + `lib/db.js` DB call to confirm the app touches exactly one real
+  table (`conversations`; everything else is a JSON blob under a synthetic `user_id` key — genuinely
+  zero-DDL) and to enumerate its actual columns (`messages`, `traits`, `riasec`, `msg_count`,
+  `voice_notes`, `updated_at` + implicit `id`) — none of which were ever captured as a `create table`
+  anywhere in this repo; `supabase-phase1.sql` only *alters* an already-existing table. Wrote
+  `supabase-base-schema.sql` (new) with the reconstructed DDL, deliberately **without** a unique
+  constraint on `user_id` — `lib/db.js`'s `upsertRow` does its own lookup-then-write with no
+  `ON CONFLICT`, so a real unique constraint would turn a race into a 500 instead of the harmless
+  duplicate-row-picked-by-`updated_at` behavior the app already tolerates. Not run against anything (no
+  new project exists yet to run it against) — ready for the moment the CEO confirms a new project is
+  needed. (Forge, CEO-directed)
 - 2026-08-16 (CEO-directed) — **Four queued branches DEPLOYED to production**
   (dpl_EHQVP5FNzW5cev4GkSqmuVZijTrE): `feature/tour-completion-signal`, `feature/health-check`,
   `feature/proof-moment-tour`, `feature/retention-lever-attribution` — all four were already folded into
@@ -416,18 +431,24 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - 2026-06-28 — Day 0: team chartered, product bet + roadmap defined, daily standup scheduled. (Atlas)
 
 ## 6. Open approvals awaiting CEO
-- **🚨🚨 URGENT, now 25 days unresolved (first flagged 2026-07-22, re-confirmed still broken 2026-08-16
-  with `/api/health` now live and confirming the diagnosis): Check the Supabase project's status**
-  (paused/billing/deleted?) in the Supabase dashboard, and confirm `NEXT_PUBLIC_SUPABASE_URL` /
-  `SUPABASE_SERVICE_ROLE_KEY` in Vercel → Project → Environment Variables (Production) still match it.
-  `curl hitony.vercel.app/api/health` now returns `env.supabase:true` (the env vars ARE set correctly)
-  but `db:"error: fetch failed"` — this rules out a Vercel misconfiguration and narrows it to the
-  Supabase project itself (paused/deleted/network-blocked). This isn't something Forge can fix with a
-  code PR (no code path can be wrong if the network call itself never completes); it needs
-  dashboard/account access this sandbox doesn't have. Because `lib/db.js` is shared by every DB-backed
-  route, this likely also means chat memory, proactive check-ins, and Club Feed have been silently broken
-  this entire time for any real signed-in user. This is now the single highest-priority item in this
-  entire file — every other approval below is secondary until this is fixed.
+- **🚨🚨 URGENT, now 25 days unresolved — sharpened diagnosis 2026-08-16, likely DELETED not just
+  paused.** `curl hitony.vercel.app/api/health` confirms env vars ARE set correctly in Vercel
+  (`env.supabase:true`), ruling out a config typo. Went one level deeper: `nslookup` on the project's own
+  subdomain (`qifwvhfzecjymezaqyfx.supabase.co`) returns **NXDOMAIN — the DNS record doesn't exist at
+  all.** Sanity-checked this isn't a general DNS issue (`supabase.co` itself resolves fine) and compared
+  against a deliberately fake Supabase project ref from Supabase's own docs (`xyzcompany.supabase.co`),
+  which returns the *identical* NXDOMAIN. A merely-**paused** project still resolves DNS (it just rejects
+  connections) — a subdomain that doesn't resolve at all is the signature of a **deleted** project, not a
+  paused one. Also tried the connected Supabase MCP again: `list_organizations` finds
+  `ALIMUZAFFARMOHAMMAD's Org` but `list_projects` returns zero — consistent with either "deleted" or "the
+  MCP's org doesn't have visibility into wherever this project actually lives," can't fully disambiguate
+  without dashboard access. **This needs the CEO in the Supabase dashboard directly** — check if
+  `qifwvhfzecjymezaqyfx` still exists under any org; if gone, a NEW project needs creating (see
+  `supabase-base-schema.sql`, added today — the original table DDL was never committed to this repo, only
+  reconstructed today from how `lib/db.js` and every API route actually use it) and Vercel's
+  `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` repointed at it. Because `lib/db.js` is shared
+  by every DB-backed route, this has meant chat memory, proactive check-ins, and Club Feed have all been
+  silently broken this entire time for any real signed-in user. Single highest-priority item in this file.
 - (resolved 2026-08-16) **`feature/health-check`, `feature/tour-completion-signal`,
   `feature/proof-moment-tour`, `feature/retention-lever-attribution`** — CEO-directed deploy
   (dpl_EHQVP5FNzW5cev4GkSqmuVZijTrE). Verified via curl + `vercel logs`: no regressions.
