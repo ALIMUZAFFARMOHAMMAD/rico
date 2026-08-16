@@ -52,13 +52,13 @@ export default function Onboarding({ onDone }) {
   const [i, setI] = useState(0);
   const step = STEPS[i];
   const last = i === STEPS.length - 1;
-  const next = () => last ? onDone() : setI(i + 1);
+  const next = () => last ? onDone("complete") : setI(i + 1);
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 90, background: T.bg, fontFamily: font, display: "flex", justifyContent: "center" }}>
       <div style={{ width: "100%", maxWidth: 430, height: "100%", display: "flex", flexDirection: "column", padding: "16px 24px 26px" }}>
         <div style={{ display: "flex", justifyContent: "flex-end" }}>
-          <button onClick={onDone} style={{ background: "transparent", border: "none", color: T.sub, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: font, padding: 6 }}>Skip</button>
+          <button onClick={() => onDone("skip")} style={{ background: "transparent", border: "none", color: T.sub, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: font, padding: 6 }}>Skip</button>
         </div>
 
         <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center" }}>

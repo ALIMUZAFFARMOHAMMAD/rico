@@ -411,7 +411,11 @@ export default function Rico() {
     if (!isSignedIn || !userId) return;
     fetch("/api/track", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, source: getSource() }) }).catch(() => {});
   }, [isSignedIn, userId]);
-  const finishTour = () => { try { localStorage.setItem(`rico_tour_${userId}`, "1"); } catch (e) {} setNeedsTour(false); };
+  const finishTour = (variant) => {
+    try { localStorage.setItem(`rico_tour_${userId}`, "1"); } catch (e) {}
+    setNeedsTour(false);
+    fetch("/api/track", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, event: "tour_done", variant: variant || "complete" }) }).catch(() => {});
+  };
   const reactTo = useCallback((expr) => {
     const e = ["😄", "😆", "🎉", "😁"].includes(expr) ? "laugh"
       : ["🤍", "❤️", "💙", "🥰"].includes(expr) ? "dance"
