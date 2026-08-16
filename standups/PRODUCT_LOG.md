@@ -418,13 +418,11 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   queue below — it's how you'll confirm the Supabase fix above actually worked without needing a log dive.
 - **New: Deploy `feature/tour-completion-signal`** (`tour_done` track event, complete/skip variant, code
   complete 2026-08-15) to production. Lowest-risk item in the queue — instrumentation only, no UI change.
-- **NEEDS INVESTIGATION (2026-08-15, not a CEO approval, a gap the CEO can close in ~1 minute):** `gh` CLI
-  has no working write access in this sandbox, so the team can't open PRs — only leave a compare link
-  each run. `gh auth login --web` device-flow works and the CEO completed it, but it authenticated as
-  GitHub account `Muzaffar-07`, which only has READ access to `ALIMUZAFFARMOHAMMAD/rico` (`gh pr create`
-  fails: "must be a collaborator"). Fix: either add `Muzaffar-07` as a repo collaborator, or re-run
-  `gh auth login` signed in as `ALIMUZAFFARMOHAMMAD` instead. `git push` itself is unaffected (separate,
-  working OS-credential-manager auth) — only `gh pr create` / other `gh` API calls are blocked.
+- (resolved 2026-08-15) **`gh` CLI PR access** — `Muzaffar-07` was invited as a collaborator (via the
+  already-working push credential) and the invite accepted the same run; `gh repo view` now shows WRITE
+  permission and `gh pr create` succeeds. First PR opened: `feature/tour-completion-signal` →
+  https://github.com/ALIMUZAFFARMOHAMMAD/rico/pull/1. Future runs can open PRs directly instead of
+  leaving a compare link.
 - **New: Deploy `feature/proof-moment-tour`** (onboarding tour now shows a real check-in card + memory
   chips instead of only describing them, code complete 2026-07-19) to production. Low-risk — static
   JSX added to an already-shipped modal, no new data flow, no new API surface.
