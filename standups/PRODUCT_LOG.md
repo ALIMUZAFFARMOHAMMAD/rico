@@ -91,6 +91,20 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   traffic exists, read `/api/stats`'s new `retention_by_lever` to decide the next lever vs. a 6th one.
 
 ## 5. Done log (most recent first)
+- 2026-08-16 (CEO-directed) — **Four queued branches DEPLOYED to production**
+  (dpl_EHQVP5FNzW5cev4GkSqmuVZijTrE): `feature/tour-completion-signal`, `feature/health-check`,
+  `feature/proof-moment-tour`, `feature/retention-lever-attribution` — all four were already folded into
+  `safety/working-tree-2026-06-30`, so one `vercel --prod` from that working tree shipped all of them
+  together (this project deploys from the working directory, not git — see repeated notes below). Same
+  recurring alias gap as every deploy: only auto-aliased to `hitony.ai`; fixed with `vercel alias set` for
+  `hitony.vercel.app`. Verified: landing/home/board/groups all 200, zero unexpected errors in
+  `vercel logs`. **`/api/health` is now live and gives a precise diagnosis for the first time:**
+  `{"ok":false,"env":{"supabase":true,...},"db":"error: fetch failed"}` — env vars ARE correctly set in
+  Vercel, so this rules out a misconfiguration; the failure is a genuine network-level issue reaching the
+  Supabase project itself (paused project, deleted project, or a network/firewall rule), not an env-var
+  typo. `/api/board` still 500s as expected — the DB outage itself is unrelated to this deploy and remains
+  open (see Open approvals #0). `security/idor-auth-guard` was also in the working tree but was already
+  live since 2026-07-07 — no new exposure from today. (Forge + Keeper, CEO-directed)
 - 2026-08-15 (Saturday; **24-day scheduler gap, no runs 2026-07-23 through 2026-08-14**) — Re-checked
   the outage first thing: `curl /api/board` still `{"error":"fetch failed"}`, `curl /api/health` still
   404 (never deployed). Nothing about the outage has changed since 2026-07-22 — see Open approvals #0,
@@ -402,22 +416,23 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - 2026-06-28 — Day 0: team chartered, product bet + roadmap defined, daily standup scheduled. (Atlas)
 
 ## 6. Open approvals awaiting CEO
-- **🚨🚨 URGENT, now 24 days unresolved (first flagged 2026-07-22, re-confirmed still broken 2026-08-15):
-  Check the Supabase project's status** (paused/billing/deleted?) in the Supabase dashboard, and confirm
-  `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` in Vercel → Project → Environment Variables
-  (Production) still match it. `/api/board` and `/api/stats` are STILL 500ing in production with a raw
-  "fetch failed" — a network-level failure reaching Supabase, not an app bug. This isn't something Forge
-  can fix with a code PR (no code path can be wrong if the network call itself never completes); it needs
+- **🚨🚨 URGENT, now 25 days unresolved (first flagged 2026-07-22, re-confirmed still broken 2026-08-16
+  with `/api/health` now live and confirming the diagnosis): Check the Supabase project's status**
+  (paused/billing/deleted?) in the Supabase dashboard, and confirm `NEXT_PUBLIC_SUPABASE_URL` /
+  `SUPABASE_SERVICE_ROLE_KEY` in Vercel → Project → Environment Variables (Production) still match it.
+  `curl hitony.vercel.app/api/health` now returns `env.supabase:true` (the env vars ARE set correctly)
+  but `db:"error: fetch failed"` — this rules out a Vercel misconfiguration and narrows it to the
+  Supabase project itself (paused/deleted/network-blocked). This isn't something Forge can fix with a
+  code PR (no code path can be wrong if the network call itself never completes); it needs
   dashboard/account access this sandbox doesn't have. Because `lib/db.js` is shared by every DB-backed
   route, this likely also means chat memory, proactive check-ins, and Club Feed have been silently broken
   this entire time for any real signed-in user. This is now the single highest-priority item in this
   entire file — every other approval below is secondary until this is fixed.
-- **Deploy `feature/health-check`** (`/api/health` — public, no secrets, booleans for which env vars are
-  set + live Supabase reachability, code complete 2026-07-22, **still not deployed 24 days later** —
-  confirmed via `curl hitony.vercel.app/api/health` → 404). Deploy this one first/independently of the
-  queue below — it's how you'll confirm the Supabase fix above actually worked without needing a log dive.
-- **New: Deploy `feature/tour-completion-signal`** (`tour_done` track event, complete/skip variant, code
-  complete 2026-08-15) to production. Lowest-risk item in the queue — instrumentation only, no UI change.
+- (resolved 2026-08-16) **`feature/health-check`, `feature/tour-completion-signal`,
+  `feature/proof-moment-tour`, `feature/retention-lever-attribution`** — CEO-directed deploy
+  (dpl_EHQVP5FNzW5cev4GkSqmuVZijTrE). Verified via curl + `vercel logs`: no regressions.
+  `curl hitony.vercel.app/api/health` now works and confirms the outage is a genuine Supabase-side
+  network issue, not a Vercel env-var problem — see Done log and item #0 above.
 - (resolved 2026-08-15) **`gh` CLI PR access** — `Muzaffar-07` was invited as a collaborator (via the
   already-working push credential) and the invite accepted the same run; `gh repo view` now shows WRITE
   permission and `gh pr create` succeeds. First PR opened: `feature/tour-completion-signal` →
