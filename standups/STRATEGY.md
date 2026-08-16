@@ -87,6 +87,15 @@ app AND monetize like a career tool."
 Tag every link you share: `hitony.vercel.app/landing?src=reddit` (or `?src=ambassador_name`, `?src=ig`, etc.).
 
 ## 7. Strategic recommendations log (most recent first)
+- 2026-08-16 — **The Supabase outage is resolved; withdrawing the "pause GTM" recommendation.** CEO
+  restored the paused project directly in the dashboard; `/api/health` confirms `ok:true` and all
+  original data (signups, activation, retention) is intact — nothing was lost. This closes the one
+  condition Sage attached to resuming the GTM push (2026-07-22 entry, repeated 2026-08-15): "send traffic
+  once the core loop is confirmed healthy." It's confirmed healthy now. Recommendation reverts to the
+  standing one underneath it (2026-07-09 onward, now 47 days stale): GTM push is still the cheapest of
+  the three CEO-owned items to start (zero engineering dependency, `?src=` tracking has been live since
+  2026-06-29) and is the one every fundraising-readiness item in §6 depends on for real data — no reason
+  left to hold it.
 - 2026-08-15 (Saturday; 24-day scheduler gap since the last run) — **Escalating, not repeating.** The
   Supabase outage flagged 2026-07-22 is confirmed STILL live 24 days later (`/api/board` still
   `{"error":"fetch failed"}`), and the diagnostic endpoint built specifically to make this a one-curl

@@ -80,13 +80,12 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - [ ] Plan gating + Stripe (separate backlog item, CEO drives credentials).
 
 ## 4. In progress (carries across days)
-- **URGENT, still broken 24 days later:** production Supabase connectivity remains down as of this run
-  (2026-08-15) — `curl /api/board` still returns `{"error":"fetch failed"}`, identical to 2026-07-22.
-  `feature/health-check` (`/api/health`) was never deployed (still 404 on prod), so nothing has been
-  running even the cheap diagnostic in the meantime. Also: **no run happened between 2026-07-22 and
-  2026-08-15 — a 24-day scheduler gap**, the largest yet (see Challenges). Nothing else in this section
-  matters until the outage is confirmed fixed.
-- Next up: notification/push so Rico reaches out even when the app is closed (Capacitor android shell
+- (RESOLVED 2026-08-16) Supabase outage — CEO restored the paused project; `/api/health` confirms
+  `ok:true`, all data intact. Full writeup in §5/§6. GTM push is now unblocked on this front — see
+  STRATEGY.md §7 for whether Sage still flags anything else before it resumes.
+- Next up: build the uptime canary for `/api/health` (Nova, 2026-07-22 idea) now that the endpoint is
+  live and there's a real outage-to-recovery story motivating it; notification/push so Rico reaches out
+  even when the app is closed (Capacitor android shell
   exists); proactive timing intelligence (fire around each user's habitual active hour); once real GTM
   traffic exists, read `/api/stats`'s new `retention_by_lever` to decide the next lever vs. a 6th one.
 
@@ -431,24 +430,20 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - 2026-06-28 — Day 0: team chartered, product bet + roadmap defined, daily standup scheduled. (Atlas)
 
 ## 6. Open approvals awaiting CEO
-- **🚨🚨 URGENT, now 25 days unresolved — sharpened diagnosis 2026-08-16, likely DELETED not just
-  paused.** `curl hitony.vercel.app/api/health` confirms env vars ARE set correctly in Vercel
-  (`env.supabase:true`), ruling out a config typo. Went one level deeper: `nslookup` on the project's own
-  subdomain (`qifwvhfzecjymezaqyfx.supabase.co`) returns **NXDOMAIN — the DNS record doesn't exist at
-  all.** Sanity-checked this isn't a general DNS issue (`supabase.co` itself resolves fine) and compared
-  against a deliberately fake Supabase project ref from Supabase's own docs (`xyzcompany.supabase.co`),
-  which returns the *identical* NXDOMAIN. A merely-**paused** project still resolves DNS (it just rejects
-  connections) — a subdomain that doesn't resolve at all is the signature of a **deleted** project, not a
-  paused one. Also tried the connected Supabase MCP again: `list_organizations` finds
-  `ALIMUZAFFARMOHAMMAD's Org` but `list_projects` returns zero — consistent with either "deleted" or "the
-  MCP's org doesn't have visibility into wherever this project actually lives," can't fully disambiguate
-  without dashboard access. **This needs the CEO in the Supabase dashboard directly** — check if
-  `qifwvhfzecjymezaqyfx` still exists under any org; if gone, a NEW project needs creating (see
-  `supabase-base-schema.sql`, added today — the original table DDL was never committed to this repo, only
-  reconstructed today from how `lib/db.js` and every API route actually use it) and Vercel's
-  `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` repointed at it. Because `lib/db.js` is shared
-  by every DB-backed route, this has meant chat memory, proactive check-ins, and Club Feed have all been
-  silently broken this entire time for any real signed-in user. Single highest-priority item in this file.
+- (RESOLVED 2026-08-16, 25 days open) **Supabase outage — fixed by the CEO restoring the paused
+  project in the dashboard.** `/api/health` now returns `{"ok":true,"db":"ok"}`; `/api/board` and
+  `/api/stats` both confirmed live with ALL original data intact (same 11 board tasks/IDs from
+  2026-06-30, real signup/activation/retention numbers) — **no data was lost.** Correcting this file's own
+  earlier (2026-08-16, same day) diagnosis: DNS NXDOMAIN + Cloudflare 521 + a transient `PGRST205`
+  ("table not found in schema cache") looked exactly like a deleted project, but watching the full resume
+  sequence live made the real cause clear — it was **paused**, not deleted. Restoring a paused project
+  goes through: DNS reprovisions → Cloudflare edge comes up before the Postgres origin does (the 521) →
+  Postgres boots before PostgREST reloads its schema cache (the `PGRST205`) → fully healthy. Each stage
+  looked like harder evidence of deletion in isolation; only watching it resolve live disambiguated it.
+  `supabase-base-schema.sql` (written earlier today) wasn't needed this time since the table already
+  existed — keeping it committed anyway as disaster-recovery documentation, since the original DDL still
+  isn't captured anywhere else. GTM push can now resume per Sage's repeated recommendation (see
+  STRATEGY.md §7) — this was the one blocker on that call.
 - (resolved 2026-08-16) **`feature/health-check`, `feature/tour-completion-signal`,
   `feature/proof-moment-tour`, `feature/retention-lever-attribution`** — CEO-directed deploy
   (dpl_EHQVP5FNzW5cev4GkSqmuVZijTrE). Verified via curl + `vercel logs`: no regressions.
@@ -494,8 +489,9 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   credits. New as of 2026-07-04.
 - REMINDER (not a build task, board items assigned to CEO, unchanged since 2026-06-30 — now 46 days):
   Plan gating + Stripe, Lock 3 named testimonials, Start 30-day GTM push. These three are the actual
-  bottleneck to an investor-ready metric story — but per Sage, GTM specifically should still wait behind
-  the Supabase fix above (sending first users into a possibly-broken core loop would waste the shot).
+  bottleneck to an investor-ready metric story. **The one thing sequenced in front of GTM — the Supabase
+  fix — is now resolved (2026-08-16)**, so GTM push no longer has a product-side reason to wait; it's back
+  to being purely the CEO's call on when to start, same as the other two.
 - **New (2026-07-05):** Echo drafted a Club Feed launch post (`standups/CONTENT_CALENDAR.md`, src=ig6)
   + Reel spec — needs approval to post, and separately, ~1 ElevenLabs VO pass if you want the video cut.
 - (none open) — voice-note check-ins deployed to prod 2026-06-30 (dpl g7j9qhkdw); track voice ok:true; board card → Done.
