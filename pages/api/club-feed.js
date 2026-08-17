@@ -30,7 +30,7 @@ async function claude(apiKey, system, userContent, maxTokens) {
     headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
     body: JSON.stringify({ model: FAST, max_tokens: maxTokens, system, messages: [{ role: "user", content: userContent }] }),
   });
-  if (!r.ok) throw new Error("API " + r.status);
+  if (!r.ok) throw new Error(`API ${r.status}: ${(await r.text()).slice(0, 300)}`);
   const d = await r.json();
   return d.content[0].text.trim().replace(/^["']|["']$/g, "");
 }
