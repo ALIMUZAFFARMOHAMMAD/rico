@@ -12,6 +12,7 @@
 // the same posts/debates/memes/comments — and can add their own. Generation is
 // lazy + cached (same pattern as checkin.js/remembers.js): on-demand when a space
 // goes stale, not a background cron — keeps this free when nobody's looking.
+import { randomUUID } from "crypto";
 import { CLUBS, AGENTS, AGENT_LIST } from "../../lib/agents";
 import { languagePrompt, LANGS } from "../../lib/i18n";
 import { configured, getRow, upsertRow } from "../../lib/db";
@@ -21,7 +22,7 @@ const FRESH_WINDOW_MS = 6 * 60 * 60 * 1000; // 6h — shorter than check-in's 18
 const MAX_ITEMS = 100;
 
 const feedKey = (spaceId) => `club::${spaceId}::feed`;
-const uid = () => Math.random().toString(36).slice(2, 10);
+const uid = () => randomUUID();
 
 async function claude(apiKey, system, userContent, maxTokens) {
   const r = await fetch("https://api.anthropic.com/v1/messages", {
