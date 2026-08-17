@@ -24,6 +24,7 @@ export default function Board() {
   const [keyInput, setKeyInput] = useState("");
   const [tasks, setTasks] = useState([]);
   const [team, setTeam] = useState(["CEO", "Atlas", "Sage", "Nova", "Forge", "Sentry", "Pulse", "Beacon", "Echo", "Reel", "Keeper"]);
+  const [stats, setStats] = useState(null);
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
   const [newTitle, setNewTitle] = useState("");
@@ -46,6 +47,11 @@ export default function Board() {
     const d = await api("GET");
     setLoading(false);
     if (d?.ok) { setTasks(d.tasks || []); if (d.team) setTeam(d.team); }
+    // Retention snapshot: same key may also be STATS_KEY (board accepts BOARD_KEY or STATS_KEY);
+    // silently skip if it isn't — this panel is a nicety, not required for the board to work.
+    fetch(`/api/stats?key=${encodeURIComponent(key)}`).then(r => r.ok ? r.json() : null)
+      .then(s => { if (s?.total_signups !== undefined) setStats(s); })
+      .catch(() => {});
   }, [key, api]);
 
   useEffect(() => { if (key) { try { localStorage.setItem(KEYLS, key); } catch (e) {} load(); } }, [key, load]);
@@ -137,6 +143,37 @@ export default function Board() {
         );
       })()}
 
+      {/* retention snapshot — read-only, only renders if the key also unlocks /api/stats */}
+      {stats && (() => {
+        const levers = Object.entries(stats.retention_by_lever || {})
+          .filter(([, l]) => l.users > 0)
+          .sort((a, b) => b[1].returned_pct - a[1].returned_pct);
+        return (
+          <div style={{ background: T.panel, border: `1px solid ${T.line}`, borderRadius: 18, padding: 16, marginBottom: 18 }}>
+            <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 10 }}>📊 Retention snapshot</div>
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: levers.length ? 12 : 0 }}>
+              <Stat label="Signups" value={stats.total_signups} />
+              <Stat label="Retention (2+ days)" value={`${stats.retention_rate_pct}%`} />
+              <Stat label="Activation" value={`${stats.activation_rate_pct}%`} />
+              <Stat label="D7 retained" value={stats.retained_7day} />
+            </div>
+            {levers.length > 0 && (
+              <div>
+                <div style={{ fontSize: 11.5, color: T.sub, marginBottom: 6 }}>Levers ranked by return rate (n too small to be conclusive until real GTM traffic):</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                  {levers.map(([name, l]) => (
+                    <div key={name} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5 }}>
+                      <span style={{ minWidth: 110, fontWeight: 700, textTransform: "capitalize" }}>{name.replace(/_/g, " ")}</span>
+                      <span style={{ color: T.sub }}>{l.users} user{l.users === 1 ? "" : "s"} · {l.returned_pct}% returned · {l.d7_pct}% D7</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
       {/* columns */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 14, alignItems: "start" }}>
         {COLS.map((c, ci) => (
@@ -165,6 +202,15 @@ export default function Board() {
         ))}
       </div>
     </Shell>
+  );
+}
+
+function Stat({ label, value }) {
+  return (
+    <div style={{ background: T.panel2, border: `1px solid ${T.line}`, borderRadius: 12, padding: "8px 14px", minWidth: 90 }}>
+      <div style={{ fontSize: 18, fontWeight: 900 }}>{value}</div>
+      <div style={{ fontSize: 10.5, color: T.sub }}>{label}</div>
+    </div>
   );
 }
 
