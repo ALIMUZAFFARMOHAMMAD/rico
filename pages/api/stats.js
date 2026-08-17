@@ -12,7 +12,7 @@ export default async function handler(req, res) {
     const DAY = 864e5, now = Date.now();
     let total = 0, returned = 0, d7 = 0, active7 = 0, active1 = 0;
     let activated = 0, activatedFast = 0, ckShown = 0, ckReplied = 0, ckVoice = 0;
-    let ckMissedShown = 0, ckMissedReplied = 0, spotlightShown = 0;
+    let ckMissedShown = 0, ckMissedReplied = 0, spotlightShown = 0, digestShown = 0;
     const cohort = {};
     const bySource = {}; // channel -> { signups, activated, returned }
     // Retention-lever attribution: for each of the built levers, how many users saw it
@@ -23,6 +23,7 @@ export default async function handler(req, res) {
       missed_you: { users: 0, returned: 0, d7: 0 },
       spotlight: { users: 0, returned: 0, d7: 0 },
       streak_2plus: { users: 0, returned: 0, d7: 0 },
+      digest: { users: 0, returned: 0, d7: 0 },
     };
     for (const r of (rows || [])) {
       const a = r.traits && r.traits.activity;
@@ -49,6 +50,8 @@ export default async function handler(req, res) {
       }
       const sp = r.traits && r.traits.stats && r.traits.stats.spotlight;
       if (sp && sp.shown) { spotlightShown += sp.shown; levers.spotlight.users++; if (didReturn) levers.spotlight.returned++; if (didD7) levers.spotlight.d7++; }
+      const dg = r.traits && r.traits.stats && r.traits.stats.digest;
+      if (dg && dg.shown) { digestShown += dg.shown; levers.digest.users++; if (didReturn) levers.digest.returned++; if (didD7) levers.digest.d7++; }
       const wk = new Date(a.first).toISOString().slice(0, 10);
       cohort[wk] = (cohort[wk] || 0) + 1;
       // attribution by first-touch source (defaults to "direct")
@@ -84,6 +87,7 @@ export default async function handler(req, res) {
         missed_you_reply_rate_pct: ckMissedShown ? Math.round((ckMissedReplied / ckMissedShown) * 100) : 0,
       },
       memory_spotlight: { shown: spotlightShown },
+      weekly_digest: { shown: digestShown },
       // Rank the 5 built retention levers by how the users who saw each one perform vs. the
       // overall base (retention_rate_pct / retained_7day above) — proposed by Nova 2026-07-13.
       retention_by_lever: levers,
