@@ -93,6 +93,20 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   view (Nova, 2026-07-16) — now buildable too, `/api/stats` has real (if tiny, n=6) numbers to show.
 
 ## 5. Done log (most recent first)
+- 2026-08-16 (standup run, cont'd, CEO-directed) — **`feature/digest-shown-attribution` and
+  `feature/board-retention-snapshot` DEPLOYED to production** (dpl_HG3MbFxpgBGAWNq7GF6Nu5V1zg6w). CEO
+  explicitly asked to deploy both in chat. Both were already merged into `safety/working-tree-2026-06-30`
+  (this project deploys from the working directory, not git), so one `vercel --prod` shipped both
+  together — no separate deploys needed. Same recurring alias gap as every deploy this queue has ever
+  seen: only auto-aliased to `hitony.ai`, fixed with `vercel alias set` for `hitony.vercel.app`. Verified:
+  `/api/health` still `ok:true`; landing/home/board/groups all 200; `curl /api/stats` confirms the new
+  `weekly_digest` field and `digest` entry in `retention_by_lever` are live (both `{"users":0,...}` since
+  no real user has triggered the digest card yet — expected, not a bug); zero errors in `vercel logs`
+  across all 6 requests in the verification window. Could not visually click through `/board`'s new
+  retention-snapshot panel in a browser this run (production domain blocked by this sandbox's browsing
+  policy) — confirmed instead via the exact API response the panel depends on returning valid data, plus
+  the same panel already having been click-tested against a local dev server pre-deploy. Deploy queue is
+  empty again. (Forge + Keeper, CEO-directed)
 - 2026-08-16 (standup run, cont'd — CEO said "do the development of the project") — **Founder board
   cohort view shipped** (Nova's 2026-07-16 idea, promoted since the "no data yet" gate is gone):
   `pages/board.js` gains a read-only "📊 Retention snapshot" panel — total signups, retention/activation
@@ -484,12 +498,9 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - 2026-06-28 — Day 0: team chartered, product bet + roadmap defined, daily standup scheduled. (Atlas)
 
 ## 6. Open approvals awaiting CEO
-- **New: Deploy `feature/digest-shown-attribution`** (5th retention lever, code complete 2026-08-16
-  standup run) — instrumentation-only, no visible UI change, lowest-risk category, same as every prior
-  attribution deploy.
-- **New: Deploy `feature/board-retention-snapshot`** (founder board cohort view, code complete
-  2026-08-16, see §5) — small, additive UI on the founder-only `/board` page, no new API/gating surface,
-  reuses the already-live `/api/stats` endpoint read-only.
+- (resolved 2026-08-16) **`feature/digest-shown-attribution` and `feature/board-retention-snapshot`** —
+  CEO-directed deploy (dpl_HG3MbFxpgBGAWNq7GF6Nu5V1zg6w). Verified via curl + `vercel logs`: no
+  regressions, both features' API surface confirmed live. Deploy queue is empty again.
 - **New: `feature/hubspot-signup-sync` — needs a CEO decision, not just a deploy.** An undocumented
   branch surfaced today (see §5) syncs new signups to HubSpot's Forms API for marketing automation. It's
   unreviewed, ~5 weeks stale (forked before the security/IDOR guard and several later features — would
