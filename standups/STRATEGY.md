@@ -87,6 +87,17 @@ app AND monetize like a career tool."
 Tag every link you share: `hitony.vercel.app/landing?src=reddit` (or `?src=ambassador_name`, `?src=ig`, etc.).
 
 ## 7. Strategic recommendations log (most recent first)
+- 2026-08-16 (standup run, cont'd) — **Deploy queue is now empty and `/api/stats` shows real (if tiny)
+  data for the first time.** Earlier today's CEO-directed session deployed every queued branch — nothing
+  code-complete is sitting undeployed anymore, a first since this file existed. `/api/stats` now returns
+  6 total signups, 50% 2+-day retention, 33% activation — small enough (n=6) to mean nothing for an
+  investor deck, but proof the instrumentation and the levers themselves work end-to-end (checkin lever:
+  2/2 users returned and reached D7). None of these 6 signups came from a GTM push — GTM hasn't started
+  yet, so this is organic/testing traffic, not a channel result. Recommendation, unchanged from
+  2026-08-16 (Supabase-resolution entry below) but now sharper: GTM push is the ONLY thing standing
+  between the team and a real metric story — zero engineering dependency remains (queue is empty, health
+  is `ok:true`, `?src=` tracking has been live since 2026-06-29, all 5 retention levers are now
+  instrumented including today's digest_shown). This is purely the CEO's call to start.
 - 2026-08-16 — **The Supabase outage is resolved; withdrawing the "pause GTM" recommendation.** CEO
   restored the paused project directly in the dashboard; `/api/health` confirms `ok:true` and all
   original data (signups, activation, retention) is intact — nothing was lost. This closes the one
