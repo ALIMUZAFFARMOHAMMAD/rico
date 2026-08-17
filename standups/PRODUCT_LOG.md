@@ -512,8 +512,14 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - 2026-06-28 — Day 0: team chartered, product bet + roadmap defined, daily standup scheduled. (Atlas)
 
 ## 6. Open approvals awaiting CEO
-- **New: Deploy `chore/ponytail-audit-cleanup`** (dead-code + stdlib cleanup, code complete 2026-08-16,
-  see §5) — zero behavior change, no new UI/API surface, lowest-risk category possible.
+- (resolved 2026-08-16) **`chore/ponytail-audit-cleanup`** — CEO-directed deploy
+  (dpl_76PyZKgU4oJNAqWJDQNdWYb7qHCZ). Verified via curl + `vercel logs`: `/api/health` ok:true, all
+  routes 200, no regressions from anything this cleanup touched. **Found one unrelated, pre-existing
+  issue while checking logs** (not caused by this deploy — `generateBatch()`/`claude()` in
+  `pages/api/club-feed.js` weren't touched by the cleanup): when a club's feed cache goes stale (>6h)
+  and a request triggers a lazy regenerate, it can hit `club-feed generate error: API 400` — caught
+  gracefully, still serves the cached content with a 200, no user-facing break, but worth a look. New
+  backlog candidate for Forge: diagnose the club-feed regenerate 400 (§7).
 - (resolved 2026-08-16) **`feature/digest-shown-attribution` and `feature/board-retention-snapshot`** —
   CEO-directed deploy (dpl_HG3MbFxpgBGAWNq7GF6Nu5V1zg6w). Verified via curl + `vercel logs`: no
   regressions, both features' API surface confirmed live. Deploy queue is empty again.
@@ -609,6 +615,12 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   production. Treat the working tree as source of truth until the CEO decides to reconcile git.
 
 ## 7. Idea backlog (raw, unprioritized)
+- **New (bug, surfaced 2026-08-16):** Club-feed lazy-regenerate hits `API 400` — seen in prod logs
+  post-deploy verification (see §6). `generateBatch()` in `pages/api/club-feed.js` catches it and falls
+  back to cached content gracefully, so it's not user-facing yet, but the underlying Claude API call is
+  failing on stale-cache regeneration and nobody's diagnosed why. Worth a Forge pass: reproduce (force a
+  space's cache stale and hit it), check the actual Anthropic error body (only `e.message` is logged
+  today, may need more detail), fix or at least log richer diagnostics.
 - ~~Founder board cohort view~~ — DONE 2026-08-16 (see Done log; ships as a read-only panel on `/board`).
 - **New (M, Nova 2026-08-16):** Digest-driven re-engagement — the weekly digest is currently a passive
   card on the Me tab (renders only if the user opens the app). Consider a proactive check-in variant that
