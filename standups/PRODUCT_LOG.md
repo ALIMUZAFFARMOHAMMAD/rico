@@ -93,6 +93,23 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   view (Nova, 2026-07-16) — now buildable too, `/api/stats` has real (if tiny, n=6) numbers to show.
 
 ## 5. Done log (most recent first)
+- 2026-08-16 (CEO said "fix the club feed 400 error") — **Diagnosed to root cause: Anthropic account
+  out of credits, not a code bug.** `pages/api/club-feed.js`'s `claude()` helper was throwing away the
+  actual Anthropic error body on failure (`throw new Error("API " + r.status)` — just the status code).
+  Fixed that first (mirrors the pattern `lib/db.js`'s `sb()` already uses: include
+  `(await r.text()).slice(0,300)` in the thrown error) since the local `.env.local` `ANTHROPIC_API_KEY`
+  is a stub (confirmed via a direct curl repro — returns 401 "invalid x-api-key", not usable to
+  reproduce prod's 400), so the only way to see the real error was to ship the fix and read it live.
+  Deployed (dpl_6Pgtxm9xm5CPJ1sPvxxbdH9cPnSU), then deliberately triggered regeneration on 7 stale club
+  spaces (career-corner, game-day, chai-stories, calm-centered, gita-circle, deen-duas,
+  faith-fellowship) to force the failure and capture it. Real error: **"Your credit balance is too low
+  to access the Anthropic API."** — see the urgent item in §6. Also spotted (not yet fixed, low
+  priority relative to the credits issue): `getOrGenerateSpaceItems` stamps `lastGeneratedAt` = now even
+  when `generateBatch` fails and returns zero items, which silently suppresses retries for a full 6h
+  window after every failed attempt — worth fixing once credits are restored so failures don't hide
+  behind the freshness cache. Branch `fix/club-feed-400-diagnostics`, pushed, merged into
+  `safety/working-tree-2026-06-30`, also pushed; deployed same run (CEO-directed, per the ongoing
+  session).
 - 2026-08-16 (standup run, cont'd, CEO-directed) — **Ponytail-audit cleanup applied.** A repo-wide
   `/ponytail-audit` pass found 5 findings (dead code + hand-rolled stdlib); CEO said "delete" and this
   run applied all 5, zero behavior change: removed `components/HeroRat.js` + `RealRat.js` (never
@@ -512,6 +529,20 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - 2026-06-28 — Day 0: team chartered, product bet + roadmap defined, daily standup scheduled. (Atlas)
 
 ## 6. Open approvals awaiting CEO
+- **🚨🚨 URGENT — NEW: Anthropic account is out of credits. Every AI feature in the app is currently
+  broken, not just club-feed.** CEO asked to "fix the club feed 400 error"; root cause traced by adding
+  error-body capture to `pages/api/club-feed.js`'s Claude call (was previously swallowing the real
+  reason — see Done log) and redeploying to see it live. The actual Anthropic response:
+  `{"type":"invalid_request_error","message":"Your credit balance is too low to access the Anthropic
+  API. Please go to Plans & Billing to upgrade or purchase credits."}`. This is an account-billing state,
+  not a bug — no code change fixes it. It applies to the ONE shared `ANTHROPIC_API_KEY` every AI route
+  uses (tony.js, checkin.js, remembers.js, digest.js, tutor.js, translate.js, twin.js, voice.js,
+  club-feed.js) — meaning Tony chat, proactive check-ins, memory, weekly digest, and every other
+  AI-backed feature are all *silently* failing the same way right now (most of them gracefully degrade
+  — return `{ok:false}` or fall back to cached content — so nothing crashes, but nothing new generates
+  either). **Action needed: add credits at console.anthropic.com → Plans & Billing.** This is money —
+  cannot be done from this session per the team's own guardrails (§0). Once resolved, re-verify
+  `/api/club-feed`, `/api/tony`, and `/api/checkin` all actually generate again, not just return 200.
 - (resolved 2026-08-16) **`chore/ponytail-audit-cleanup`** — CEO-directed deploy
   (dpl_76PyZKgU4oJNAqWJDQNdWYb7qHCZ). Verified via curl + `vercel logs`: `/api/health` ok:true, all
   routes 200, no regressions from anything this cleanup touched. **Found one unrelated, pre-existing
@@ -615,12 +646,13 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   production. Treat the working tree as source of truth until the CEO decides to reconcile git.
 
 ## 7. Idea backlog (raw, unprioritized)
-- **New (bug, surfaced 2026-08-16):** Club-feed lazy-regenerate hits `API 400` — seen in prod logs
-  post-deploy verification (see §6). `generateBatch()` in `pages/api/club-feed.js` catches it and falls
-  back to cached content gracefully, so it's not user-facing yet, but the underlying Claude API call is
-  failing on stale-cache regeneration and nobody's diagnosed why. Worth a Forge pass: reproduce (force a
-  space's cache stale and hit it), check the actual Anthropic error body (only `e.message` is logged
-  today, may need more detail), fix or at least log richer diagnostics.
+- ~~Club-feed `API 400`~~ — DIAGNOSED 2026-08-16 (see Done log + urgent §6 item): Anthropic account out
+  of credits, not a code bug. Fix is CEO adding credits, not more engineering.
+- **New (bug, found 2026-08-16 while diagnosing the above):** `getOrGenerateSpaceItems` in
+  `pages/api/club-feed.js` stamps `lastGeneratedAt` = now even when generation fails and returns zero
+  new items — meaning a failed generation silently blocks retries for the full 6h freshness window. Fix
+  once Anthropic credits are restored: only stamp `lastGeneratedAt` when `generateBatch` actually
+  returned at least one item (or track success/failure separately). Small, contained fix.
 - ~~Founder board cohort view~~ — DONE 2026-08-16 (see Done log; ships as a read-only panel on `/board`).
 - **New (M, Nova 2026-08-16):** Digest-driven re-engagement — the weekly digest is currently a passive
   card on the Me tab (renders only if the user opens the app). Consider a proactive check-in variant that
