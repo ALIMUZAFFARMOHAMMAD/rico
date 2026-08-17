@@ -93,6 +93,18 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   view (Nova, 2026-07-16) — now buildable too, `/api/stats` has real (if tiny, n=6) numbers to show.
 
 ## 5. Done log (most recent first)
+- 2026-08-16 (standup run, cont'd — CEO said "do the development of the project") — **Founder board
+  cohort view shipped** (Nova's 2026-07-16 idea, promoted since the "no data yet" gate is gone):
+  `pages/board.js` gains a read-only "📊 Retention snapshot" panel — total signups, retention/activation
+  rate, D7 retained, and the 5 retention levers ranked by return rate — fetched from the existing
+  `/api/stats` using the same key already stored for `/api/board` (falls back silently if that key
+  isn't also `STATS_KEY`; no new API surface, no new gating logic). `next build` passes clean; verified
+  live in the local dev server via the Browser pane — key-gate screen renders, board unlocks, and the
+  panel correctly stays hidden (not crashed) when `/api/stats` 500s due to the known local
+  unconfigured-Supabase gap, confirming the graceful-fallback design actually works, not just compiles.
+  Committed to new branch `feature/board-retention-snapshot`, pushed, PR opened
+  (https://github.com/ALIMUZAFFARMOHAMMAD/rico/pull/4); merged into `safety/working-tree-2026-06-30`,
+  also pushed. ⏳ Awaiting CEO deploy approval (see §6). (Nova → Forge)
 - 2026-08-16 (standup run) — **Digest attribution follow-up shipped** (Nova's 2026-07-16 idea, promoted
   since `feature/weekly-memory-digest` deployed today and this closes the loop same-day as flagged):
   `components/WeeklyDigest.js` fires a `digest_shown` track event once the card actually renders,
@@ -475,6 +487,9 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - **New: Deploy `feature/digest-shown-attribution`** (5th retention lever, code complete 2026-08-16
   standup run) — instrumentation-only, no visible UI change, lowest-risk category, same as every prior
   attribution deploy.
+- **New: Deploy `feature/board-retention-snapshot`** (founder board cohort view, code complete
+  2026-08-16, see §5) — small, additive UI on the founder-only `/board` page, no new API/gating surface,
+  reuses the already-live `/api/stats` endpoint read-only.
 - **New: `feature/hubspot-signup-sync` — needs a CEO decision, not just a deploy.** An undocumented
   branch surfaced today (see §5) syncs new signups to HubSpot's Forms API for marketing automation. It's
   unreviewed, ~5 weeks stale (forked before the security/IDOR guard and several later features — would
@@ -567,10 +582,7 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   production. Treat the working tree as source of truth until the CEO decides to reconcile git.
 
 ## 7. Idea backlog (raw, unprioritized)
-- **New (S, Nova 2026-08-16):** Founder board cohort view — `/board` already shows the CEO task kanban;
-  now that `/api/stats` has real (if tiny, n=6) numbers and all 5 levers instrumented, surface a
-  read-only summary table there so the CEO sees "which lever wins" without pulling JSON by hand. Was
-  gated on "no data yet" — that gate is gone, promoting to top of backlog for next build slot.
+- ~~Founder board cohort view~~ — DONE 2026-08-16 (see Done log; ships as a read-only panel on `/board`).
 - **New (M, Nova 2026-08-16):** Digest-driven re-engagement — the weekly digest is currently a passive
   card on the Me tab (renders only if the user opens the app). Consider a proactive check-in variant that
   references digest highlights ("saw you talked about your exam this week...") to pull lapsed users back
