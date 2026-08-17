@@ -93,6 +93,20 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   view (Nova, 2026-07-16) — now buildable too, `/api/stats` has real (if tiny, n=6) numbers to show.
 
 ## 5. Done log (most recent first)
+- 2026-08-16 (standup run, cont'd, CEO-directed) — **Ponytail-audit cleanup applied.** A repo-wide
+  `/ponytail-audit` pass found 5 findings (dead code + hand-rolled stdlib); CEO said "delete" and this
+  run applied all 5, zero behavior change: removed `components/HeroRat.js` + `RealRat.js` (never
+  imported anywhere, 266 dead lines); removed the unused anon `supabase` client export in
+  `lib/supabase.js` (only `supabaseAdmin` is real, used once by `pages/api/results.js`); removed the
+  dead `storeLang` back-compat alias in `lib/i18n.js` (its neighbor `getStoredLang` is the one actually
+  used); swapped hand-rolled `Math.random().toString(36)` ID generation for `crypto.randomUUID()` in
+  `pages/api/club-feed.js` and `pages/api/board.js` (stdlib, zero new deps — both IDs are internal/opaque
+  so the format change is safe); dropped unnecessary `export` from 4 symbols only ever called within
+  their own file. Net: -270 lines, 0 new deps. `next build` passes clean; smoke-tested landing/home/
+  board/groups/mascot locally (all 200), confirmed zero remaining references to the deleted files.
+  Branch `chore/ponytail-audit-cleanup`, pushed, PR opened
+  (https://github.com/ALIMUZAFFARMOHAMMAD/rico/pull/5); merged into `safety/working-tree-2026-06-30`,
+  also pushed. ⏳ Awaiting CEO deploy approval (see §6).
 - 2026-08-16 (standup run, cont'd, CEO-directed) — **`feature/digest-shown-attribution` and
   `feature/board-retention-snapshot` DEPLOYED to production** (dpl_HG3MbFxpgBGAWNq7GF6Nu5V1zg6w). CEO
   explicitly asked to deploy both in chat. Both were already merged into `safety/working-tree-2026-06-30`
@@ -498,6 +512,8 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - 2026-06-28 — Day 0: team chartered, product bet + roadmap defined, daily standup scheduled. (Atlas)
 
 ## 6. Open approvals awaiting CEO
+- **New: Deploy `chore/ponytail-audit-cleanup`** (dead-code + stdlib cleanup, code complete 2026-08-16,
+  see §5) — zero behavior change, no new UI/API surface, lowest-risk category possible.
 - (resolved 2026-08-16) **`feature/digest-shown-attribution` and `feature/board-retention-snapshot`** —
   CEO-directed deploy (dpl_HG3MbFxpgBGAWNq7GF6Nu5V1zg6w). Verified via curl + `vercel logs`: no
   regressions, both features' API surface confirmed live. Deploy queue is empty again.
