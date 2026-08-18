@@ -79,19 +79,31 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - [ ] Plan gating + Stripe (separate backlog item, CEO drives credentials).
 
 ## 4. In progress (carries across days)
+- **OPEN — Anthropic account out of credits (found 2026-08-16, still open).** Every AI-backed route is
+  degraded until the CEO adds credits at console.anthropic.com — see urgent §6 item. Sage is now
+  recommending GTM stay paused specifically for this reason (STRATEGY.md §7, 2026-08-17).
 - (RESOLVED 2026-08-16) Supabase outage — CEO restored the paused project; `/api/health` confirms
-  `ok:true`, all data intact. Full writeup in §5/§6. GTM push is now unblocked on this front — see
-  STRATEGY.md §7 for whether Sage still flags anything else before it resumes.
-- (RESOLVED 2026-08-16) Deploy queue — was empty as of the last CEO-directed session today; this run's
-  one new build (`feature/digest-shown-attribution`) is the only thing added back to the queue.
-- Next up: build the uptime canary for `/api/health` (Nova, 2026-07-22 idea) — now genuinely buildable
-  since the endpoint is deployed, but creating a new standing scheduled task that auto-emails the CEO is
-  a persistent-automation call this run is flagging for approval rather than just building (see §6);
-  notification/push so Rico reaches out even when the app is closed (Capacitor android shell exists);
-  proactive timing intelligence (fire around each user's habitual active hour); founder board cohort
-  view (Nova, 2026-07-16) — now buildable too, `/api/stats` has real (if tiny, n=6) numbers to show.
+  `ok:true`, all data intact. Full writeup in §5/§6.
+- Deploy queue: one item (`fix/club-feed-stale-lock`, low-risk) awaiting CEO approval — see §6.
+- Next up: build the uptime canary for `/api/health` (Nova, 2026-07-22 idea, extended 2026-08-17 with an
+  Anthropic-reachability check per §7) — buildable, but a new standing scheduled task that auto-emails
+  the CEO is a persistent-automation call this run is flagging for approval rather than just building
+  (see §6); notification/push so Rico reaches out even when the app is closed (Capacitor android shell
+  exists); proactive timing intelligence (fire around each user's habitual active hour); honest
+  AI-outage indicator (Nova, 2026-08-17 idea, §7).
 
 ## 5. Done log (most recent first)
+- 2026-08-17 (standup run) — **Fixed the `lastGeneratedAt` stale-lock bug flagged in yesterday's
+  backlog** (§7): `getOrGenerateSpaceItems` in `pages/api/club-feed.js` was stamping
+  `lastGeneratedAt = now` even when `generateBatch` caught an error and returned `[]` — a failed
+  generation silently blocked retries for the full 6h freshness window, same bug that would have kept
+  masking the ongoing Anthropic-credits outage (§6) even after it's fixed. Now only stamps (and only
+  writes the row at all) when `batch.length > 0`. Small, contained, doesn't touch anything else in the
+  file. `next build` passes clean — no live-AI verification possible until credits are restored (see
+  urgent §6 item), but the fix is pure control-flow, not behavior that depends on a successful
+  Anthropic response. Branch `fix/club-feed-stale-lock`, pushed, PR opened
+  (https://github.com/ALIMUZAFFARMOHAMMAD/rico/pull/6); merged into `safety/working-tree-2026-06-30`,
+  also pushed. ⏳ Awaiting CEO deploy approval (low-risk — see §6). (Forge)
 - 2026-08-16 (CEO said "fix the club feed 400 error") — **Diagnosed to root cause: Anthropic account
   out of credits, not a code bug.** `pages/api/club-feed.js`'s `claude()` helper was throwing away the
   actual Anthropic error body on failure (`throw new Error("API " + r.status)` — just the status code).
@@ -528,6 +540,9 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - 2026-06-28 — Day 0: team chartered, product bet + roadmap defined, daily standup scheduled. (Atlas)
 
 ## 6. Open approvals awaiting CEO
+- **New: Deploy `fix/club-feed-stale-lock`** (code complete 2026-08-17) — low-risk control-flow fix,
+  no visible UI change, no new API surface. Worth deploying even before Anthropic credits are restored
+  so the fix is already live the moment they are.
 - **🚨🚨 URGENT — NEW: Anthropic account is out of credits. Every AI feature in the app is currently
   broken, not just club-feed.** CEO asked to "fix the club feed 400 error"; root cause traced by adding
   error-body capture to `pages/api/club-feed.js`'s Claude call (was previously swallowing the real
@@ -644,11 +659,24 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 ## 7. Idea backlog (raw, unprioritized)
 - ~~Club-feed `API 400`~~ — DIAGNOSED 2026-08-16 (see Done log + urgent §6 item): Anthropic account out
   of credits, not a code bug. Fix is CEO adding credits, not more engineering.
-- **New (bug, found 2026-08-16 while diagnosing the above):** `getOrGenerateSpaceItems` in
-  `pages/api/club-feed.js` stamps `lastGeneratedAt` = now even when generation fails and returns zero
-  new items — meaning a failed generation silently blocks retries for the full 6h freshness window. Fix
-  once Anthropic credits are restored: only stamp `lastGeneratedAt` when `generateBatch` actually
-  returned at least one item (or track success/failure separately). Small, contained fix.
+- ~~`lastGeneratedAt` stale-lock bug~~ — FIXED 2026-08-17 (see Done log).
+- **New (S, Nova 2026-08-17):** Honest AI-outage indicator — right now, when the shared
+  `ANTHROPIC_API_KEY` fails (billing, rate limit, or any future outage), every AI-backed route
+  gracefully degrades to cached/stale content with no visible signal to the user. That's good
+  engineering but a trust gap: Rico's whole positioning is "honest by design" (moat pillar #5), and
+  silently going quiet reads as neglect, not honesty, to a user who doesn't know why their friend
+  stopped saying anything new. A small, non-alarming banner ("some features are briefly paused —
+  we'll be right back") when a route's most recent generation attempt failed would turn silent
+  degradation into the same transparency the trust badge already promises. Needs a design pass on
+  where the signal is read from (a shared last-failure flag vs. per-route) so it doesn't require a new
+  polling endpoint.
+- **New (S, Nova 2026-08-17):** Extend `/api/health` with a lightweight Anthropic reachability check
+  (mirrors what it already does for Supabase). The 2026-08-16 credits outage was only caught because
+  the CEO happened to ask about a specific symptom (club-feed 400s) — `/api/health` currently only
+  confirms env vars are set and Supabase is reachable, so it would have read `ok:true` the whole time
+  credits were out. One cheap low-token Anthropic call (or even a HEAD-style auth check) added to the
+  same endpoint would make a billing outage as fast to catch as the DB outage now is. Ties directly
+  into the still-pending uptime-canary approval ask below — worth bundling if the CEO greenlights both.
 - ~~Founder board cohort view~~ — DONE 2026-08-16 (see Done log; ships as a read-only panel on `/board`).
 - **New (M, Nova 2026-08-16):** Digest-driven re-engagement — the weekly digest is currently a passive
   card on the Me tab (renders only if the user opens the app). Consider a proactive check-in variant that

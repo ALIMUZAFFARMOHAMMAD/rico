@@ -87,6 +87,19 @@ app AND monetize like a career tool."
 Tag every link you share: `hitony.vercel.app/landing?src=reddit` (or `?src=ambassador_name`, `?src=ig`, etc.).
 
 ## 7. Strategic recommendations log (most recent first)
+- 2026-08-17 (standup run) — **New blocker on GTM, more urgent than the "zero engineering work left"
+  call made yesterday: the Anthropic account is out of credits, and EVERY AI-backed feature is
+  currently silently degraded** (Tony chat, proactive check-ins, memory, weekly digest, Club Feed —
+  see PRODUCT_LOG §6 urgent item, diagnosed 2026-08-16). This is the same shape of risk flagged
+  2026-07-22 during the Supabase outage ("don't start GTM onto a broken core loop") — except this
+  time the failure mode is worse for a first impression: most routes gracefully degrade to cached/
+  stale content instead of erroring, so a brand-new user would see a companion app that just... stops
+  saying anything new, with no visible error to explain why. Recommendation: hold GTM (still purely
+  the CEO's call, zero code blocks it) until credits are restored at console.anthropic.com — this is
+  a 2-minute fix, not a rebuild, so it shouldn't cost the push more than a day once actioned. Once
+  restored, re-verify `/api/tony`, `/api/checkin`, and `/api/club-feed` actually generate again (not
+  just return 200) before resuming any GTM recommendation. Everything else in yesterday's "GTM is
+  unblocked" call still stands once this one new condition clears.
 - 2026-08-16 (standup run, cont'd) — **Deploy queue is now empty and `/api/stats` shows real (if tiny)
   data for the first time.** Earlier today's CEO-directed session deployed every queued branch — nothing
   code-complete is sitting undeployed anymore, a first since this file existed. `/api/stats` now returns
