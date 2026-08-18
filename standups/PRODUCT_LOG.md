@@ -52,27 +52,26 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 **NOW (current focus):**
 - [x] Flagship #1 (v1): **Proactive Presence** — "Rico texts you first." Memory-grounded check-in card
       at the top of Chats; the friend you last talked to greets you first, referencing your real history.
-      Code complete + build/runtime verified. ⏳ Awaiting CEO deploy approval. (Owner: Forge)
+      DEPLOYED to prod 2026-06-28 (dpl GXreiWXb). (Owner: Forge)
 
 **NEXT:**
-- [x] "Rico missed you" lapse re-engagement check-in. Code complete 2026-06-29 (awaiting deploy).
+- [x] "Rico missed you" lapse re-engagement check-in. DEPLOYED to prod 2026-06-29 (dpl 7knsfpy8x).
 - [ ] Proactive timing intelligence — fire check-ins around each user's habitual active hour.
 - [x] Honest-AI / privacy trust band on landing. Code complete 2026-07-01, DEPLOYED to prod.
-- [x] Trust badge on sign-up screen (mirrors landing trust band at account creation). Code complete
-      2026-07-02, `next build` + runtime smoke pass. On branch `feature/signup-trust-badge`
-      (pushed to GitHub). ⏳ Awaiting CEO deploy approval.
+- [x] Trust badge on sign-up screen (mirrors landing trust band at account creation). DEPLOYED to prod
+      2026-08-16 (dpl_95hrEDF16iEKozH2At3b7PNJTbFC).
 - [x] Data-export button ("download everything Rico remembers") — GDPR-friendly, extends trust story.
-      Code complete 2026-07-04. On branch `feature/memory-data-export` (pushed). ⏳ Awaiting CEO deploy approval.
+      DEPLOYED to prod 2026-08-16 (dpl_EMS6bude9vBKsrb5Uc1NLLhk5oXo).
 - [x] Investor demo script — written 2026-07-04 (`standups/DEMO_SCRIPT.md`), incl. Reel production
       spec. [ ] Video itself not generated (screen-record + ElevenLabs VO — needs CEO approval).
 - [x] Living memory surfacing — "what Rico remembers about you" panel. SHIPPED to prod 2026-06-28.
-- [x] Instrumentation: activation event + Flagship-impact metrics. Code complete 2026-06-29 (awaiting deploy).
+- [x] Instrumentation: activation event + Flagship-impact metrics. DEPLOYED to prod 2026-06-29 (dpl 40d57u2ic).
 - [x] Club activity nudge — "NEW POSTS" badges on Groups list. DEPLOYED to prod 2026-07-12
       (dpl_GJwZaY7Q8ndfpdzqS5fRCj7hLFXF).
 - [x] Check-in reply streak counter — "🔥 N days in a row" on the proactive check-in card. DEPLOYED to
       prod 2026-07-12 (dpl_6UfYU6Ai4o8p8KH3bAXLuMnVXxEJ).
-- [x] In-app weekly memory digest — "Your week with Rico" recap card on the Me tab. Code complete
-      2026-07-13. On branch `feature/weekly-memory-digest` (pushed). ⏳ Awaiting CEO deploy approval.
+- [x] In-app weekly memory digest — "Your week with Rico" recap card on the Me tab. DEPLOYED to prod
+      2026-08-16 (dpl_95hrEDF16iEKozH2At3b7PNJTbFC).
 
 **LATER:**
 - [ ] Outcome engine v2: track interviews/offers attributed to Tony; surface as user "wins."
@@ -83,13 +82,90 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - (RESOLVED 2026-08-16) Supabase outage — CEO restored the paused project; `/api/health` confirms
   `ok:true`, all data intact. Full writeup in §5/§6. GTM push is now unblocked on this front — see
   STRATEGY.md §7 for whether Sage still flags anything else before it resumes.
-- Next up: build the uptime canary for `/api/health` (Nova, 2026-07-22 idea) now that the endpoint is
-  live and there's a real outage-to-recovery story motivating it; notification/push so Rico reaches out
-  even when the app is closed (Capacitor android shell
-  exists); proactive timing intelligence (fire around each user's habitual active hour); once real GTM
-  traffic exists, read `/api/stats`'s new `retention_by_lever` to decide the next lever vs. a 6th one.
+- (RESOLVED 2026-08-16) Deploy queue — was empty as of the last CEO-directed session today; this run's
+  one new build (`feature/digest-shown-attribution`) is the only thing added back to the queue.
+- Next up: build the uptime canary for `/api/health` (Nova, 2026-07-22 idea) — now genuinely buildable
+  since the endpoint is deployed, but creating a new standing scheduled task that auto-emails the CEO is
+  a persistent-automation call this run is flagging for approval rather than just building (see §6);
+  notification/push so Rico reaches out even when the app is closed (Capacitor android shell exists);
+  proactive timing intelligence (fire around each user's habitual active hour); founder board cohort
+  view (Nova, 2026-07-16) — now buildable too, `/api/stats` has real (if tiny, n=6) numbers to show.
 
 ## 5. Done log (most recent first)
+- 2026-08-16 (CEO said "fix the club feed 400 error") — **Diagnosed to root cause: Anthropic account
+  out of credits, not a code bug.** `pages/api/club-feed.js`'s `claude()` helper was throwing away the
+  actual Anthropic error body on failure (`throw new Error("API " + r.status)` — just the status code).
+  Fixed that first (mirrors the pattern `lib/db.js`'s `sb()` already uses: include
+  `(await r.text()).slice(0,300)` in the thrown error) since the local `.env.local` `ANTHROPIC_API_KEY`
+  is a stub (confirmed via a direct curl repro — returns 401 "invalid x-api-key", not usable to
+  reproduce prod's 400), so the only way to see the real error was to ship the fix and read it live.
+  Deployed (dpl_6Pgtxm9xm5CPJ1sPvxxbdH9cPnSU), then deliberately triggered regeneration on 7 stale club
+  spaces (career-corner, game-day, chai-stories, calm-centered, gita-circle, deen-duas,
+  faith-fellowship) to force the failure and capture it. Real error: **"Your credit balance is too low
+  to access the Anthropic API."** — see the urgent item in §6. Also spotted (not yet fixed, low
+  priority relative to the credits issue): `getOrGenerateSpaceItems` stamps `lastGeneratedAt` = now even
+  when `generateBatch` fails and returns zero items, which silently suppresses retries for a full 6h
+  window after every failed attempt — worth fixing once credits are restored so failures don't hide
+  behind the freshness cache. Branch `fix/club-feed-400-diagnostics`, pushed, merged into
+  `safety/working-tree-2026-06-30`, also pushed; deployed same run (CEO-directed, per the ongoing
+  session).
+- 2026-08-16 (standup run, cont'd, CEO-directed) — **Ponytail-audit cleanup applied.** A repo-wide
+  `/ponytail-audit` pass found 5 findings (dead code + hand-rolled stdlib); CEO said "delete" and this
+  run applied all 5, zero behavior change: removed `components/HeroRat.js` + `RealRat.js` (never
+  imported anywhere, 266 dead lines); removed the unused anon `supabase` client export in
+  `lib/supabase.js` (only `supabaseAdmin` is real, used once by `pages/api/results.js`); removed the
+  dead `storeLang` back-compat alias in `lib/i18n.js` (its neighbor `getStoredLang` is the one actually
+  used); swapped hand-rolled `Math.random().toString(36)` ID generation for `crypto.randomUUID()` in
+  `pages/api/club-feed.js` and `pages/api/board.js` (stdlib, zero new deps — both IDs are internal/opaque
+  so the format change is safe); dropped unnecessary `export` from 4 symbols only ever called within
+  their own file. Net: -270 lines, 0 new deps. `next build` passes clean; smoke-tested landing/home/
+  board/groups/mascot locally (all 200), confirmed zero remaining references to the deleted files.
+  Branch `chore/ponytail-audit-cleanup`, pushed, PR opened
+  (https://github.com/ALIMUZAFFARMOHAMMAD/rico/pull/5); merged into `safety/working-tree-2026-06-30`,
+  also pushed. ⏳ Awaiting CEO deploy approval (see §6).
+- 2026-08-16 (standup run, cont'd, CEO-directed) — **`feature/digest-shown-attribution` and
+  `feature/board-retention-snapshot` DEPLOYED to production** (dpl_HG3MbFxpgBGAWNq7GF6Nu5V1zg6w). CEO
+  explicitly asked to deploy both in chat. Both were already merged into `safety/working-tree-2026-06-30`
+  (this project deploys from the working directory, not git), so one `vercel --prod` shipped both
+  together — no separate deploys needed. Same recurring alias gap as every deploy this queue has ever
+  seen: only auto-aliased to `hitony.ai`, fixed with `vercel alias set` for `hitony.vercel.app`. Verified:
+  `/api/health` still `ok:true`; landing/home/board/groups all 200; `curl /api/stats` confirms the new
+  `weekly_digest` field and `digest` entry in `retention_by_lever` are live (both `{"users":0,...}` since
+  no real user has triggered the digest card yet — expected, not a bug); zero errors in `vercel logs`
+  across all 6 requests in the verification window. Could not visually click through `/board`'s new
+  retention-snapshot panel in a browser this run (production domain blocked by this sandbox's browsing
+  policy) — confirmed instead via the exact API response the panel depends on returning valid data, plus
+  the same panel already having been click-tested against a local dev server pre-deploy. Deploy queue is
+  empty again. (Forge + Keeper, CEO-directed)
+- 2026-08-16 (standup run, cont'd — CEO said "do the development of the project") — **Founder board
+  cohort view shipped** (Nova's 2026-07-16 idea, promoted since the "no data yet" gate is gone):
+  `pages/board.js` gains a read-only "📊 Retention snapshot" panel — total signups, retention/activation
+  rate, D7 retained, and the 5 retention levers ranked by return rate — fetched from the existing
+  `/api/stats` using the same key already stored for `/api/board` (falls back silently if that key
+  isn't also `STATS_KEY`; no new API surface, no new gating logic). `next build` passes clean; verified
+  live in the local dev server via the Browser pane — key-gate screen renders, board unlocks, and the
+  panel correctly stays hidden (not crashed) when `/api/stats` 500s due to the known local
+  unconfigured-Supabase gap, confirming the graceful-fallback design actually works, not just compiles.
+  Committed to new branch `feature/board-retention-snapshot`, pushed, PR opened
+  (https://github.com/ALIMUZAFFARMOHAMMAD/rico/pull/4); merged into `safety/working-tree-2026-06-30`,
+  also pushed. ⏳ Awaiting CEO deploy approval (see §6). (Nova → Forge)
+- 2026-08-16 (standup run) — **Digest attribution follow-up shipped** (Nova's 2026-07-16 idea, promoted
+  since `feature/weekly-memory-digest` deployed today and this closes the loop same-day as flagged):
+  `components/WeeklyDigest.js` fires a `digest_shown` track event once the card actually renders,
+  mirroring `MemorySpotlight.js`'s exact pattern; `pages/api/track.js` counts it into
+  `stats.digest.shown`; `pages/api/stats.js` adds a `digest` entry to `retention_by_lever` (now 5 of 5
+  built levers instrumented) plus a `weekly_digest.shown` total. `next build` passes clean; `next start`
+  + curl confirms `/`, `/landing` 200 and `POST /api/track {event:"digest_shown"}` returns `{"ok":false}`
+  — same known local-env gap as every recent run (blank `SUPABASE_SERVICE_ROLE_KEY`), not a new bug.
+  Committed to new branch `feature/digest-shown-attribution`, pushed, PR opened
+  (https://github.com/ALIMUZAFFARMOHAMMAD/rico/pull/3); merged into `safety/working-tree-2026-06-30`,
+  also pushed. ⏳ Awaiting CEO deploy approval (see §6). (Nova → Forge)
+- 2026-08-16 (standup run) — **Discovered an undocumented branch: `feature/hubspot-signup-sync`.**
+  Routine `git branch -a` scan surfaced a branch never mentioned in this log — a HubSpot Forms API sync
+  for new signups (`lib/hubspot.js`, 4496aba), forked from a 2026-07-13 base (predates the security guard,
+  club-activity-nudge, streak counter, and everything after). Not built or touched by this run — flagging
+  for the CEO rather than silently reviving or discarding ~5 weeks of drifted, unreviewed code that talks
+  to an external marketing system. See §6.
 - 2026-08-16 (cont'd, CEO-directed) — **`feature/memory-data-export` DEPLOYED to production**
   (dpl_EMS6bude9vBKsrb5Uc1NLLhk5oXo) — the last remaining undeployed branch. Merged in first (`--no-ff`,
   clean; this branch also carried a duplicate copy of the sign-up trust-badge diff per the 2026-07-04
@@ -452,6 +528,43 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - 2026-06-28 — Day 0: team chartered, product bet + roadmap defined, daily standup scheduled. (Atlas)
 
 ## 6. Open approvals awaiting CEO
+- **🚨🚨 URGENT — NEW: Anthropic account is out of credits. Every AI feature in the app is currently
+  broken, not just club-feed.** CEO asked to "fix the club feed 400 error"; root cause traced by adding
+  error-body capture to `pages/api/club-feed.js`'s Claude call (was previously swallowing the real
+  reason — see Done log) and redeploying to see it live. The actual Anthropic response:
+  `{"type":"invalid_request_error","message":"Your credit balance is too low to access the Anthropic
+  API. Please go to Plans & Billing to upgrade or purchase credits."}`. This is an account-billing state,
+  not a bug — no code change fixes it. It applies to the ONE shared `ANTHROPIC_API_KEY` every AI route
+  uses (tony.js, checkin.js, remembers.js, digest.js, tutor.js, translate.js, twin.js, voice.js,
+  club-feed.js) — meaning Tony chat, proactive check-ins, memory, weekly digest, and every other
+  AI-backed feature are all *silently* failing the same way right now (most of them gracefully degrade
+  — return `{ok:false}` or fall back to cached content — so nothing crashes, but nothing new generates
+  either). **Action needed: add credits at console.anthropic.com → Plans & Billing.** This is money —
+  cannot be done from this session per the team's own guardrails (§0). Once resolved, re-verify
+  `/api/club-feed`, `/api/tony`, and `/api/checkin` all actually generate again, not just return 200.
+- (resolved 2026-08-16) **`chore/ponytail-audit-cleanup`** — CEO-directed deploy
+  (dpl_76PyZKgU4oJNAqWJDQNdWYb7qHCZ). Verified via curl + `vercel logs`: `/api/health` ok:true, all
+  routes 200, no regressions from anything this cleanup touched. **Found one unrelated, pre-existing
+  issue while checking logs** (not caused by this deploy — `generateBatch()`/`claude()` in
+  `pages/api/club-feed.js` weren't touched by the cleanup): when a club's feed cache goes stale (>6h)
+  and a request triggers a lazy regenerate, it can hit `club-feed generate error: API 400` — caught
+  gracefully, still serves the cached content with a 200, no user-facing break, but worth a look. New
+  backlog candidate for Forge: diagnose the club-feed regenerate 400 (§7).
+- (resolved 2026-08-16) **`feature/digest-shown-attribution` and `feature/board-retention-snapshot`** —
+  CEO-directed deploy (dpl_HG3MbFxpgBGAWNq7GF6Nu5V1zg6w). Verified via curl + `vercel logs`: no
+  regressions, both features' API surface confirmed live. Deploy queue is empty again.
+- **New: `feature/hubspot-signup-sync` — needs a CEO decision, not just a deploy.** An undocumented
+  branch surfaced today (see §5) syncs new signups to HubSpot's Forms API for marketing automation. It's
+  unreviewed, ~5 weeks stale (forked before the security/IDOR guard and several later features — would
+  need a rebase before it's safe to ship), and touches an external third-party system on every signup,
+  which reads as exactly the kind of "external communication"-adjacent integration this team doesn't
+  ship without asking first. Question for the CEO: is this still wanted? If yes, next run can rebase it
+  onto current `safety/working-tree-2026-06-30` and review it properly before proposing a deploy.
+- **New: set up an uptime canary for `/api/health`** (Nova, 2026-07-22 idea) — the endpoint itself is
+  live now, so the check is buildable, but the natural implementation is a new *standing* scheduled task
+  in this environment that emails the CEO automatically if health flips to failing. That's a persistent
+  automation this run is choosing to ask about rather than silently create — say the word and next run
+  sets it up.
 - (RESOLVED 2026-08-16, 25 days open) **Supabase outage — fixed by the CEO restoring the paused
   project in the dashboard.** `/api/health` now returns `{"ok":true,"db":"ok"}`; `/api/board` and
   `/api/stats` both confirmed live with ALL original data intact (same 11 board tasks/IDs from
@@ -476,12 +589,9 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   permission and `gh pr create` succeeds. First PR opened: `feature/tour-completion-signal` →
   https://github.com/ALIMUZAFFARMOHAMMAD/rico/pull/1. Future runs can open PRs directly instead of
   leaving a compare link.
-- **New: Deploy `feature/proof-moment-tour`** (onboarding tour now shows a real check-in card + memory
-  chips instead of only describing them, code complete 2026-07-19) to production. Low-risk — static
-  JSX added to an already-shipped modal, no new data flow, no new API surface.
-- **New: Deploy `feature/retention-lever-attribution`** (per-lever impression tracking + `/api/stats`
-  ranking, code complete 2026-07-16) to production. Lowest-risk item in this queue — instrumentation
-  only, no visible UI change, additive fields on the existing meta-row stats object.
+- (resolved 2026-08-16) **`feature/proof-moment-tour`** and **`feature/retention-lever-attribution`** —
+  both shipped together with `feature/health-check` + `feature/tour-completion-signal` in
+  dpl_EHQVP5FNzW5cev4GkSqmuVZijTrE (see the resolved entry above).
 - (resolved 2026-08-16) **`feature/weekly-memory-digest`** — CEO-directed deploy
   (dpl_95hrEDF16iEKozH2At3b7PNJTbFC). Verified via curl + `vercel logs`: no regressions.
 - (resolved) **`security/idor-auth-guard`** — CEO-directed deploy, 2026-07-07 (dpl_7KxBs74F). Verified
@@ -532,29 +642,26 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   production. Treat the working tree as source of truth until the CEO decides to reconcile git.
 
 ## 7. Idea backlog (raw, unprioritized)
-- **Uptime canary for `/api/health`** (S, Nova 2026-07-22): today's outage discovery only happened
-  because this run manually curled the board endpoint — with zero real GTM traffic, nothing else would
-  ever notice a silent Supabase outage. Once `feature/health-check` is deployed, wire a scheduled task
-  (this environment already has scheduled-task tooling) to hit it every hour or so and alert if `ok`
-  flips to `false`. Cheap, and turns "found by luck during a standup" into "found within an hour."
-  Not built today — depends on the health endpoint being deployed first.
-- **Tour completion signal** (XS, Nova 2026-07-19): fire a `tour_done` track event (variant:
-  complete/skip) from `finishTour` in `pages/index.js` when the now-enriched Onboarding tour closes.
-  Cheap (`/api/track` already accepts arbitrary events) and is the natural companion metric to today's
-  proof-moment build — once GTM traffic exists, Pulse can check whether seeing the real check-in/memory
-  preview during onboarding correlates with next-day activation, same ranking idea as
-  `retention_by_lever` but for the top of the funnel instead of retention. Not built today (Sunday,
-  kept to one item) — smallest queued candidate for the next run if no CEO board task outranks it.
-- ~~Retention-lever attribution~~ — DONE 2026-07-16 (see Done log). `digest_shown` still needs adding
-  once `feature/weekly-memory-digest` deploys.
-- **Digest attribution follow-up** (XS, Nova 2026-07-16): the moment `feature/weekly-memory-digest`
-  deploys, add a `digest_shown` track event to `components/WeeklyDigest.js` (same one-line pattern as
-  spotlight) so all 5 levers — not 4 — show up in `/api/stats`'s `retention_by_lever`. A five-minute
-  follow-up, not a new feature; do it same-day as that deploy so the ranking isn't missing a lever.
-- **Founder board cohort view** (S, Nova 2026-07-16): `/board` already shows the CEO task kanban —
-  once `retention_by_lever` has real numbers, surface a tiny read-only summary table there (or a new
-  `/board?view=stats` section) so the CEO sees "which lever wins" without pulling `/api/stats` JSON by
-  hand. Purely a founder-UX nicety, not blocking; do after real GTM traffic exists (no data to show yet).
+- ~~Club-feed `API 400`~~ — DIAGNOSED 2026-08-16 (see Done log + urgent §6 item): Anthropic account out
+  of credits, not a code bug. Fix is CEO adding credits, not more engineering.
+- **New (bug, found 2026-08-16 while diagnosing the above):** `getOrGenerateSpaceItems` in
+  `pages/api/club-feed.js` stamps `lastGeneratedAt` = now even when generation fails and returns zero
+  new items — meaning a failed generation silently blocks retries for the full 6h freshness window. Fix
+  once Anthropic credits are restored: only stamp `lastGeneratedAt` when `generateBatch` actually
+  returned at least one item (or track success/failure separately). Small, contained fix.
+- ~~Founder board cohort view~~ — DONE 2026-08-16 (see Done log; ships as a read-only panel on `/board`).
+- **New (M, Nova 2026-08-16):** Digest-driven re-engagement — the weekly digest is currently a passive
+  card on the Me tab (renders only if the user opens the app). Consider a proactive check-in variant that
+  references digest highlights ("saw you talked about your exam this week...") to pull lapsed users back
+  in, tying the newest lever into Flagship #1 instead of leaving it purely passive. Bigger than the other
+  two ideas here — needs a design pass on how it interacts with the existing "missed you" variant so they
+  don't compete for the same check-in slot.
+- **Uptime canary for `/api/health`** (S, Nova 2026-07-22): now genuinely buildable (endpoint deployed);
+  see §6 — flagged for CEO approval since the natural build is a new standing scheduled automation, not
+  a code change.
+- ~~Tour completion signal~~ — DONE 2026-08-15/16 (see Done log; deployed 2026-08-16).
+  ~~Retention-lever attribution~~ — DONE 2026-07-16. ~~Digest attribution follow-up~~ — DONE 2026-08-16
+  (see Done log).
 - ~~First-session "proof moment" tour~~ — DONE 2026-07-19 (see Done log; shipped as an enhancement to
   the existing Onboarding tour rather than Nova's proposed standalone modal).
 - **Shareable weekly digest card** (S, Nova 2026-07-13): let a user tap "Your week with Rico" (shipped
