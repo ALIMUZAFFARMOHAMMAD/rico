@@ -52,27 +52,26 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 **NOW (current focus):**
 - [x] Flagship #1 (v1): **Proactive Presence** — "Rico texts you first." Memory-grounded check-in card
       at the top of Chats; the friend you last talked to greets you first, referencing your real history.
-      Code complete + build/runtime verified. ⏳ Awaiting CEO deploy approval. (Owner: Forge)
+      DEPLOYED to prod 2026-06-28 (dpl GXreiWXb). (Owner: Forge)
 
 **NEXT:**
-- [x] "Rico missed you" lapse re-engagement check-in. Code complete 2026-06-29 (awaiting deploy).
+- [x] "Rico missed you" lapse re-engagement check-in. DEPLOYED to prod 2026-06-29 (dpl 7knsfpy8x).
 - [ ] Proactive timing intelligence — fire check-ins around each user's habitual active hour.
 - [x] Honest-AI / privacy trust band on landing. Code complete 2026-07-01, DEPLOYED to prod.
-- [x] Trust badge on sign-up screen (mirrors landing trust band at account creation). Code complete
-      2026-07-02, `next build` + runtime smoke pass. On branch `feature/signup-trust-badge`
-      (pushed to GitHub). ⏳ Awaiting CEO deploy approval.
+- [x] Trust badge on sign-up screen (mirrors landing trust band at account creation). DEPLOYED to prod
+      2026-08-16 (dpl_95hrEDF16iEKozH2At3b7PNJTbFC).
 - [x] Data-export button ("download everything Rico remembers") — GDPR-friendly, extends trust story.
-      Code complete 2026-07-04. On branch `feature/memory-data-export` (pushed). ⏳ Awaiting CEO deploy approval.
+      DEPLOYED to prod 2026-08-16 (dpl_EMS6bude9vBKsrb5Uc1NLLhk5oXo).
 - [x] Investor demo script — written 2026-07-04 (`standups/DEMO_SCRIPT.md`), incl. Reel production
       spec. [ ] Video itself not generated (screen-record + ElevenLabs VO — needs CEO approval).
 - [x] Living memory surfacing — "what Rico remembers about you" panel. SHIPPED to prod 2026-06-28.
-- [x] Instrumentation: activation event + Flagship-impact metrics. Code complete 2026-06-29 (awaiting deploy).
+- [x] Instrumentation: activation event + Flagship-impact metrics. DEPLOYED to prod 2026-06-29 (dpl 40d57u2ic).
 - [x] Club activity nudge — "NEW POSTS" badges on Groups list. DEPLOYED to prod 2026-07-12
       (dpl_GJwZaY7Q8ndfpdzqS5fRCj7hLFXF).
 - [x] Check-in reply streak counter — "🔥 N days in a row" on the proactive check-in card. DEPLOYED to
       prod 2026-07-12 (dpl_6UfYU6Ai4o8p8KH3bAXLuMnVXxEJ).
-- [x] In-app weekly memory digest — "Your week with Rico" recap card on the Me tab. Code complete
-      2026-07-13. On branch `feature/weekly-memory-digest` (pushed). ⏳ Awaiting CEO deploy approval.
+- [x] In-app weekly memory digest — "Your week with Rico" recap card on the Me tab. DEPLOYED to prod
+      2026-08-16 (dpl_95hrEDF16iEKozH2At3b7PNJTbFC).
 
 **LATER:**
 - [ ] Outcome engine v2: track interviews/offers attributed to Tony; surface as user "wins."
@@ -590,12 +589,9 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   permission and `gh pr create` succeeds. First PR opened: `feature/tour-completion-signal` →
   https://github.com/ALIMUZAFFARMOHAMMAD/rico/pull/1. Future runs can open PRs directly instead of
   leaving a compare link.
-- **New: Deploy `feature/proof-moment-tour`** (onboarding tour now shows a real check-in card + memory
-  chips instead of only describing them, code complete 2026-07-19) to production. Low-risk — static
-  JSX added to an already-shipped modal, no new data flow, no new API surface.
-- **New: Deploy `feature/retention-lever-attribution`** (per-lever impression tracking + `/api/stats`
-  ranking, code complete 2026-07-16) to production. Lowest-risk item in this queue — instrumentation
-  only, no visible UI change, additive fields on the existing meta-row stats object.
+- (resolved 2026-08-16) **`feature/proof-moment-tour`** and **`feature/retention-lever-attribution`** —
+  both shipped together with `feature/health-check` + `feature/tour-completion-signal` in
+  dpl_EHQVP5FNzW5cev4GkSqmuVZijTrE (see the resolved entry above).
 - (resolved 2026-08-16) **`feature/weekly-memory-digest`** — CEO-directed deploy
   (dpl_95hrEDF16iEKozH2At3b7PNJTbFC). Verified via curl + `vercel logs`: no regressions.
 - (resolved) **`security/idor-auth-guard`** — CEO-directed deploy, 2026-07-07 (dpl_7KxBs74F). Verified
