@@ -174,8 +174,14 @@ async function getOrGenerateSpaceItems(apiKey, resolved, language) {
   let items = existing;
   if (!fresh) {
     const batch = await generateBatch(apiKey, space, members, reactorPool, language);
-    items = [...existing, ...batch].slice(-MAX_ITEMS);
-    await upsertRow(key, { messages: items, traits: { ...(row?.traits || {}), lastGeneratedAt: new Date().toISOString() } });
+    // Only stamp lastGeneratedAt on an actual success — generateBatch swallows its own
+    // errors and returns [] on total failure (e.g. Anthropic API down), and stamping
+    // "just tried" as "just generated" would silently block retries for the full
+    // FRESH_WINDOW_MS window even though nothing new was produced.
+    if (batch.length) {
+      items = [...existing, ...batch].slice(-MAX_ITEMS);
+      await upsertRow(key, { messages: items, traits: { ...(row?.traits || {}), lastGeneratedAt: new Date().toISOString() } });
+    }
   }
   return { items, fresh };
 }
