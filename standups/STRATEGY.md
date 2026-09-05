@@ -87,6 +87,16 @@ app AND monetize like a career tool."
 Tag every link you share: `hitony.vercel.app/landing?src=reddit` (or `?src=ambassador_name`, `?src=ig`, etc.).
 
 ## 7. Strategic recommendations log (most recent first)
+- 2026-09-04 (standup run) — **GTM hold now has two stacked, independent conditions instead of one.**
+  Found the app down live at the start of this run (Supabase DNS NXDOMAIN, same as 2026-08-16) —
+  root-caused this time: free-tier auto-pause after 7 days of zero DB activity, confirmed against
+  Supabase's docs. This is unrelated to yesterday's Anthropic-credits flag, and today's outage blocked
+  every route that could have confirmed whether credits are actually restored — so that condition
+  carries forward unverified, not resolved. Recommendation: hold GTM until BOTH `/api/health` reads
+  `ok:true` AND a real generate is confirmed on `/api/tony` (not just a 200). Shipped a $0 permanent fix
+  for the Supabase half today (`fix/supabase-keepalive-cron`, PRODUCT_LOG §5) — recommend NOT paying for
+  Supabase Pro yet, since the free mechanism should now hold; revisit only if the cron demonstrably fails
+  to prevent a third recurrence.
 - 2026-08-17 (standup run) — **New blocker on GTM, more urgent than the "zero engineering work left"
   call made yesterday: the Anthropic account is out of credits, and EVERY AI-backed feature is
   currently silently degraded** (Tony chat, proactive check-ins, memory, weekly digest, Club Feed —

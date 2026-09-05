@@ -93,6 +93,17 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   AI-outage indicator (Nova, 2026-08-17 idea, §7).
 
 ## 5. Done log (most recent first)
+- 2026-09-04 (standup run) — **Diagnosed and root-caused a second live Supabase outage** (same DNS
+  NXDOMAIN signature as 2026-08-16): confirmed via Supabase's own docs that free-tier projects
+  auto-pause after 7 days with zero DB activity, and with GTM not yet started, organic traffic alone
+  can't reliably prevent that. Shipped `fix/supabase-keepalive-cron` (daily Vercel Cron hitting a new
+  `/api/cron/keepalive` route, resets the pause timer with 6 days of margin, $0 cost, native platform
+  feature) and `feature/status-degraded-banner` (Nova's 2026-08-17 idea — a small dismissible banner
+  when `/api/health` is unhealthy, so the *next* degradation is visible to users instead of silent).
+  Both `next build` clean, both PRs opened (#8, #7), both merged into
+  `safety/working-tree-2026-06-30` and pushed. Neither could be exercised end-to-end since the live
+  outage made `sb()` unreachable all run — verification is build+review only. Board and `/api/stats`
+  were unreachable the entire run for the same reason. (Forge)
 - 2026-08-17 (standup run) — **Fixed the `lastGeneratedAt` stale-lock bug flagged in yesterday's
   backlog** (§7): `getOrGenerateSpaceItems` in `pages/api/club-feed.js` was stamping
   `lastGeneratedAt = now` even when `generateBatch` caught an error and returned `[]` — a failed
@@ -540,6 +551,15 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - 2026-06-28 — Day 0: team chartered, product bet + roadmap defined, daily standup scheduled. (Atlas)
 
 ## 6. Open approvals awaiting CEO
+- **🚨🚨 URGENT — NEW: Supabase project is paused again (2026-09-04), same as 2026-08-16.** Root cause
+  now confirmed: free-tier auto-pause after 7 days of zero DB activity. Needs the same 2-minute manual
+  un-pause in the Supabase dashboard. A permanent $0 fix (`fix/supabase-keepalive-cron`) is code-complete
+  and awaiting deploy approval below — once live it should prevent this specific recurrence going forward.
+- **New: Deploy `fix/supabase-keepalive-cron` + `feature/status-degraded-banner`** (both code complete
+  2026-09-04) — low-risk: a new cron route + a client-side banner, no changes to existing routes.
+- **New: Anthropic-credits status from 2026-08-16 is unverified as of 2026-09-04** — today's Supabase
+  outage blocked every route that would have proven credits are restored one way or the other. Carrying
+  the original urgent item below forward unresolved rather than assuming it's fixed.
 - **New: Deploy `fix/club-feed-stale-lock`** (code complete 2026-08-17) — low-risk control-flow fix,
   no visible UI change, no new API surface. Worth deploying even before Anthropic credits are restored
   so the fix is already live the moment they are.
