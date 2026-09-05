@@ -1,6 +1,7 @@
 import { ClerkProvider } from '@clerk/nextjs'
 import { useEffect } from 'react'
 import { getStoredLang, isRTL } from '../lib/i18n'
+import StatusBanner from '../components/StatusBanner'
 import '../styles/globals.css'
 
 // Flip the document to right-to-left when the active language is RTL (Arabic).
@@ -57,6 +58,7 @@ export default function App({ Component, pageProps }) {
     <ClerkProvider {...pageProps}>
       <NativeBridge />
       <DirManager />
+      <StatusBanner />
       <Component {...pageProps} />
     </ClerkProvider>
   )
