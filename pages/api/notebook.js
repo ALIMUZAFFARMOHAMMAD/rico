@@ -62,7 +62,7 @@ export default async function handler(req, res) {
     const row = await getRow(key);
     const traits = (row && row.traits) || {};
     const notes = traits.notes || [];
-    const view = () => ({ handwriting: traits.handwriting || null, notes: [...notes].reverse(), sample: SAMPLE });
+    const view = () => ({ handwriting: traits.handwriting || null, notes: [...(traits.notes || [])].reverse(), sample: SAMPLE });
 
     if (mode === "get") return res.status(200).json(view());
 
