@@ -246,3 +246,7 @@ Tag every link you share: `hitony.vercel.app/landing?src=reddit` (or `?src=ambas
 - 2026-06-29 — Priority order to become investable: (1) get real users through the funnel so the
   instrumentation produces a metric story; (2) ship plan gating to test willingness-to-pay; (3) lock
   named testimonials. Features are ahead of distribution — the bottleneck is now users, not product.
+
+### 2026-10-05 follow-up (Sage)
+Supabase is restored. The single highest-leverage CEO action now is **Anthropic credits + one deploy before ~10-12**.
+Together they take Rico from "offline" to "demoable" and stop the 7-day re-pause loop. GTM is still on hold until both are done.

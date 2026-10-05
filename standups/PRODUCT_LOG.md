@@ -79,6 +79,11 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - [ ] Plan gating + Stripe (separate backlog item, CEO drives credentials).
 
 ## 4. In progress (carries across days)
+- **UPDATE 2026-10-05 ~01:22 CDT (follow-up check): Supabase is BACK.** Board 200, stats 200, health
+  `ok:true db:ok`. It came back between 05:59Z (board still `fetch failed`) and 06:21Z. Data intact (6 signups,
+  board unchanged). **Still broken: Anthropic.** Prod `/api/translate` → Vercel log `translate error: API 400`,
+  which is consistent with the credit-balance-too-low error. Prod `/api/health` still says ok because the AI probe (#9) is not deployed.
+  **New urgency:** until the keepalive cron (#8) is live, the DB re-pauses after ~7 idle days (≈2026-10-12).
 - **OPEN (2026-10-05): app still fully offline.** Supabase remains paused (NXDOMAIN), so `/api/health`,
   `/api/board`, `/api/stats` and every DB feature are down, same as 2026-09-04. **Restore deadline
   ≈2026-11-22** (90 days after a pause between ~08-24 and 09-04). After that the dashboard can't resume it.
@@ -99,6 +104,9 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   AI-outage indicator (Nova, 2026-08-17 idea, §7).
 
 ## 5. Done log (most recent first)
+- 2026-10-05 (follow-up check, same morning) — Confirmed the Supabase recovery live (health/board/stats 200), and
+  pinned the AI outage on prod to Anthropic returning HTTP 400, via Vercel runtime logs (one ~20-token translate probe).
+  No code changes. (Atlas/Sentry)
 - 2026-10-05 (standup run) — **`feature/health-anthropic-probe`**: `/api/health` now makes a real
   1-token Haiku call (cached 10 min per warm instance, because StatusBanner polls every 60s) and adds an
   `ai` field. `ok` now requires it to pass. That closes the 2026-08-16 blind spot where health said
@@ -565,6 +573,8 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - 2026-06-28 — Day 0: team chartered, product bet + roadmap defined, daily standup scheduled. (Atlas)
 
 ## 6. Open approvals awaiting CEO
+- **2026-10-05 follow-up: the Supabase restore item is DONE ✅ (DB back).** Remaining blockers: (1) add Anthropic
+  credits (prod AI calls return 400), (2) deploy the 4-branch queue **before ~2026-10-12**, or the DB auto-pauses again (#8 keepalive is the fix).
 - **🚨🚨🚨 2026-10-05 — DEADLINE: resume Supabase before ~2026-11-22.** Still paused (31+ days since
   first seen down). Free-tier paused projects are only resumable from the dashboard for 90 days; after
   that, recovery means downloading backups and migrating to a new project. (Supersedes the 09-04 item below.)
