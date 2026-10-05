@@ -21,6 +21,7 @@ import { captureSource, getSource } from "../lib/source";
 import { CONSENT_VERSION } from "../lib/consent";
 import Onboarding from "../components/Onboarding";
 import Intro from "../components/Intro";
+import { resizeImage } from "../lib/resizeImage";
 
 const T = {
   bg: "#0f0e17",
@@ -35,37 +36,6 @@ const T = {
 };
 
 const font = "'Inter',system-ui,-apple-system,sans-serif";
-
-// Downscale + re-encode any photo (incl. iPhone HEIC) to a small JPEG so it's
-// under the upload limit and in a format the vision model can read.
-function resizeImage(file, max = 768, quality = 0.85) {
-  return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file);
-    const img = new Image();
-    let settled = false;
-    // Some browsers (Android/in-app webviews) can't decode HEIC and fire NEITHER
-    // onload nor onerror — the promise would hang forever. Guard with a timeout.
-    const finish = (fn, arg) => {
-      if (settled) return; settled = true;
-      clearTimeout(timer);
-      try { URL.revokeObjectURL(url); } catch (e) {}
-      fn(arg);
-    };
-    const timer = setTimeout(() => finish(reject, new Error("timeout")), 12000);
-    img.onload = () => {
-      let { width, height } = img;
-      if (!width || !height) return finish(reject, new Error("empty"));
-      const scale = Math.min(1, max / Math.max(width, height));
-      width = Math.round(width * scale); height = Math.round(height * scale);
-      const canvas = document.createElement("canvas");
-      canvas.width = width; canvas.height = height;
-      canvas.getContext("2d").drawImage(img, 0, 0, width, height);
-      try { finish(resolve, canvas.toDataURL("image/jpeg", quality)); } catch (e) { finish(reject, e); }
-    };
-    img.onerror = () => finish(reject, new Error("decode"));
-    img.src = url;
-  });
-}
 
 function Avatar({ agent, size = 52, ring = false, emote = "none" }) {
   const [imgOk, setImgOk] = useState(true);
@@ -646,6 +616,11 @@ export default function Rico() {
             <a href="/translate" style={{ display: "flex", alignItems: "center", gap: 9, textDecoration: "none", background: `linear-gradient(140deg,${T.teal || "#2dd4bf"}1e,${T.violet}1e)`, border: `1px solid ${T.line}`, borderRadius: 16, padding: "12px 13px", marginBottom: 14 }}>
               <span style={{ fontSize: 20 }}>🌐</span>
               <span style={{ flex: 1 }}><span style={{ display: "block", color: T.text, fontWeight: 700, fontSize: 13 }}>Live Translate</span><span style={{ color: T.sub, fontSize: 10.5 }}>Real-time interpreter — talk to anyone in another language</span></span>
+              <span style={{ color: T.sub, fontSize: 16 }}>→</span>
+            </a>
+            <a href="/notebook" style={{ display: "flex", alignItems: "center", gap: 9, textDecoration: "none", background: `linear-gradient(140deg,${T.pink}18,${T.violet}1e)`, border: `1px solid ${T.line}`, borderRadius: 16, padding: "12px 13px", marginBottom: 14 }}>
+              <span style={{ fontSize: 20 }}>📓</span>
+              <span style={{ flex: 1 }}><span style={{ display: "block", color: T.text, fontWeight: 700, fontSize: 13 }}>Rough Notebook</span><span style={{ color: T.sub, fontSize: 10.5 }}>Snap your handwritten notes — Rico remembers them</span></span>
               <span style={{ color: T.sub, fontSize: 16 }}>→</span>
             </a>
             {isSignedIn && userId && (

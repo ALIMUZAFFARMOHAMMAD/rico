@@ -14,7 +14,7 @@ export default async function handler(req, res) {
       const rows = await getUserRows(userId);
       const agents = rows
         .map(r => ({ r, k: parseKey(r.user_id) }))
-        .filter(({ k }) => k.kind !== "meta")
+        .filter(({ k }) => k.kind !== "meta" && k.kind !== "notebook")
         .map(({ r, k }) => ({
           agentId: k.agentId,
           name: AGENTS[k.agentId]?.name || k.agentId,
