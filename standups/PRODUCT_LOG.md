@@ -79,6 +79,12 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - [ ] Plan gating + Stripe (separate backlog item, CEO drives credentials).
 
 ## 4. In progress (carries across days)
+- **OPEN (2026-10-05): app still fully offline.** Supabase remains paused (NXDOMAIN), so `/api/health`,
+  `/api/board`, `/api/stats` and every DB feature are down, same as 2026-09-04. **Restore deadline
+  ≈2026-11-22** (90 days after a pause between ~08-24 and 09-04). After that the dashboard can't resume it.
+- Deploy queue (4 branches, all merged into `safety/working-tree-2026-06-30`): `fix/club-feed-stale-lock`
+  (#6), `feature/status-degraded-banner` (#7), `fix/supabase-keepalive-cron` (#8),
+  `feature/health-anthropic-probe` (#9). One `vercel --prod` ships all four.
 - **OPEN — Anthropic account out of credits (found 2026-08-16, still open).** Every AI-backed route is
   degraded until the CEO adds credits at console.anthropic.com — see urgent §6 item. Sage is now
   recommending GTM stay paused specifically for this reason (STRATEGY.md §7, 2026-08-17).
@@ -93,6 +99,14 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   AI-outage indicator (Nova, 2026-08-17 idea, §7).
 
 ## 5. Done log (most recent first)
+- 2026-10-05 (standup run) — **`feature/health-anthropic-probe`**: `/api/health` now makes a real
+  1-token Haiku call (cached 10 min per warm instance, because StatusBanner polls every 60s) and adds an
+  `ai` field. `ok` now requires it to pass. That closes the 2026-08-16 blind spot where health said
+  ok while a $0 credit balance silently broke every AI route. `/v1/models` was rejected as the probe
+  because it succeeds without credits. `next build` clean; failure path verified against the live API
+  with a fake key → `error: 401 invalid x-api-key`. Success path unverifiable locally (stub key) and
+  dev server can't start in unattended runs. PR #9, merged into `safety/working-tree-2026-06-30`, pushed.
+  Board + stats unreachable all run (Supabase still paused). (Forge/Sentry)
 - 2026-09-04 (standup run) — **Diagnosed and root-caused a second live Supabase outage** (same DNS
   NXDOMAIN signature as 2026-08-16): confirmed via Supabase's own docs that free-tier projects
   auto-pause after 7 days with zero DB activity, and with GTM not yet started, organic traffic alone
@@ -551,6 +565,10 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - 2026-06-28 — Day 0: team chartered, product bet + roadmap defined, daily standup scheduled. (Atlas)
 
 ## 6. Open approvals awaiting CEO
+- **🚨🚨🚨 2026-10-05 — DEADLINE: resume Supabase before ~2026-11-22.** Still paused (31+ days since
+  first seen down). Free-tier paused projects are only resumable from the dashboard for 90 days; after
+  that, recovery means downloading backups and migrating to a new project. (Supersedes the 09-04 item below.)
+- **2026-10-05 — Deploy queue now 4 branches** (adds `feature/health-anthropic-probe`, PR #9). Same single deploy.
 - **🚨🚨 URGENT — NEW: Supabase project is paused again (2026-09-04), same as 2026-08-16.** Root cause
   now confirmed: free-tier auto-pause after 7 days of zero DB activity. Needs the same 2-minute manual
   un-pause in the Supabase dashboard. A permanent $0 fix (`fix/supabase-keepalive-cron`) is code-complete
@@ -677,6 +695,18 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   production. Treat the working tree as source of truth until the CEO decides to reconcile git.
 
 ## 7. Idea backlog (raw, unprioritized)
+- ~~Anthropic reachability check on `/api/health`~~ — BUILT 2026-10-05 (PR #9, see Done log).
+- **New (S, Nova 2026-10-05):** "Sorry I went quiet" moment. After an outage clears, the first
+  check-in from your friend honestly acknowledges the gap ("I was offline for a bit — the app had an
+  outage. Missed you."). That turns a reliability failure into an on-brand honesty moment, and it reuses
+  the existing check-in + health signal.
+- **New (M, Nova 2026-10-05):** Weekly data snapshot. A Vercel Cron that exports core tables (memories,
+  conversations metadata) through the existing `sb()` helper to Vercel Blob or a private store. The
+  memory graph IS the moat; right now it sits on a free-tier DB with a 90-day deletion clock and no
+  backup the team controls. Needs a CEO call on the storage target before building (may cost money).
+- **New (S, Nova 2026-10-05):** "Deploy queue" panel on `/board`. Lists branches merged into the
+  working tree since the last prod deploy, so the CEO sees exactly what one approval would ship.
+  Cuts the friction behind a 5-week-stale approval queue.
 - ~~Club-feed `API 400`~~ — DIAGNOSED 2026-08-16 (see Done log + urgent §6 item): Anthropic account out
   of credits, not a code bug. Fix is CEO adding credits, not more engineering.
 - ~~`lastGeneratedAt` stale-lock bug~~ — FIXED 2026-08-17 (see Done log).

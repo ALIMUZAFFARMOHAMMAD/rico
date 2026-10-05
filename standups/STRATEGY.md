@@ -87,6 +87,19 @@ app AND monetize like a career tool."
 Tag every link you share: `hitony.vercel.app/landing?src=reddit` (or `?src=ambassador_name`, `?src=ig`, etc.).
 
 ## 7. Strategic recommendations log (most recent first)
+- 2026-10-05 (standup run) — **Run one 15-minute "unblock session" before ~2026-11-22, or the data moat
+  becomes a restore-from-backup project.** The app has been offline since at least 2026-09-04 (Supabase
+  still NXDOMAIN today). Supabase free-tier projects can only be resumed from the dashboard for **90
+  days after the pause**; the pause happened between ~2026-08-24 and 2026-09-04, so the conservative
+  deadline is **~2026-11-22 (≈48 days left)**. After that, the data (memory graph, beta-user history,
+  i.e. moat pillar #2 itself) only comes back by manually migrating backups into a new project. Second
+  observation, stated plainly: the deploy queue has 4 code-complete branches and the approvals list
+  hasn't moved in ~5 weeks, so new build work is piling up undeployed and not compounding. Recommendation, in order, all
+  CEO-only: (1) resume Supabase, (2) top up Anthropic credits (the smallest top-up is enough to verify
+  the loop), (3) approve ONE `vercel --prod` of the working tree, which ships all 4 queued branches at once
+  (keepalive cron, status banner, club-feed stale-lock fix, Anthropic health probe). Until (1)–(3) happen,
+  the team will keep build work small and reliability-focused rather than adding features nobody can use.
+  GTM hold unchanged. Source: supabase.com/docs/guides/platform/free-project-pausing.
 - 2026-09-04 (standup run) — **GTM hold now has two stacked, independent conditions instead of one.**
   Found the app down live at the start of this run (Supabase DNS NXDOMAIN, same as 2026-08-16) —
   root-caused this time: free-tier auto-pause after 7 days of zero DB activity, confirmed against

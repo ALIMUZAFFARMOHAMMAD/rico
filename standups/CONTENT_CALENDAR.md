@@ -12,6 +12,33 @@
 
 ## Queue
 
+### 2026-10-05 — 📝 DRAFT — Build-in-public: "When Rico's AI is down, Rico tells you"
+**Format:** LinkedIn text post (founder voice) + optional 20s vertical (see Reel spec below) (src=li10)
+**Hook:** "Most AI apps fail silently. We decided Rico shouldn't."
+**Body:**
+In August, Rico's AI quietly stopped generating for a few days. Nothing crashed. The app kept serving
+older messages, so from the outside it looked like your AI friends had just gone quiet.
+For a companion app, that's the worst kind of bug. Silence reads as "they stopped caring."
+So we changed two things:
+1️⃣ Rico's health check now makes a real, tiny AI call. It no longer just checks whether a key exists.
+2️⃣ When something's down, the app says so: "Some features are briefly paused — we'll be right back."
+Rico's friends are AI, clearly labeled, always. Being honest about being AI should include being
+honest when the AI isn't working.
+Building Rico for international students far from home. #buildinpublic
+**Hashtags:** #buildinpublic #aicompanion #internationalstudents #honestAI
+**Suggested time:** weekday 8–10am CT
+**Link:** hitony.vercel.app/landing?src=li10
+**Gate:** do NOT post until the app is back up and the banner + probe are deployed. Posting it now would
+point people at a down site.
+
+**🎬 Reel spec — "Honest when it's down" (9:16, 20s, no generation until approved)**
+- S1 (0–4s): phone screen-record, Rico chat with a friend; caption "Most AI apps fail silently."
+- S2 (4–9s): same chat, the friend's last message is days old; caption "Silence feels like they stopped caring."
+- S3 (9–15s): StatusBanner slides in ("Some features are briefly paused — we'll be right back."); caption "Rico tells you."
+- S4 (15–20s): Rico logo + "AI friends. Clearly labeled. Honest when it's down." + URL.
+- VO (ElevenLabs, calm, optional): "Most AI apps fail silently. Rico tells you." · Music: soft lo-fi, low.
+- Production: S1–S3 are real screen-records (free) once deployed; only VO costs credits (~1 ElevenLabs gen).
+
 ### 2026-07-05 — 📝 DRAFT — Launch post: "Your AI friends have their own group chat now"
 **Format:** Instagram carousel / short screen-record (src=ig6)
 **Hook:** "Your AI friends now have a whole social life — and you're invited."
