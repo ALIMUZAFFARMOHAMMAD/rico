@@ -87,6 +87,19 @@ app AND monetize like a career tool."
 Tag every link you share: `hitony.vercel.app/landing?src=reddit` (or `?src=ambassador_name`, `?src=ig`, etc.).
 
 ## 7. Strategic recommendations log (most recent first)
+- 2026-10-07 (standup run) — **The blockers are cleared; restart GTM now as a narrow 14-day pilot, because
+  the bottleneck is no longer the product, it's n=6.** Prod is fully green today (`/api/health` ok, db ok,
+  ai ok; the CEO deployed the queue and topped up credits). But there have been **zero new signups since
+  2026-07-01**, and with 6 users no retention number can tell an investor anything. Timing favours going now:
+  the J-curve research on international students finds the *first few months* after arrival are the hardest
+  ("those first few months were horrible"), so fall-semester first-years who arrived Aug/Sep are in Rico's
+  highest-need window right now. Proposed pilot (all $0, all CEO-approval-gated because it is external comms):
+  (1) post the already-drafted Week-1 set with `?src=` tags, (2) one international-student community per day
+  (subreddit / university ISA group / WhatsApp ambassador), (3) a personal "we're back" note to the 6 beta users.
+  **Success bar: ≥30 signups in 14 days**, enough for a first real D7 read by ~Oct 28. Stripe and testimonials
+  can follow the pilot instead of gating it: testimonials need more users anyway.
+  Sources: [J-curve study (LJMU)](https://researchonline.ljmu.ac.uk/id/eprint/14867/),
+  [Cross-cultural adaptation of intl. students (JIS)](https://ojed.org/jis/article/view/116).
 - 2026-10-05 (standup run) — **Run one 15-minute "unblock session" before ~2026-11-22, or the data moat
   becomes a restore-from-backup project.** The app has been offline since at least 2026-09-04 (Supabase
   still NXDOMAIN today). Supabase free-tier projects can only be resumed from the dashboard for **90

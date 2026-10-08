@@ -79,6 +79,12 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - [ ] Plan gating + Stripe (separate backlog item, CEO drives credentials).
 
 ## 4. In progress (carries across days)
+- **UPDATE 2026-10-07: ALL GREEN.** Prod `/api/health` → `ok:true, db:ok, ai:ok`. The CEO deployed (latest prod
+  deploy ~8 min before this run, incl. the 4-branch queue: the `ai` field + keepalive route are both live) and
+  Anthropic credits are restored. The 10-05 blockers below are RESOLVED. New since 10-05 (CEO sessions): Rough
+  Notebook (`/notebook`) + voice-clone fallback, committed on `safety/working-tree-2026-06-30` (pushed to origin this run).
+- **Open (2026-10-07): `feature/checkin-first` (PR #10).** The check-in card is back at the top of Chats, and
+  `checkin_shown` is now counted once per message. Awaiting deploy approval.
 - **UPDATE 2026-10-05 ~01:22 CDT (follow-up check): Supabase is BACK.** Board 200, stats 200, health
   `ok:true db:ok`. It came back between 05:59Z (board still `fetch failed`) and 06:21Z. Data intact (6 signups,
   board unchanged). **Still broken: Anthropic.** Prod `/api/translate` → Vercel log `translate error: API 400`,
@@ -104,6 +110,13 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   AI-outage indicator (Nova, 2026-08-17 idea, §7).
 
 ## 5. Done log (most recent first)
+- 2026-10-07 (standup run) — **`feature/checkin-first`**: Flagship #1 had drifted below 4 feature tiles
+  (Groups/Tutor/Translate/Notebook) on Chats, so "Rico texts you first" was no longer seen first, which is a
+  plausible contributor to its 0/17 reply rate. Moved it back to the top. Also: `checkin_shown` re-fired on
+  every Chats remount (17 shown across ~2 users), inflating the reply-rate denominator. It now counts once per
+  message (localStorage), and the reply track uses `keepalive`. Note: historical `shown` counts stay inflated,
+  so compare reply rate only on post-deploy data. `next build` clean; not exercised live (needs a signed-in
+  Clerk session). [PR #10](https://github.com/ALIMUZAFFARMOHAMMAD/rico/pull/10). (Forge/Sentry)
 - 2026-10-05 (follow-up check, same morning) — Confirmed the Supabase recovery live (health/board/stats 200), and
   pinned the AI outage on prod to Anthropic returning HTTP 400, via Vercel runtime logs (one ~20-token translate probe).
   No code changes. (Atlas/Sentry)
@@ -573,6 +586,9 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
 - 2026-06-28 — Day 0: team chartered, product bet + roadmap defined, daily standup scheduled. (Atlas)
 
 ## 6. Open approvals awaiting CEO
+- **2026-10-07: Anthropic credits ✅ and the 4-branch deploy ✅ are DONE** (health ai:ok, db:ok). Open now:
+  (1) deploy PR #10 (check-in back on top), (2) approve the 14-day GTM pilot (Sage, STRATEGY §7),
+  (3) approve the "we're back" note to the 6 beta users (Echo draft, CONTENT_CALENDAR), (4) carried items.
 - **2026-10-05 follow-up: the Supabase restore item is DONE ✅ (DB back).** Remaining blockers: (1) add Anthropic
   credits (prod AI calls return 400), (2) deploy the 4-branch queue **before ~2026-10-12**, or the DB auto-pauses again (#8 keepalive is the fix).
 - **🚨🚨🚨 2026-10-05 — DEADLINE: resume Supabase before ~2026-11-22.** Still paused (31+ days since
@@ -705,6 +721,14 @@ Keeper (deploys). Content + video specs live in standups/CONTENT_CALENDAR.md.
   production. Treat the working tree as source of truth until the CEO decides to reconcile git.
 
 ## 7. Idea backlog (raw, unprioritized)
+- **New (S, Nova 2026-10-07):** "First-semester mode" in onboarding: ask "how long have you been here?" and
+  if <3 months, friends lean into the hard early stretch (homesickness, admin, first midterms) in check-ins.
+  Ties the product to the J-curve timing Sage found.
+- **New (S, Nova 2026-10-07):** Check-in reply on the card itself (inline quick-reply chips like "good!",
+  "rough day"), instead of requiring a tap-through to chat. Lowers the cost of the first reply; 0/17 today.
+- **New (M, Nova 2026-10-07):** Web push for check-ins (service worker + Notification API). Rico can only
+  "text you first" while the app is open today; with a dormant cohort that means it never fires. Biggest
+  retention unlock, but needs a VAPID key pair (secret env var, CEO adds it).
 - ~~Anthropic reachability check on `/api/health`~~ — BUILT 2026-10-05 (PR #9, see Done log).
 - **New (S, Nova 2026-10-05):** "Sorry I went quiet" moment. After an outage clears, the first
   check-in from your friend honestly acknowledges the gap ("I was offline for a bit — the app had an

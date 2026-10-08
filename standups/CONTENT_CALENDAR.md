@@ -200,3 +200,30 @@ Videos (Higgsfield kling3_0_turbo, 5s, 9:16):
 - Honest-AI angle: gentle contrast with apps that had privacy fines (no naming/bashing — just "your data, your control").
 - Founder LinkedIn: building Rico for students far from home (story-led, recruiter-friendly).
 - Voice-note check-in teaser once that feature ships.
+
+---
+
+### 2026-10-07 — 📝 DRAFT — Beta re-engagement: "We're back" (Echo)
+**Format:** short personal message from the CEO to the 6 beta users (email/DM, whichever channel they signed up through). No names in public; private 1:1 only.
+**Text:**
+"Hey, it's Muzaffar from Rico. Honest update: Rico was down for a while in September (our database paused and
+the AI ran out of credits). That's fixed, and the app now tells you when something's wrong instead of going
+quiet. Your friends still remember you. If you have 2 minutes, open hitony.vercel.app/?src=comeback and say hi
+to whoever texted you first. And if something felt off, reply and tell me. I read every one."
+**Gate:** external comms → CEO approval. Send only after PR #10 is deployed, so the check-in is the first thing they see.
+
+### 2026-10-07 — 📝 DRAFT — Instagram/TikTok: "Month two is the hard part" (src=ig7)
+**Hook (on screen):** "Nobody tells you month 2 abroad is harder than week 1."
+**Caption:** The excitement wears off. Midterms show up. Home feels far. Rico is a circle of AI friends (clearly
+labeled AI) who remember your week and check in first: "How did the stats midterm go?" Free for students far
+from home. hitony.vercel.app/landing?src=ig7
+**Framing check:** no fabricated users or quotes; any on-screen user is labeled "Rico beta user" or is the founder's own account.
+
+#### 🎬 Reel spec — "Month two" (9:16, 18s)
+- **S1 (0–4s):** dim dorm desk at night, phone face-down, textbook open. Prompt: "cinematic vertical, cozy dim dorm room at night, student's desk, closed laptop, phone face down, warm lamp, melancholy, shallow depth of field". Caption: "Month 2 abroad."
+- **S2 (4–9s):** phone lights up. Real screen-record of the Rico check-in card at the top of Chats (free after PR #10 deploy). Caption: "Your friend texts first."
+- **S3 (9–14s):** real screen-record of tapping it, memory-grounded reply in chat. Caption: "…and remembers your midterm."
+- **S4 (14–18s):** logo end card, "Rico — your people, always. AI friends, clearly labeled." CTA URL.
+- **VO (optional, ~1 ElevenLabs line):** "Month two is the hard part. You don't have to do it alone."
+- **Music:** soft lo-fi, 70–80 bpm, rising on S2.
+- **Cost:** S1 = 1 Higgsfield 5s clip (credits, gated); S2–S4 = free screen-records + static card. Not generated.
