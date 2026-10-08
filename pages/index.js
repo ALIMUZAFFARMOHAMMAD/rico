@@ -377,6 +377,19 @@ export default function Rico() {
   // first-touch attribution (also runs for visitors who land directly on the app)
   useEffect(() => { captureSource(); }, []);
 
+  // one-time dev→production Clerk move: pull this person's old data across, then reload so
+  // every panel refetches it (see pages/api/migrate.js). Once per user per browser.
+  useEffect(() => {
+    if (!isSignedIn || !userId) return;
+    const flag = `rico_migrated_${userId}`;
+    try { if (localStorage.getItem(flag)) return; } catch (e) {}
+    fetch("/api/migrate", { method: "POST" }).then(r => r.ok ? r.json() : null).then(d => {
+      if (!d) return;
+      try { localStorage.setItem(flag, "1"); } catch (e) {}
+      if (d.moved > 0) window.location.reload();
+    }).catch(() => {});
+  }, [isSignedIn, userId]);
+
   // retention tracking: stamp first/last-seen + active days once per session (+ signup source)
   useEffect(() => {
     if (!isSignedIn || !userId) return;
