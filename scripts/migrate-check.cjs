@@ -1,6 +1,6 @@
 // Usage: node scripts/migrate-check.cjs  — asserts remapKey + (read-only) dev-Clerk email lookup.
 const fs = require("fs"), assert = require("assert");
-const src = fs.readFileSync("pages/api/migrate.js", "utf8");
+const src = fs.readFileSync("pages/api/migrate.js", "utf8").split("\r\n").join("\n");
 const grab = (name) => src.slice(src.indexOf(name), src.indexOf("\n}\n", src.indexOf(name)) + 2).replace(/^export /, "");
 const { remapKey, verifiedEmails, findDevUserId } = new Function(`${grab("export function remapKey")}\n${grab("const verifiedEmails")}\n${grab("async function findDevUserId")}; return { remapKey, verifiedEmails, findDevUserId };`)();
 const O = "user_OLD123", N = "user_NEW999";
