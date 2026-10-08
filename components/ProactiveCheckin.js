@@ -5,6 +5,7 @@ import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const DISMISS_KEY = "rico_checkin_dismissed";
+const SHOWN_KEY = "rico_checkin_shown";
 
 export default function ProactiveCheckin({ userId, lang, T, font, onOpen }) {
   const [data, setData] = useState(null);
@@ -25,6 +26,10 @@ export default function ProactiveCheckin({ userId, lang, T, font, onOpen }) {
         setData(d);
         // Instrument: the proactive check-in was actually shown (Flagship #1 impact).
         // Tagged by variant (normal vs. "missed you") so /api/stats can rank which pulls more replies.
+        // Count each message once — every Chats remount re-fired this, inflating the reply-rate denominator.
+        let seen = "";
+        try { seen = localStorage.getItem(SHOWN_KEY) || ""; localStorage.setItem(SHOWN_KEY, d.message); } catch (e) {}
+        if (seen === d.message) return;
         fetch("/api/track", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, event: "checkin_shown", variant: d.lapsed ? "missed" : "checkin" }) }).catch(() => {});
       })
       .catch(() => {});
@@ -70,7 +75,7 @@ export default function ProactiveCheckin({ userId, lang, T, font, onOpen }) {
           transition={{ type: "spring", stiffness: 320, damping: 26 }}
           onClick={() => {
             // Instrument: the check-in earned a reply (user tapped through to chat).
-            fetch("/api/track", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, event: "checkin_reply", variant: data.lapsed ? "missed" : "checkin" }) }).catch(() => {});
+            fetch("/api/track", { method: "POST", keepalive: true, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, event: "checkin_reply", variant: data.lapsed ? "missed" : "checkin" }) }).catch(() => {});
             dismiss();
             onOpen?.(data.agentId);
           }}

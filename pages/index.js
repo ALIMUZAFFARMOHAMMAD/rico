@@ -603,6 +603,16 @@ export default function Rico() {
         {/* ===== CHATS ===== */}
         {tab === "chats" && (
           <div style={{ flex: 1, overflowY: "auto", padding: "4px 18px 80px" }}>
+            {/* Flagship #1 stays first on Chats: "Rico texts you first" only works if it's seen first. */}
+            {isSignedIn && userId && (
+              <ProactiveCheckin
+                userId={userId}
+                lang={langRef.current}
+                T={T}
+                font={font}
+                onOpen={(id) => { const a = lookup(id); if (a) openChat(a); }}
+              />
+            )}
             <div style={{ display: "flex", gap: 9, margin: "6px 0 14px" }}>
               <a href="/groups" style={{ flex: 1, display: "flex", alignItems: "center", gap: 9, textDecoration: "none", background: `linear-gradient(140deg,${T.violet}22,${T.pink}14)`, border: `1px solid ${T.line}`, borderRadius: 16, padding: "12px 13px" }}>
                 <span style={{ fontSize: 20 }}>👥</span>
@@ -623,15 +633,6 @@ export default function Rico() {
               <span style={{ flex: 1 }}><span style={{ display: "block", color: T.text, fontWeight: 700, fontSize: 13 }}>Rough Notebook</span><span style={{ color: T.sub, fontSize: 10.5 }}>Snap your handwritten notes — Rico remembers them</span></span>
               <span style={{ color: T.sub, fontSize: 16 }}>→</span>
             </a>
-            {isSignedIn && userId && (
-              <ProactiveCheckin
-                userId={userId}
-                lang={langRef.current}
-                T={T}
-                font={font}
-                onOpen={(id) => { const a = lookup(id); if (a) openChat(a); }}
-              />
-            )}
             <div style={{ color: T.sub, fontSize: 12, fontWeight: 600, letterSpacing: 1.2, textTransform: "uppercase", margin: "6px 2px 12px" }}>Your people</div>
             {matches.map(id => {
               const a = lookup(id);
