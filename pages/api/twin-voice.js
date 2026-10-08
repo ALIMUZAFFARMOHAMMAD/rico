@@ -47,6 +47,8 @@ export default async function handler(req, res) {
       if (!r.ok) {
         const e = await r.text();
         console.error("clone error", r.status, e.slice(0, 300));
+        if (r.status === 401 && /ivc_not_permitted|subscription_required/i.test(e))
+          return res.status(409).json({ error: "Voice cloning is paused on Rico's voice plan right now — your twin speaks with a stock voice until it's back." });
         if (r.status === 403 || /can_not_use_instant_voice_cloning|voice_add_edit_limit|maximum/i.test(e))
           return res.status(409).json({ error: "Voice-clone limit reached on this plan (or cloning needs one-time verification in the ElevenLabs dashboard)." });
         return res.status(502).json({ error: "Couldn't clone that — try a clearer ~30s recording." });
