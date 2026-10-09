@@ -49,7 +49,12 @@ export default async function handler(req, res) {
       oldId = await findDevUserId(email);
       if (oldId) break;
     }
-    if (!oldId || oldId === userId) return res.status(200).json({ moved: 0 });
+    if (!oldId || oldId === userId) {
+      // diagnostics only (no PII): a dev instance with 0 users = CLERK_DEV_SECRET_KEY is from the wrong Clerk app
+      const c = await fetch("https://api.clerk.com/v1/users/count", { headers: { Authorization: `Bearer ${process.env.CLERK_DEV_SECRET_KEY}` } }).then(r => r.ok ? r.json() : null).catch(() => null);
+      console.log(`migrate: no match — verified emails=${verifiedEmails(me.emailAddresses, "emailAddress").length}, dev instance users=${c?.total_count ?? "?"}, same id=${oldId === userId}`);
+      return res.status(200).json({ moved: 0 });
+    }
 
     const rows = [
       ...(await getUserRows(oldId)),
