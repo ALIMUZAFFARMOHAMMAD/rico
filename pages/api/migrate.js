@@ -12,6 +12,7 @@
 import { getAuth, clerkClient } from "@clerk/nextjs/server";
 import { configured, sb, getUserRows } from "../../lib/db";
 import { rateLimited } from "../../lib/ratelimit";
+import { safeKeyEq } from "../../lib/keys";
 
 // "<old>" → "<new>", "<old>::anything" → "<new>::anything", "twin::<old>" → "twin::<new>"
 export function remapKey(key, oldId, newId) {
@@ -36,6 +37,14 @@ async function findDevUserId(email) {
 }
 
 export default async function handler(req, res) {
+  // Founder-only diagnostic (no PII): is CLERK_DEV_SECRET_KEY pointing at the dev instance that holds the beta users?
+  if (req.method === "GET") {
+    if (!safeKeyEq(req.query.key, process.env.BOARD_KEY) && !safeKeyEq(req.query.key, process.env.STATS_KEY)) return res.status(401).end();
+    if (!process.env.CLERK_DEV_SECRET_KEY) return res.status(200).json({ devKeySet: false });
+    const h = { Authorization: `Bearer ${process.env.CLERK_DEV_SECRET_KEY}` };
+    const c = await fetch("https://api.clerk.com/v1/users/count", { headers: h }).then(r => r.ok ? r.json() : { error: r.status }).catch(e => ({ error: e.message }));
+    return res.status(200).json({ devKeySet: true, devKeyKind: process.env.CLERK_DEV_SECRET_KEY.slice(0, 8), devInstanceUsers: c.total_count ?? c });
+  }
   if (req.method !== "POST") return res.status(405).end();
   const { userId } = getAuth(req);
   if (!userId) return res.status(401).json({ error: "Sign in first" });

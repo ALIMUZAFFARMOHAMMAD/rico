@@ -392,7 +392,7 @@ export default function Rico() {
   // every panel refetches it (see pages/api/migrate.js). Once per user per browser.
   useEffect(() => {
     if (!isSignedIn || !userId) return;
-    const flag = `rico_migrated2_${userId}`; // v2: first attempt ran with a misconfigured dev key
+    const flag = `rico_migrated3_${userId}`; // v3: earlier attempts ran with a misconfigured dev key
     try { if (localStorage.getItem(flag)) return; } catch (e) {}
     fetch("/api/migrate", { method: "POST" }).then(r => r.ok ? r.json() : null).then(d => {
       if (!d) return;
