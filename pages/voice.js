@@ -53,6 +53,7 @@ export default function VoicePage() {
   const [cloneConsent, setCloneConsent] = useState(true);
   const cloneConsentRef = useRef(true);
   const [cloneStatus, setCloneStatus] = useState(""); // "" | capturing | cloning | done | short | notready | fail
+  const [cloneErr, setCloneErr] = useState(""); // server's reason when cloning fails (e.g. plan has no voice cloning)
   const clipRecRef = useRef(null);
   const clipChunksRef = useRef([]);
   const clipStreamRef = useRef(null);
@@ -379,7 +380,9 @@ export default function VoicePage() {
         const blob = new Blob(clipChunksRef.current, { type: mr.mimeType || "audio/webm" });
         const b64 = await new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = rej; fr.readAsDataURL(blob); });
         const r = await fetch("/api/twin-voice", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, userName, audio: b64, mime: blob.type, consent: true }) });
-        setCloneStatus((await r.json()).ok ? "done" : "fail");
+        const d = await r.json().catch(() => ({}));
+        setCloneErr(d.error || "");
+        setCloneStatus(d.ok ? "done" : "fail");
       } catch (e) { setCloneStatus("fail"); }
     }
   }, [userId, userName]);
@@ -538,7 +541,7 @@ export default function VoicePage() {
                   {cloneStatus === "done" && "✓ Your twin now talks in your voice"}
                   {cloneStatus === "short" && "Voice not cloned — too little speech this time. Try a longer chat."}
                   {cloneStatus === "notready" && "Keep chatting a bit more — your twin needs to know you before it gets your voice."}
-                  {cloneStatus === "fail" && "Couldn't clone your voice this time — you can add it later from your profile."}
+                  {cloneStatus === "fail" && (cloneErr || "Couldn't clone your voice this time — you can add it later from your profile.")}
                 </div>
               )}
               <div style={{ display: "flex", gap: 10 }}>
