@@ -76,7 +76,7 @@ export default function Notebook() {
   const showCalibrate = data && (!hw || recalibrate);
 
   return (<>
-    <Head><title>Rough Notebook — rico</title><meta name="viewport" content="width=device-width,initial-scale=1" /><meta name="theme-color" content="#0f0e17" /></Head>
+    <Head><title>ricomates</title><meta name="viewport" content="width=device-width,initial-scale=1" /><meta name="theme-color" content="#0f0e17" /></Head>
     <div style={{ minHeight: "100vh", background: T.bg, fontFamily: font, display: "flex", justifyContent: "center" }}>
       <div style={{ width: "100%", maxWidth: 520, padding: "0 16px 40px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 0", borderBottom: `1px solid ${T.line}`, marginBottom: 16 }}>

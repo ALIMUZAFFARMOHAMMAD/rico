@@ -542,7 +542,7 @@ export default function Rico() {
 
   if (!isLoaded) return (
     <div style={{ height: "100vh", background: T.bg, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: font }}>
-      <Head><title>rico</title></Head>
+      <Head><title>ricomates</title></Head>
       <motion.div animate={{ scale: [1, 1.15, 1], opacity: [0.6, 1, 0.6] }} transition={{ repeat: Infinity, duration: 1.4 }}><Logo /></motion.div>
     </div>
   );
@@ -551,17 +551,17 @@ export default function Rico() {
   // effect above — render a minimal brand loader while that redirect happens.
   if (!isSignedIn) return (
     <div style={{ height: "100vh", background: T.bg, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: font }}>
-      <Head><title>rico — your people, always</title></Head>
+      <Head><title>ricomates</title></Head>
       <motion.div animate={{ scale: [1, 1.15, 1], opacity: [0.6, 1, 0.6] }} transition={{ repeat: Infinity, duration: 1.4 }}><Logo /></motion.div>
     </div>
   );
 
   // Brand intro plays first thing after sign-in (also covers data loading).
-  if (isSignedIn && !introPlayed) return (<><Head><title>rico</title></Head><Intro onDone={() => setIntroPlayed(true)} /></>);
+  if (isSignedIn && !introPlayed) return (<><Head><title>ricomates</title></Head><Intro onDone={() => setIntroPlayed(true)} /></>);
 
   if (!ready) return (
     <div style={{ height: "100vh", background: T.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4, fontFamily: font }}>
-      <Head><title>rico</title></Head>
+      <Head><title>ricomates</title></Head>
       <TonyCharacter size={150} look={{ hoodie: "#8b5cf6", hoodieD: "#7146d1" }} float="none" animated={false} emote="shuffle" />
       <div style={{ color: T.sub, fontSize: 12.5, fontWeight: 500 }}>Rico is shuffling the deck for you…</div>
     </div>
@@ -569,7 +569,7 @@ export default function Rico() {
 
   return (<>
     <Head>
-      <title>rico — your people, always</title>
+      <title>ricomates</title>
       <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
       <meta name="theme-color" content="#0f0e17" />    </Head>
     <div style={{ minHeight: "100vh", background: T.bg, fontFamily: font, display: "flex", justifyContent: "center" }}>

@@ -8,7 +8,7 @@ function P({ children }) { return <div style={{ color: T.sub, fontSize: 13, line
 
 export default function Privacy() {
   return (<>
-    <Head><title>Privacy Policy — Rico</title><meta name="viewport" content="width=device-width,initial-scale=1" /></Head>
+    <Head><title>ricomates</title><meta name="viewport" content="width=device-width,initial-scale=1" /></Head>
     <div style={{ minHeight: "100vh", background: T.bg, fontFamily: font, display: "flex", justifyContent: "center" }}>
       <div style={{ width: "100%", maxWidth: 680, padding: "22px 20px 60px" }}>
         <a href="/" style={{ color: T.text, textDecoration: "none", fontSize: 18 }}>←</a>

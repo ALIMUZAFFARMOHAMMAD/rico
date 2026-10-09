@@ -117,7 +117,7 @@ export default function Landing() {
   useEffect(() => { captureSource(); }, []);
   return (<>
     <Head>
-      <title>Rico — AI friends who actually remember you</title>
+      <title>ricomates</title>
       <meta name="description" content="Rico is an AI companion app: friends with memory, real voice calls, games, group chats, an AI tutor, live translation, and a career wingman. Honestly-labeled AI, friendship-first." />
       <meta name="viewport" content="width=device-width,initial-scale=1" />
       <meta name="theme-color" content="#0b0a12" />

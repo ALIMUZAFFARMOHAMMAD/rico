@@ -416,7 +416,7 @@ export default function VoicePage() {
 
   return (<>
     <Head>
-      <title>{`Call ${agentObj.name} — rico`}</title>
+      <title>ricomates</title>
       <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
       <meta name="theme-color" content="#0f0e17" />    </Head>
     <div style={{ minHeight: "100vh", background: T.bg, fontFamily: font, display: "flex", justifyContent: "center" }}>

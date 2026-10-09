@@ -60,7 +60,7 @@ export default function MemoryVault() {
 
   return (<>
     <Head>
-      <title>Memory Vault — hitony.ai</title>
+      <title>ricomates</title>
       <meta name="viewport" content="width=device-width,initial-scale=1" />
     </Head>
     <div style={{ minHeight: "calc(100vh - 36px)", maxWidth: 560, margin: "18px auto", border: "none", borderRadius: 26, boxShadow: "0 24px 70px rgba(60,40,20,0.35)", background: "#fdf8f0", fontFamily: "'Comic Neue',cursive", overflow: "hidden", backgroundImage: "linear-gradient(rgba(26,16,8,0.05) 1px,transparent 1px),linear-gradient(90deg,rgba(26,16,8,0.05) 1px,transparent 1px)", backgroundSize: "28px 28px" }}>

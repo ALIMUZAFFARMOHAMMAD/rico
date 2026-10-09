@@ -216,7 +216,7 @@ function Stat({ label, value }) {
 
 function Shell({ children }) {
   return (<>
-    <Head><title>Rico — CEO Board</title><meta name="viewport" content="width=device-width, initial-scale=1" /></Head>
+    <Head><title>ricomates</title><meta name="viewport" content="width=device-width, initial-scale=1" /></Head>
     <div style={{ minHeight: "100vh", background: T.bg, color: T.text, fontFamily: font, padding: "24px clamp(12px,4vw,40px)" }}>{children}</div>
   </>);
 }

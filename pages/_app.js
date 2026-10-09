@@ -1,4 +1,5 @@
 import { ClerkProvider } from '@clerk/nextjs'
+import Head from 'next/head'
 import { useEffect } from 'react'
 import { getStoredLang, isRTL } from '../lib/i18n'
 import StatusBanner from '../components/StatusBanner'
@@ -56,6 +57,7 @@ function NativeBridge() {
 export default function App({ Component, pageProps }) {
   return (
     <ClerkProvider {...pageProps}>
+      <Head><link rel="icon" href="/favicon.svg" type="image/svg+xml" /><link rel="apple-touch-icon" href="/favicon.svg" /></Head>
       <NativeBridge />
       <DirManager />
       <StatusBanner />
