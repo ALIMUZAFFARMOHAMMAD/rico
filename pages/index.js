@@ -29,13 +29,13 @@ const T = {
   panel2: "rgba(255,255,255,0.09)",
   line: "rgba(255,255,255,0.1)",
   text: "#f5f3ff",
-  sub: "#9b97b0",
-  grad: "linear-gradient(135deg,#ff5e7e 0%,#8b5cf6 100%)",
+  sub: "#a9a5c0",
+  grad: "#d6365e", // solid CTA: white text on it passes WCAG AA
   pink: "#ff5e7e",
   violet: "#8b5cf6",
 };
 
-const font = "'Inter',system-ui,-apple-system,sans-serif";
+const font = "'DM Sans',system-ui,-apple-system,sans-serif";
 
 function Avatar({ agent, size = 52, ring = false, emote = "none" }) {
   const [imgOk, setImgOk] = useState(true);
@@ -59,13 +59,13 @@ function Avatar({ agent, size = 52, ring = false, emote = "none" }) {
 function Logo() {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-      <svg width="26" height="26" viewBox="0 0 26 26">
+      <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true" style={{ animation: "rm-orbit 14s linear infinite" }}>
         <ellipse cx="13" cy="13" rx="11" ry="5.5" fill="none" stroke="url(#og)" strokeWidth="2" transform="rotate(-22 13 13)" />
         <circle cx="13" cy="13" r="3.4" fill="url(#og)" />
         <circle cx="22.4" cy="8.6" r="2" fill="#ff5e7e" />
         <defs><linearGradient id="og" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#ff5e7e" /><stop offset="100%" stopColor="#8b5cf6" /></linearGradient></defs>
       </svg>
-      <span style={{ fontWeight: 800, fontSize: 21, letterSpacing: -0.5, background: T.grad, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>rico</span>
+      <span className="rm-display" style={{ fontWeight: 800, fontSize: 21, letterSpacing: -0.6, color: T.text }}>ricomates</span>
     </div>
   );
 }
@@ -105,10 +105,12 @@ function SwipeCard({ agent, onDecide, topCard, exitDir = "left" }) {
       <div style={{ height: "100%", borderRadius: 24, overflow: "hidden", background: "#1a1626", border: `1px solid ${T.line}`, boxShadow: "0 24px 60px rgba(0,0,0,0.55)", display: "flex", flexDirection: "column", position: "relative" }}>
         {/* portrait area */}
         <div style={{ flex: 1.35, background: `radial-gradient(120% 100% at 50% 0%, ${agent.look?.hoodie || "#ffe566"}40 0%, #161226 70%)`, display: "flex", alignItems: "flex-end", justifyContent: "center", position: "relative", overflow: "hidden" }}>
+          <div aria-hidden="true" style={{ position: "absolute", width: 250, height: 250, top: 18, borderRadius: "50%", border: "2px dashed rgba(255,255,255,0.22)", animation: "rm-orbit 18s linear infinite" }}><div style={{ position: "absolute", width: 12, height: 12, borderRadius: "50%", background: "#fff", top: 20, left: 42 }} /></div>
+          <div aria-hidden="true" style={{ position: "absolute", width: 330, height: 330, top: -22, borderRadius: "50%", border: "1px solid rgba(255,255,255,0.12)", animation: "rm-orbit-rev 30s linear infinite" }} />
           <TonyCharacter size={235} look={agent.look || {}} float="none" animated={false} pose="down" expr="😊" emote={topCard ? em : "none"} />
           <div style={{ position: "absolute", top: 14, left: 14, display: "flex", gap: 6 }}>
             <span style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(8px)", border: `1px solid ${T.line}`, color: T.text, fontSize: 11.5, fontWeight: 700, padding: "5px 11px", borderRadius: 100 }}>
-              {agent.isTwin ? "🪞 TWIN · echo of a real person" : `${agent.emoji} ${agent.archetype}`}
+              {agent.isTwin ? "TWIN · echo of a real person" : `AI FRIEND · ${agent.archetype}`}
             </span>
           </div>
           {/* swipe stamps */}
@@ -121,12 +123,12 @@ function SwipeCard({ agent, onDecide, topCard, exitDir = "left" }) {
         </div>
         {/* info */}
         <div style={{ padding: "16px 18px 18px" }}>
-          <div style={{ fontSize: 26, fontWeight: 800, color: T.text, letterSpacing: -0.5 }}>{agent.name}</div>
+          <div className="rm-display" style={{ fontSize: 28, fontWeight: 800, color: T.text, letterSpacing: -0.6 }}>{agent.name}</div>
           <div style={{ fontSize: 13, color: T.sub, marginTop: 3, lineHeight: 1.45 }}>{agent.bio}</div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
             {(agent.interests || []).map(i => <span key={i} style={{ fontSize: 11.5, fontWeight: 600, color: T.text, background: T.panel2, border: `1px solid ${T.line}`, padding: "4px 11px", borderRadius: 100 }}>{i}</span>)}
           </div>
-          {agent.sample && <div style={{ marginTop: 11, fontSize: 12.5, color: T.sub, fontStyle: "italic", borderLeft: `2px solid ${T.violet}`, paddingLeft: 10, lineHeight: 1.5 }}>"{agent.sample}"</div>}
+          {agent.sample && <div style={{ marginTop: 11, fontSize: 13.5, color: T.text, background: "#262338", padding: "10px 13px", borderRadius: "16px 16px 16px 4px", lineHeight: 1.45 }}>“{agent.sample}”</div>}
         </div>
       </div>
     </motion.div>
@@ -595,7 +597,14 @@ export default function Rico() {
         {/* ===== DISCOVER ===== */}
         {tab === "discover" && (
           <div style={{ flex: 1, padding: "4px 18px 14px", display: "flex", flexDirection: "column", minHeight: 0 }}>
-            <div style={{ flex: 1, position: "relative", minHeight: 0 }}>
+            <div style={{ padding: "2px 2px 14px" }}>
+              <h1 className="rm-display" style={{ fontSize: 32, fontWeight: 800, lineHeight: 1.05, letterSpacing: -1, color: T.text }}>Meet your <span style={{ color: "#ff7b96" }}>next friend</span></h1>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 7, color: T.sub, fontSize: 13.5 }}>
+                <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#2dd4bf", animation: "rm-blink 2s ease-in-out infinite" }} />
+                {deck.length} {deck.length === 1 ? "friend is" : "friends are"} waiting to meet you
+              </div>
+            </div>
+            <div style={{ flex: 1, position: "relative", minHeight: 0, animation: "rm-floaty 6s ease-in-out infinite" }}>
               <AnimatePresence>
                 {cardNext && <SwipeCard key={cardNext.id} agent={cardNext} topCard={false} onDecide={() => {}} />}
                 {card && <SwipeCard key={card.id} agent={card} topCard={true} onDecide={decideCard} exitDir={lastDir} />}
@@ -604,7 +613,7 @@ export default function Rico() {
             {card && (
               <div style={{ display: "flex", justifyContent: "center", gap: 22, paddingTop: 14 }}>
                 <motion.button whileTap={{ scale: 0.82 }} onClick={() => decideCard("left")} aria-label="Pass" style={{ width: 58, height: 58, borderRadius: "50%", background: T.panel2, border: `1px solid ${T.line}`, color: "#ff5e7e", fontSize: 22, cursor: "pointer", backdropFilter: "blur(8px)" }}>✕</motion.button>
-                <motion.button whileTap={{ scale: 0.82 }} onClick={() => decideCard("right")} aria-label="Connect" style={{ width: 70, height: 70, borderRadius: "50%", background: T.grad, border: "none", color: "white", fontSize: 26, cursor: "pointer", boxShadow: "0 10px 30px rgba(255,94,126,0.45)" }}>♥</motion.button>
+                <motion.button whileTap={{ scale: 0.82 }} onClick={() => decideCard("right")} aria-label="Connect" style={{ animation: "rm-pulse 1.8s ease-out infinite", width: 70, height: 70, borderRadius: "50%", background: T.grad, border: "none", color: "white", fontSize: 26, cursor: "pointer", boxShadow: "0 10px 30px rgba(255,94,126,0.45)" }}>♥</motion.button>
               </div>
             )}
           </div>
@@ -819,14 +828,21 @@ export default function Rico() {
         {/* ===== MATCH SPLASH ===== */}
         <AnimatePresence>
           {splash && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: "absolute", inset: 0, zIndex: 30, background: "rgba(10,9,16,0.78)", backdropFilter: "blur(14px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 26 }}>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: "absolute", inset: 0, zIndex: 30, background: "rgba(10,9,16,0.82)", backdropFilter: "blur(14px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 26, overflow: "hidden" }}>
+              <div aria-hidden="true" style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+                {Array.from({ length: 24 }, (_, i) => <span key={i} style={{ position: "absolute", top: 0, left: `${(i * 37) % 100}%`, width: 6 + (i % 3) * 2, height: 10 + (i % 4) * 3, borderRadius: 2, background: ["#ff5e7e", "#a78bfa", "#2dd4bf", "#fbbf24", "#f5f3ff"][i % 5], animation: `rm-fall ${(4.5 + (i % 5) * 0.8).toFixed(1)}s linear ${(-((i * 0.53) % 6)).toFixed(2)}s infinite` }} />)}
+              </div>
               <motion.div initial={{ scale: 0.7, y: 30 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.8, opacity: 0 }} transition={{ type: "spring", stiffness: 240, damping: 18 }} style={{ textAlign: "center", width: "100%" }}>
-                <div style={{ fontSize: 34, fontWeight: 900, letterSpacing: -1, background: T.grad, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>New friend! 🎉</div>
+                <div style={{ color: "#c4b5fd", fontSize: 12.5, fontWeight: 700, letterSpacing: 2 }}>NEW FRIEND</div>
+                <div className="rm-display" style={{ fontSize: 44, fontWeight: 800, letterSpacing: -1.5, lineHeight: 1.05, color: T.text, marginTop: 6 }}>It’s a <span style={{ color: "#ff7b96" }}>match!</span></div>
                 <div style={{ color: T.sub, fontSize: 13.5, marginTop: 4 }}>{splash.name} is already typing your first message…</div>
                 <motion.div animate={{ y: [0, -8, 0] }} transition={{ repeat: Infinity, duration: 2.4, ease: "easeInOut" }} style={{ display: "flex", justifyContent: "center", margin: "22px 0" }}>
-                  <Avatar agent={splash} size={130} ring emote="celebrate" />
+                  <div style={{ position: "relative", padding: 26 }}>
+                    <div aria-hidden="true" style={{ position: "absolute", inset: 0, borderRadius: "50%", border: "2px dashed rgba(167,139,250,0.55)", animation: "rm-orbit 9s linear infinite" }}><div style={{ position: "absolute", width: 12, height: 12, borderRadius: "50%", background: "#ff5e7e", top: 8, left: "50%" }} /></div>
+                    <Avatar agent={splash} size={130} ring emote="celebrate" />
+                  </div>
                 </motion.div>
-                <button onClick={() => { const a = splash; setSplash(null); setTab("chats"); openChat(a); }} style={{ width: "100%", background: T.grad, border: "none", color: "white", fontWeight: 800, fontSize: 15, padding: "14px 0", borderRadius: 100, cursor: "pointer", fontFamily: font }}>Say hi</button>
+                <button onClick={() => { const a = splash; setSplash(null); setTab("chats"); openChat(a); }} style={{ width: "100%", background: T.grad, border: "none", color: "white", fontWeight: 800, fontSize: 15, padding: "14px 0", borderRadius: 100, cursor: "pointer", fontFamily: font, boxShadow: "0 14px 34px rgba(214,54,94,0.45)" }}>Say hi to {splash.name}</button>
                 <button onClick={() => setSplash(null)} style={{ width: "100%", marginTop: 10, background: "transparent", border: `1px solid ${T.line}`, color: T.sub, fontWeight: 600, fontSize: 14, padding: "12px 0", borderRadius: 100, cursor: "pointer", fontFamily: font }}>Keep exploring</button>
               </motion.div>
             </motion.div>
