@@ -62,16 +62,16 @@ export default function ClubFeed({ club, userId, userName, lang }) {
 
   return (
     <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-      <div style={{ padding: "10px 14px", borderBottom: `2px solid ${INK}22` }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: "#888" }}>
+      <div style={{ padding: "10px 14px", borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: "#a9a5c0" }}>
           {(club.agents || []).map((id) => AGENTS[id]?.name).filter(Boolean).join(", ")} · {club.theme}
         </div>
       </div>
 
       <div style={{ flex: 1, overflowY: "auto", padding: 14, paddingBottom: 80 }}>
-        {loading && <div style={{ textAlign: "center", fontFamily: "Bangers,cursive", color: "#aaa", letterSpacing: 1, marginTop: 30 }}>LOADING THE FEED…</div>}
+        {loading && <div style={{ textAlign: "center", fontFamily: "'Bricolage Grotesque',sans-serif", color: "#a9a5c0", letterSpacing: 1, marginTop: 30 }}>LOADING THE FEED…</div>}
         {!loading && error && <div style={{ textAlign: "center", color: "#c00", fontSize: 12, marginBottom: 10 }}>{error}</div>}
-        {!loading && !error && topLevel.length === 0 && <div style={{ textAlign: "center", color: "#999", fontSize: 12.5, marginTop: 30 }}>No posts yet — check back soon, or say hi below!</div>}
+        {!loading && !error && topLevel.length === 0 && <div style={{ textAlign: "center", color: "#a9a5c0", fontSize: 12.5, marginTop: 30 }}>No posts yet — check back soon, or say hi below!</div>}
         {!loading && topLevel.map((it) => {
           if (it.type === "meme") return <MemeCard key={it.id} item={it} onReact={react} onReport={report} />;
           if (it.type === "debate") return <DebateCard key={it.id} item={it} onReact={react} onReport={report} />;
@@ -79,12 +79,12 @@ export default function ClubFeed({ club, userId, userName, lang }) {
         })}
       </div>
 
-      <div style={{ background: YELLOW, borderTop: `3px solid ${INK}`, padding: "10px 12px", display: "flex", gap: 8 }}>
+      <div style={{ background: "#14121f", borderTop: "1px solid rgba(255,255,255,0.1)", padding: "10px 12px", display: "flex", gap: 8 }}>
         <input value={postText} onChange={(e) => setPostText(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") postMain(); }}
           placeholder={`Say something to ${club.name}...`}
-          style={{ flex: 1, border: `3px solid ${INK}`, background: "white", padding: "9px 12px", fontFamily: "'Comic Neue',cursive", fontSize: 13, fontWeight: 700, outline: "none", boxShadow: `3px 3px 0 ${INK}`, color: INK }} />
+          style={{ flex: 1, border: "1px solid rgba(255,255,255,0.1)", background: "#1a1826", padding: "9px 12px", fontFamily: "'DM Sans',sans-serif", fontSize: 13, fontWeight: 700, outline: "none", boxShadow: "none", color: "#f5f3ff" }} />
         <button disabled={posting || !postText.trim()} onClick={postMain}
-          style={{ background: RED, color: "white", border: `3px solid ${INK}`, padding: "9px 14px", fontFamily: "Bangers,cursive", fontSize: 15, cursor: "pointer", boxShadow: `4px 4px 0 ${INK}`, opacity: (posting || !postText.trim()) ? 0.6 : 1 }}>POST</button>
+          style={{ background: "#d6365e", color: "white", border: "1px solid rgba(255,255,255,0.1)", padding: "9px 14px", fontFamily: "'Bricolage Grotesque',sans-serif", fontSize: 15, cursor: "pointer", boxShadow: "none", opacity: (posting || !postText.trim()) ? 0.6 : 1 }}>POST</button>
       </div>
     </div>
   );
