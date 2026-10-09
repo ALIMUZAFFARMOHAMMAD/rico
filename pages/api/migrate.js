@@ -25,6 +25,30 @@ export function remapKey(key, oldId, newId) {
 const verifiedEmails = (list, addrKey) =>
   (list || []).filter(e => e?.verification?.status === "verified").map(e => String(e[addrKey]).toLowerCase());
 
+// A twin's id embeds its owner's id (twin__<userId>), so moving the owner orphans every chat
+// row and match list — the owner's AND other users' — that still says twin__<old>. Unknown ids
+// fall back to Tony in the UI, which is how this showed up. Repoint them all.
+async function fixTwinRefs(oldId, newId) {
+  const o = `twin__${oldId}`, n = `twin__${newId}`;
+  let fixed = 0;
+  const chats = (await sb(`/conversations?user_id=like.${encodeURIComponent(`*::agent::${o}`)}&select=id,user_id`)) || [];
+  for (const row of chats) {
+    if (!row.user_id.endsWith(`::agent::${o}`)) continue; // `_` is a LIKE wildcard
+    const target = row.user_id.slice(0, -o.length) + n;
+    await sb(`/conversations?user_id=eq.${encodeURIComponent(target)}`, "DELETE");
+    await sb(`/conversations?id=eq.${row.id}`, "PATCH", { user_id: target });
+    fixed++;
+  }
+  // ponytail: scans every meta row — fine for beta; use a jsonb `cs` filter past a few thousand users
+  const metas = (await sb(`/conversations?user_id=like.${encodeURIComponent("*::meta")}&select=id,messages`)) || [];
+  for (const row of metas) {
+    if (!Array.isArray(row.messages) || !row.messages.includes(o)) continue;
+    await sb(`/conversations?id=eq.${row.id}`, "PATCH", { messages: [...new Set(row.messages.map(x => (x === o ? n : x)))] });
+    fixed++;
+  }
+  return fixed;
+}
+
 async function findDevUserId(email) {
   const r = await fetch(`https://api.clerk.com/v1/users?email_address=${encodeURIComponent(email)}`, {
     headers: { Authorization: `Bearer ${process.env.CLERK_DEV_SECRET_KEY}` },
@@ -80,6 +104,7 @@ export default async function handler(req, res) {
       moved++;
     }
     try { await sb(`/career_results?user_id=eq.${encodeURIComponent(oldId)}`, "PATCH", { user_id: userId }); } catch (e) { /* table optional */ }
+    moved += await fixTwinRefs(oldId, userId); // also runs for users whose rows already moved (idempotent)
     console.log(`migrate: ${moved} rows ${oldId.slice(-6)} → ${userId.slice(-6)}`);
     return res.status(200).json({ moved });
   } catch (e) {

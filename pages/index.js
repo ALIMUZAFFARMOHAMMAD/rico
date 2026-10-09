@@ -351,7 +351,11 @@ export default function Rico() {
   // resolve any matched twin ids we don't know yet (cross-device)
   useEffect(() => {
     matches.filter(id => id.startsWith("twin__") && !twinMap[id]).forEach(async id => {
-      try { const d = await fetch(`/api/twin?id=${id}`).then(r => r.json()); if (d.twin) setTwinMap(p => ({ ...p, [id]: d.twin })); } catch (e) {}
+      try {
+        const d = await fetch(`/api/twin?id=${id}`).then(r => r.json());
+        if (d.twin) setTwinMap(p => ({ ...p, [id]: d.twin }));
+        else if (d.twin === null) setMatches(p => p.filter(x => x !== id)); // twin gone/renamed — never let lookup() fall back to Tony
+      } catch (e) {}
     });
   }, [matches, twinMap]);
 
@@ -392,11 +396,11 @@ export default function Rico() {
   // every panel refetches it (see pages/api/migrate.js). Once per user per browser.
   useEffect(() => {
     if (!isSignedIn || !userId) return;
-    const flag = `rico_migrated4_${userId}`; // v4: dev key fixed 2026-10-09 (devInstanceUsers 26); v1–v3 ran with the wrong one
+    const flag = `rico_migrated5_${userId}`; // v5: also repoints twin__<old> refs; v4: dev key fixed; v1–v3 ran with the wrong one
     try { if (localStorage.getItem(flag)) return; } catch (e) {}
     fetch("/api/migrate", { method: "POST" }).then(r => r.ok ? r.json() : null).then(d => {
       if (!d) return;
-      try { localStorage.setItem(flag, "1"); } catch (e) {}
+      try { localStorage.setItem(flag, "1"); if (d.moved > 0) localStorage.removeItem("hitony_matches"); } catch (e) {} // stale local ids would re-add twin__<old>
       if (d.moved > 0) window.location.reload();
     }).catch(() => {});
   }, [isSignedIn, userId]);
