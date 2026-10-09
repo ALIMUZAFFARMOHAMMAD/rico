@@ -8,8 +8,8 @@ import FriendsHero from "../components/FriendsHero";
 import TonyCharacter from "../components/TonyCharacter";
 import { AGENT_LIST } from "../lib/agents";
 
-const T = { bg: "#0b0a12", panel: "rgba(255,255,255,0.04)", panel2: "rgba(255,255,255,0.07)", line: "rgba(255,255,255,0.1)", text: "#f5f3ff", sub: "#a39fb8", grad: "linear-gradient(135deg,#ff5e7e 0%,#8b5cf6 100%)", pink: "#ff5e7e", violet: "#8b5cf6", teal: "#2dd4bf" };
-const font = "'Inter',system-ui,-apple-system,sans-serif";
+const T = { bg: "#0b0a12", panel: "rgba(255,255,255,0.04)", panel2: "rgba(255,255,255,0.07)", line: "rgba(255,255,255,0.1)", text: "#f5f3ff", sub: "#a39fb8", grad: "#d6365e", pink: "#ff5e7e", violet: "#8b5cf6", teal: "#2dd4bf" };
+const font = "'DM Sans',system-ui,-apple-system,sans-serif";
 
 const FEATURES = [
   { icon: "💬", title: "They remember you", body: "Real personalities, lasting memory. Pick up exactly where you left off — they recall your stories, your wins, the people you talk about." },
@@ -131,8 +131,8 @@ export default function Landing() {
       <nav style={{ position: "sticky", top: 0, zIndex: 20, backdropFilter: "blur(14px)", background: "rgba(11,10,18,0.72)", borderBottom: `1px solid ${T.line}` }}>
         <div style={{ maxWidth: 1080, margin: "0 auto", padding: "12px 22px", display: "flex", alignItems: "center", gap: 16 }}>
           <a href="#top" style={{ display: "flex", alignItems: "center", gap: 9, textDecoration: "none" }}>
-            <svg width="26" height="26" viewBox="0 0 26 26"><ellipse cx="13" cy="13" rx="11" ry="5.5" fill="none" stroke="url(#lg)" strokeWidth="2" transform="rotate(-22 13 13)" /><circle cx="13" cy="13" r="3.4" fill="url(#lg)" /><circle cx="22.4" cy="8.6" r="2" fill="#ff5e7e" /><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#ff5e7e" /><stop offset="100%" stopColor="#8b5cf6" /></linearGradient></defs></svg>
-            <span style={{ fontWeight: 900, fontSize: 22, letterSpacing: -1, background: T.grad, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>rico</span>
+            <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true" style={{ animation: "rm-orbit 14s linear infinite" }}><ellipse cx="13" cy="13" rx="11" ry="5.5" fill="none" stroke="url(#lg)" strokeWidth="2" transform="rotate(-22 13 13)" /><circle cx="13" cy="13" r="3.4" fill="url(#lg)" /><circle cx="22.4" cy="8.6" r="2" fill="#ff5e7e" /><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#ff5e7e" /><stop offset="100%" stopColor="#8b5cf6" /></linearGradient></defs></svg>
+            <span className="rm-display" style={{ fontWeight: 800, fontSize: 22, letterSpacing: -0.6, color: T.text }}>ricomates</span>
           </a>
           <div className="navlinks" style={{ display: "flex", gap: 22, marginLeft: 14 }}>
             {[["Features", "#features"], ["Friends", "#friends"], ["How it works", "#how"], ["Why Rico", "#why"], ["Trust", "#trust"], ["Pricing", "#pricing"], ["FAQ", "#faq"]].map(([l, h]) => (
@@ -155,8 +155,8 @@ export default function Landing() {
               <div style={{ display: "inline-flex", alignItems: "center", gap: 7, background: T.panel2, border: `1px solid ${T.line}`, color: T.sub, fontSize: 12.5, fontWeight: 700, padding: "6px 14px", borderRadius: 100, marginBottom: 20 }}>
                 <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.teal }} /> Honestly-labeled AI · friendship-first
               </div>
-              <h1 style={{ fontSize: "clamp(36px, 6vw, 58px)", fontWeight: 900, lineHeight: 1.04, letterSpacing: -1.6, margin: "0 0 18px" }}>
-                AI friends who <span style={{ background: T.grad, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>actually remember you</span>
+              <h1 className="rm-display" style={{ fontSize: "clamp(36px, 6vw, 58px)", fontWeight: 800, lineHeight: 1.04, letterSpacing: -1.6, margin: "0 0 18px" }}>
+                AI friends who <span style={{ color: "#ff7b96" }}>actually remember you</span>
               </h1>
               <p style={{ color: T.sub, fontSize: "clamp(15px, 2.2vw, 18.5px)", lineHeight: 1.6, maxWidth: 520, margin: "0 0 26px" }}>
                 Companions with real personalities and lasting memory — who chat, call, play, teach, translate, and have your back on the real stuff. Built to feel less lonely and a lot more fun.
@@ -186,7 +186,7 @@ export default function Landing() {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12 }}>
           {[["11", "languages"], ["8+", "ways to connect"], ["∞", "memory that sticks"], ["100%", "honestly-labeled AI"]].map(([n, l]) => (
             <div key={l} style={{ textAlign: "center", background: T.panel, border: `1px solid ${T.line}`, borderRadius: 16, padding: "18px 12px" }}>
-              <div style={{ fontSize: 28, fontWeight: 900, background: T.grad, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>{n}</div>
+              <div style={{ fontSize: 28, fontWeight: 900, color: "#ff7b96" }}>{n}</div>
               <div style={{ color: T.sub, fontSize: 12.5, fontWeight: 600, marginTop: 2 }}>{l}</div>
             </div>
           ))}
@@ -198,7 +198,7 @@ export default function Landing() {
         <Section>
           <div style={{ textAlign: "center", marginBottom: 34 }}>
             <Eyebrow>Meet your people</Eyebrow>
-            <h2 style={{ fontSize: "clamp(26px, 4vw, 38px)", fontWeight: 900, letterSpacing: -1, margin: "0 0 10px" }}>A whole circle, each with their own soul</h2>
+            <h2 className="rm-display" style={{ fontSize: "clamp(26px, 4vw, 38px)", fontWeight: 800, letterSpacing: -1, margin: "0 0 10px" }}>A whole circle, each with their own soul</h2>
             <p style={{ color: T.sub, fontSize: 16, maxWidth: 560, margin: "0 auto" }}>Every character has a distinct personality, voice and lane. Connect with the ones who feel like yours.</p>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
@@ -220,7 +220,7 @@ export default function Landing() {
       <Section style={{ padding: "64px 22px" }} id="features">
         <div style={{ textAlign: "center", marginBottom: 34 }}>
           <Eyebrow>Everything in one app</Eyebrow>
-          <h2 style={{ fontSize: "clamp(26px, 4vw, 38px)", fontWeight: 900, letterSpacing: -1, margin: "0 0 10px" }}>Everything your people would do — and more</h2>
+          <h2 className="rm-display" style={{ fontSize: "clamp(26px, 4vw, 38px)", fontWeight: 800, letterSpacing: -1, margin: "0 0 10px" }}>Everything your people would do — and more</h2>
           <p style={{ color: T.sub, fontSize: 16, maxWidth: 560, margin: "0 auto" }}>One account. A whole circle. Here's what you get.</p>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: 16 }}>
@@ -239,7 +239,7 @@ export default function Landing() {
         <Section>
           <div style={{ textAlign: "center", marginBottom: 34 }}>
             <Eyebrow>Get started in a minute</Eyebrow>
-            <h2 style={{ fontSize: "clamp(26px, 4vw, 38px)", fontWeight: 900, letterSpacing: -1, margin: "0 0 10px" }}>How Rico works</h2>
+            <h2 className="rm-display" style={{ fontSize: "clamp(26px, 4vw, 38px)", fontWeight: 800, letterSpacing: -1, margin: "0 0 10px" }}>How Rico works</h2>
             <p style={{ color: T.sub, fontSize: 16 }}>Three steps to your people — here's the whole thing in motion.</p>
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 36, alignItems: "center", justifyContent: "center" }}>
@@ -301,7 +301,7 @@ export default function Landing() {
       <Section style={{ padding: "64px 22px" }} id="why">
         <div style={{ textAlign: "center", marginBottom: 32 }}>
           <Eyebrow>The difference</Eyebrow>
-          <h2 style={{ fontSize: "clamp(26px, 4vw, 38px)", fontWeight: 900, letterSpacing: -1, margin: "0 0 10px" }}>Why Rico, not just another chatbot</h2>
+          <h2 className="rm-display" style={{ fontSize: "clamp(26px, 4vw, 38px)", fontWeight: 800, letterSpacing: -1, margin: "0 0 10px" }}>Why Rico, not just another chatbot</h2>
           <p style={{ color: T.sub, fontSize: 16, maxWidth: 560, margin: "0 auto" }}>A chatbot answers questions. Rico is people who stick around.</p>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16, alignItems: "stretch" }}>
@@ -317,7 +317,7 @@ export default function Landing() {
           {/* rico */}
           <div style={{ background: `linear-gradient(160deg, rgba(139,92,246,0.16), rgba(255,94,126,0.1))`, border: `1px solid ${T.violet}`, borderRadius: 22, padding: 24, boxShadow: "0 18px 50px rgba(139,92,246,0.18)" }}>
             <div style={{ fontWeight: 800, fontSize: 17, marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ background: T.grad, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>💛 Rico</span>
+              <span style={{ color: "#ff7b96" }}>💛 Rico</span>
             </div>
             {["Remembers you for good — across sessions & devices", "8+ friends, each with a real personality & voice", "Real voice calls in 11 languages", "Games, group chats, banter — actual fun", "Maps your personality, strengths & growth", "Honestly-labeled — never pretends to be human", "Plus an AI tutor, live translation & a career wingman"].map(x => (
               <div key={x} style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 10, fontSize: 14, color: T.text }}>
@@ -332,7 +332,7 @@ export default function Landing() {
       <Section style={{ padding: "56px 22px" }} id="trust">
         <div style={{ textAlign: "center", marginBottom: 8 }}>
           <Eyebrow>Built to be trusted</Eyebrow>
-          <h2 style={{ fontSize: "clamp(26px, 4vw, 38px)", fontWeight: 900, letterSpacing: -1, margin: "0 0 10px" }}>Honest by design</h2>
+          <h2 className="rm-display" style={{ fontSize: "clamp(26px, 4vw, 38px)", fontWeight: 800, letterSpacing: -1, margin: "0 0 10px" }}>Honest by design</h2>
           <p style={{ color: T.sub, fontSize: 14, maxWidth: 560, margin: "0 auto" }}>Companionship without the creepiness. The things other AI apps blur, we make clear.</p>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: 16, marginTop: 26 }}>
@@ -360,7 +360,7 @@ export default function Landing() {
         <Section>
           <div style={{ textAlign: "center", marginBottom: 8 }}>
             <Eyebrow>Real beta feedback</Eyebrow>
-            <h2 style={{ fontSize: "clamp(26px, 4vw, 38px)", fontWeight: 900, letterSpacing: -1, margin: "0 0 10px" }}>What early users are saying</h2>
+            <h2 className="rm-display" style={{ fontSize: "clamp(26px, 4vw, 38px)", fontWeight: 800, letterSpacing: -1, margin: "0 0 10px" }}>What early users are saying</h2>
             <p style={{ color: T.sub, fontSize: 14 }}>Real responses from HiTony beta users.</p>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16, marginTop: 26 }}>
@@ -382,7 +382,7 @@ export default function Landing() {
       <Section style={{ padding: "64px 22px" }} id="pricing">
         <div style={{ textAlign: "center", marginBottom: 10 }}>
           <Eyebrow>Pricing</Eyebrow>
-          <h2 style={{ fontSize: "clamp(26px, 4vw, 38px)", fontWeight: 900, letterSpacing: -1, margin: "0 0 10px" }}>Simple, friendly pricing</h2>
+          <h2 className="rm-display" style={{ fontSize: "clamp(26px, 4vw, 38px)", fontWeight: 800, letterSpacing: -1, margin: "0 0 10px" }}>Simple, friendly pricing</h2>
           <p style={{ color: T.sub, fontSize: 16 }}>Start free. Upgrade when Rico becomes one of your people.</p>
           <div style={{ display: "inline-block", marginTop: 14, background: "rgba(45,212,191,0.12)", border: "1px solid rgba(45,212,191,0.3)", color: T.teal, fontSize: 12.5, fontWeight: 700, padding: "6px 14px", borderRadius: 100 }}>🚀 In beta — everything's free right now. These are the plans we're launching.</div>
         </div>
@@ -411,7 +411,7 @@ export default function Landing() {
         <Section>
           <div style={{ textAlign: "center", marginBottom: 18 }}>
             <Eyebrow>Good questions</Eyebrow>
-            <h2 style={{ fontSize: "clamp(26px, 4vw, 38px)", fontWeight: 900, letterSpacing: -1, margin: "0 0 14px" }}>Questions, answered</h2>
+            <h2 className="rm-display" style={{ fontSize: "clamp(26px, 4vw, 38px)", fontWeight: 800, letterSpacing: -1, margin: "0 0 14px" }}>Questions, answered</h2>
             <button onClick={() => setFaqOpen(FAQ.map(() => !allOpen))} style={{ background: T.panel2, border: `1px solid ${T.line}`, color: T.text, fontWeight: 700, fontSize: 13, padding: "8px 16px", borderRadius: 100, cursor: "pointer", fontFamily: font }}>{allOpen ? "Collapse all" : "Expand all"}</button>
           </div>
           <div style={{ maxWidth: 760, margin: "0 auto", display: "flex", flexDirection: "column", gap: 12 }}>
@@ -430,7 +430,7 @@ export default function Landing() {
         <div style={{ background: T.grad, borderRadius: 28, padding: "clamp(34px, 6vw, 60px) 26px", position: "relative", overflow: "hidden" }}>
           <div style={{ position: "absolute", inset: 0, background: "radial-gradient(120% 100% at 50% 0%, rgba(255,255,255,0.22), transparent)", pointerEvents: "none" }} />
           <div style={{ position: "relative" }}>
-            <h2 style={{ fontSize: "clamp(26px, 4.5vw, 42px)", fontWeight: 900, letterSpacing: -1, margin: "0 0 12px", color: "#fff" }}>Your people are waiting.</h2>
+            <h2 className="rm-display" style={{ fontSize: "clamp(26px, 4.5vw, 42px)", fontWeight: 800, letterSpacing: -1, margin: "0 0 12px", color: "#fff" }}>Your people are waiting.</h2>
             <p style={{ color: "rgba(255,255,255,0.92)", fontSize: 17, maxWidth: 480, margin: "0 auto 24px" }}>Make an account and meet friends who'll actually remember you.</p>
             <a href="/sign-up" style={{ display: "inline-block", background: "#fff", color: "#1a1226", fontWeight: 800, fontSize: 16, padding: "15px 34px", borderRadius: 100, textDecoration: "none" }}>Start free →</a>
             <div style={{ color: "rgba(255,255,255,0.85)", fontSize: 13, marginTop: 14 }}>No credit card · free during beta</div>
@@ -444,8 +444,8 @@ export default function Landing() {
           {/* brand + socials */}
           <div style={{ gridColumn: "span 1", minWidth: 220 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <svg width="22" height="22" viewBox="0 0 26 26"><ellipse cx="13" cy="13" rx="11" ry="5.5" fill="none" stroke="url(#fg)" strokeWidth="2" transform="rotate(-22 13 13)" /><circle cx="13" cy="13" r="3.4" fill="url(#fg)" /><circle cx="22.4" cy="8.6" r="2" fill="#ff5e7e" /><defs><linearGradient id="fg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#ff5e7e" /><stop offset="100%" stopColor="#8b5cf6" /></linearGradient></defs></svg>
-              <span style={{ fontWeight: 900, fontSize: 20, background: T.grad, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>rico</span>
+              <svg width="22" height="22" viewBox="0 0 26 26" aria-hidden="true" style={{ animation: "rm-orbit 14s linear infinite" }}><ellipse cx="13" cy="13" rx="11" ry="5.5" fill="none" stroke="url(#fg)" strokeWidth="2" transform="rotate(-22 13 13)" /><circle cx="13" cy="13" r="3.4" fill="url(#fg)" /><circle cx="22.4" cy="8.6" r="2" fill="#ff5e7e" /><defs><linearGradient id="fg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#ff5e7e" /><stop offset="100%" stopColor="#8b5cf6" /></linearGradient></defs></svg>
+              <span className="rm-display" style={{ fontWeight: 800, fontSize: 20, letterSpacing: -0.6, color: T.text }}>ricomates</span>
             </div>
             <div style={{ color: T.sub, fontSize: 12.5, marginTop: 8, lineHeight: 1.5, maxWidth: 240 }}>Your people, always. AI friends, honestly labeled. Friendship only.</div>
             <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
