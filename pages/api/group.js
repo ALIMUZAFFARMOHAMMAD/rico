@@ -4,6 +4,7 @@
 // all reply at once — that's the spam-prevention + cost cap.
 import { AGENTS } from "../../lib/agents";
 import { languagePrompt, LANGS } from "../../lib/i18n";
+import { rateLimited } from "../../lib/ratelimit";
 
 const FAST = "claude-haiku-4-5-20251001";
 
@@ -36,6 +37,7 @@ const transcript = (messages, userName) =>
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
+  if (rateLimited(req)) return res.status(429).json({ error: "Too many requests, slow down." });
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return res.status(500).json({ error: "No API key" });
 

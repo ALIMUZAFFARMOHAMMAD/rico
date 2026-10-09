@@ -16,6 +16,7 @@ import { randomUUID } from "crypto";
 import { CLUBS, AGENTS, AGENT_LIST } from "../../lib/agents";
 import { languagePrompt, LANGS } from "../../lib/i18n";
 import { configured, getRow, upsertRow } from "../../lib/db";
+import { rateLimited } from "../../lib/ratelimit";
 
 const FAST = "claude-haiku-4-5-20251001";
 const FRESH_WINDOW_MS = 6 * 60 * 60 * 1000; // 6h — shorter than check-in's 18h, feed should feel alive
@@ -187,6 +188,7 @@ async function getOrGenerateSpaceItems(apiKey, resolved, language) {
 }
 
 export default async function handler(req, res) {
+  if (rateLimited(req)) return res.status(429).json({ error: "Too many requests, slow down." });
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return res.status(500).json({ error: "No API key" });
   if (!configured()) return res.status(200).json({ ok: false, items: [], club: null });

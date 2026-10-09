@@ -52,6 +52,7 @@ async function saveVoiceNotes(userId,callMessages,userName){
 
 import { resolveAgent } from "../../lib/twins";
 import { ownsUser } from "../../lib/auth";
+import { rateLimited } from "../../lib/ratelimit";
 
 const SYSTEM=(agent,userName,memory,language)=>`${agent.persona||`You are Tony, a warm perceptive AI companion at hitony.ai`} — you are on a VOICE CALL with the user, like calling your closest friend.
 ${userName?`The user's name is ${userName}.`:""}
@@ -63,6 +64,7 @@ RULES: 1-3 sentences MAX. Natural casual speech. ONE question per turn. No lists
 
 export default async function handler(req,res){
   if(req.method!=="POST")return res.status(405).end();
+  if (rateLimited(req)) return res.status(429).json({ error: "Too many requests, slow down." });
   const apiKey=process.env.ANTHROPIC_API_KEY;
   if(!apiKey)return res.status(500).json({error:"No API key"});
   const{messages,mode,userName,userId,callMessages,language,agentId,build}=req.body;
