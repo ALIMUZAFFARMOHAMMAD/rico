@@ -412,6 +412,10 @@ export default function Rico() {
   const card = visibleDeck[0];
   const cardNext = visibleDeck[1];
   useEffect(() => { if (visibleDeck.length === 0 && passed.length > 0) setPassed([]); }, [visibleDeck.length, passed.length]);
+  // Matched with everyone → Discover disappears and we land on Chats. It comes back on its
+  // own as soon as someone new (a new friend or a new community twin) joins the deck.
+  const allMet = deck.length === 0;
+  useEffect(() => { if (allMet && tab === "discover") setTab("chats"); }, [allMet, tab]);
 
   function decideCard(dir) {
     if (!card) return;
@@ -596,13 +600,6 @@ export default function Rico() {
                 {cardNext && <SwipeCard key={cardNext.id} agent={cardNext} topCard={false} onDecide={() => {}} />}
                 {card && <SwipeCard key={card.id} agent={card} topCard={true} onDecide={decideCard} exitDir={lastDir} />}
               </AnimatePresence>
-              {!card && (
-                <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", gap: 8 }}>
-                  <TonyCharacter size={150} look={{ hoodie: "#ff5e7e", hoodieD: "#d94768" }} float="none" animated={false} emote="walk" />
-                  <div style={{ color: T.text, fontWeight: 700, fontSize: 17 }}>You've met everyone (for now)</div>
-                  <div style={{ color: T.sub, fontSize: 13, maxWidth: 260 }}>Rico is off finding new friends — they'll show up soon. Go talk to yours!</div>
-                </div>
-              )}
             </div>
             {card && (
               <div style={{ display: "flex", justifyContent: "center", gap: 22, paddingTop: 14 }}>
@@ -810,7 +807,7 @@ export default function Rico() {
 
         {/* tab bar */}
         <div style={{ display: "flex", borderTop: `1px solid ${T.line}`, background: "rgba(15,14,23,0.82)", backdropFilter: "blur(16px)", padding: "8px 10px 12px", position: "relative", zIndex: 5 }}>
-          {[["discover", "✨", "Discover"], ["chats", "💬", "Chats"], ["social", "🌐", "Social"], ["me", "🧭", "You"]].map(([k, icon, label]) => (
+          {[["discover", "✨", "Discover"], ["chats", "💬", "Chats"], ["social", "🌐", "Social"], ["me", "🧭", "You"]].filter(([k]) => !(k === "discover" && allMet)).map(([k, icon, label]) => (
             <button key={k} onClick={() => setTab(k)} style={{ flex: 1, background: "transparent", border: "none", cursor: "pointer", fontFamily: font, position: "relative", padding: "6px 0" }}>
               {tab === k && <motion.div layoutId="tab-pill" style={{ position: "absolute", inset: "0 18%", borderRadius: 100, background: T.panel2 }} transition={{ type: "spring", stiffness: 380, damping: 32 }} />}
               <div style={{ position: "relative", fontSize: 16 }}>{icon}</div>
