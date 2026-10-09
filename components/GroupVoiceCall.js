@@ -5,7 +5,7 @@ import TonyCharacter from "./TonyCharacter";
 import { getAgent } from "../lib/agents";
 
 const T = { bg: "#0f0e17", panel: "rgba(255,255,255,0.07)", line: "rgba(255,255,255,0.1)", text: "#f5f3ff", sub: "#9b97b0", grad: "linear-gradient(135deg,#ff5e7e 0%,#8b5cf6 100%)", pink: "#ff5e7e", violet: "#8b5cf6" };
-const font = "'Inter',system-ui,sans-serif";
+const font = "'DM Sans',system-ui,sans-serif";
 
 const S = { IDLE: "idle", LISTENING: "listening", THINKING: "thinking", SPEAKING: "speaking" };
 

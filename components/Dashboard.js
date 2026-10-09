@@ -10,7 +10,7 @@ const C = {
   panel: "rgba(255,255,255,0.055)", panel2: "rgba(255,255,255,0.09)",
   grad: "linear-gradient(135deg,#ff5e7e 0%,#8b5cf6 100%)", pink: "#ff5e7e", violet: "#8b5cf6",
 };
-const font = "'Inter',system-ui,-apple-system,sans-serif";
+const font = "'DM Sans',system-ui,-apple-system,sans-serif";
 
 // Friendly names for the Big Five (we never show clinical labels to users).
 const TRAITS = [

@@ -37,7 +37,7 @@ export default function Intro({ onDone }) {
   }, []);
 
   return (
-    <motion.div animate={{ opacity: phase === "out" ? 0 : 1 }} transition={{ duration: 0.5 }} style={{ position: "fixed", inset: 0, zIndex: 130, background: "#0f0e17", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", fontFamily: "'Inter',system-ui,sans-serif" }}>
+    <motion.div animate={{ opacity: phase === "out" ? 0 : 1 }} transition={{ duration: 0.5 }} style={{ position: "fixed", inset: 0, zIndex: 130, background: "#0f0e17", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", fontFamily: "'DM Sans',system-ui,sans-serif" }}>
       <div style={{ position: "relative", width: 320, height: 200, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
         {/* logo */}
         <motion.div initial={{ opacity: 0, scale: 0.72, y: 6 }} animate={{ opacity: 1, scale: phase === "sniff" ? [1, 1.06, 1] : 1, y: 0 }} transition={{ opacity: { duration: 0.7 }, y: { duration: 0.7, ease: "easeOut" }, scale: phase === "sniff" ? { duration: 0.55, times: [0, 0.5, 1] } : { duration: 0.7, ease: "easeOut" } }} style={{ display: "flex", alignItems: "center", gap: 12, zIndex: 2 }}>

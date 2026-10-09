@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Head from "next/head";
 
 const T = { bg: "#0b0a12", panel: "rgba(255,255,255,0.05)", panel2: "rgba(255,255,255,0.08)", line: "rgba(255,255,255,0.12)", text: "#f5f3ff", sub: "#a39fb8", grad: "linear-gradient(135deg,#ff5e7e,#8b5cf6)", pink: "#ff5e7e", violet: "#8b5cf6", teal: "#2dd4bf" };
-const font = "'Inter',system-ui,-apple-system,sans-serif";
+const font = "'DM Sans',system-ui,-apple-system,sans-serif";
 const COLS = [
   { id: "todo", label: "📋 To Do", accent: "#a39fb8" },
   { id: "inprogress", label: "🔨 In Progress", accent: "#f5c84b" },

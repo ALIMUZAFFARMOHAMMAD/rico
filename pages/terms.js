@@ -1,7 +1,7 @@
 import Head from "next/head";
 
 const T = { bg: "#0f0e17", line: "rgba(255,255,255,0.1)", text: "#f5f3ff", sub: "#9b97b0", grad: "linear-gradient(135deg,#ff5e7e 0%,#8b5cf6 100%)" };
-const font = "'Inter',system-ui,-apple-system,sans-serif";
+const font = "'DM Sans',system-ui,-apple-system,sans-serif";
 
 function H({ children }) { return <div style={{ color: T.text, fontWeight: 700, fontSize: 15, margin: "20px 0 7px" }}>{children}</div>; }
 function P({ children }) { return <div style={{ color: T.sub, fontSize: 13, lineHeight: 1.65, marginBottom: 8 }}>{children}</div>; }

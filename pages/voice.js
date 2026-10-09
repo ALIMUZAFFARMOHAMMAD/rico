@@ -10,7 +10,7 @@ import { getAgent } from "../lib/agents";
 
 const S = { IDLE:"idle", CONNECTING:"connecting", ACTIVE:"active", LISTENING:"listening", THINKING:"thinking", SPEAKING:"speaking", ENDED:"ended" };
 const T = { bg:"#0f0e17", panel:"rgba(255,255,255,0.055)", panel2:"rgba(255,255,255,0.09)", line:"rgba(255,255,255,0.1)", text:"#f5f3ff", sub:"#9b97b0", grad:"linear-gradient(135deg,#ff5e7e 0%,#8b5cf6 100%)", pink:"#ff5e7e", violet:"#8b5cf6" };
-const font = "'Inter',system-ui,-apple-system,sans-serif";
+const font = "'DM Sans',system-ui,-apple-system,sans-serif";
 
 export default function VoicePage() {
   const { user, isLoaded, isSignedIn } = useUser();
