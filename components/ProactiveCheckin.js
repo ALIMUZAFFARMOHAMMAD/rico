@@ -80,59 +80,42 @@ export default function ProactiveCheckin({ userId, lang, T, font, onOpen }) {
             onOpen?.(data.agentId);
           }}
           style={{
-            display: "flex", alignItems: "flex-start", gap: 12, cursor: "pointer",
-            padding: "13px 14px", borderRadius: 18, marginBottom: 14,
-            background: `linear-gradient(140deg, ${T.violet}26, ${T.pink}1c)`,
-            border: `1px solid ${T.violet}55`, backdropFilter: "blur(10px)",
-            boxShadow: `0 8px 26px ${T.violet}22`,
+            cursor: "pointer", padding: 16, borderRadius: 22, marginBottom: 14,
+            background: "#1d1a30", border: "1px solid rgba(167,139,250,0.35)",
+            boxShadow: "0 12px 30px rgba(0,0,0,0.35)",
           }}
         >
-          <div style={{
-            width: 46, height: 46, borderRadius: "50%", flexShrink: 0, fontSize: 24,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            background: T.grad || `linear-gradient(140deg, ${T.violet}, ${T.pink})`,
-            boxShadow: `0 4px 14px ${T.pink}44`,
-          }}>
-            {data.emoji || "💬"}
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 3 }}>
-              <span style={{ color: T.text, fontWeight: 800, fontSize: 14 }}>{data.name}</span>
-              <span style={{
-                fontSize: 9.5, fontWeight: 800, letterSpacing: 0.6, textTransform: "uppercase",
-                color: T.violet, background: `${T.violet}22`, padding: "2px 7px", borderRadius: 100,
-              }}>
-                {data.lapsed ? "missed you 💜" : "texted you"}
-              </span>
-              {data.streak >= 2 && (
-                <span style={{
-                  fontSize: 9.5, fontWeight: 800, letterSpacing: 0.3,
-                  color: T.text, background: `${T.pink}22`, padding: "2px 7px", borderRadius: 100,
-                }}>
-                  🔥 {data.streak} days in a row
-                </span>
-              )}
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ position: "relative", width: 42, height: 42, borderRadius: "50%", flexShrink: 0, background: "#5b3fd6", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 19 }} className="rm-display">
+              {(data.name || "?").slice(0, 1)}
+              <span style={{ position: "absolute", right: -1, bottom: -1, width: 12, height: 12, borderRadius: "50%", background: "#2dd4bf", border: "2px solid #1d1a30", animation: "rm-ring 1.6s ease-out infinite" }} />
             </div>
-            <div style={{ color: T.text, fontSize: 13.5, lineHeight: 1.45, opacity: 0.95 }}>{data.message}</div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8 }}>
-              <span style={{ color: T.violet, fontSize: 12, fontWeight: 700, fontFamily: font }}>Reply →</span>
-              <button
-                onClick={playVoice}
-                disabled={voice === "loading"}
-                aria-label="Play voice note"
-                style={{ display: "inline-flex", alignItems: "center", gap: 5, background: `${T.violet}1f`, border: `1px solid ${T.violet}55`, color: T.text, fontSize: 11.5, fontWeight: 700, padding: "4px 11px", borderRadius: 100, cursor: "pointer", fontFamily: font }}
-              >
-                {voice === "loading" ? "…generating" : voice === "playing" ? "⏸ Stop" : "🔊 Voice note"}
-              </button>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ color: T.text, fontWeight: 700, fontSize: 14.5 }}>{data.lapsed ? `${data.name} missed you` : `${data.name} texted you first`}</div>
+              <div style={{ color: "#c4b5fd", fontSize: 11.5, fontWeight: 700, letterSpacing: 0.4 }}>
+                {data.lapsed ? `IT'S BEEN ${data.daysAway} DAYS` : "REMEMBERED FROM YOUR LAST CHAT"}
+                {data.streak >= 2 ? ` · ${data.streak}-DAY STREAK` : ""}
+              </div>
             </div>
+            <button onClick={dismiss} aria-label="Dismiss" style={{ width: 44, height: 44, margin: "-8px -8px 0 0", border: "none", background: "transparent", color: T.sub, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
+            </button>
           </div>
-          <button
-            onClick={dismiss}
-            aria-label="Dismiss"
-            style={{ background: "transparent", border: "none", color: T.sub, fontSize: 16, cursor: "pointer", padding: "2px 4px", lineHeight: 1, flexShrink: 0 }}
-          >
-            ✕
-          </button>
+          <div style={{ marginTop: 10, color: "#ece9fb", fontSize: 14.5, lineHeight: 1.45 }}>{data.message}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12 }}>
+            <button onClick={playVoice} disabled={voice === "loading"} aria-label={voice === "playing" ? "Pause voice note" : "Play voice note"} style={{ width: 44, height: 44, borderRadius: "50%", border: "none", background: T.grad, color: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, opacity: voice === "loading" ? 0.6 : 1 }}>
+              {voice === "playing"
+                ? <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" /></svg>
+                : <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z" /></svg>}
+            </button>
+            <div aria-hidden="true" style={{ flex: 1, height: 30, display: "flex", alignItems: "center", gap: 3 }}>
+              {[10, 18, 26, 14, 22, 30, 16, 24, 12, 28, 20, 14, 26, 18, 10, 22, 30, 16, 12, 24].map((h, i) => (
+                <span key={i} style={{ flex: 1, height: h, borderRadius: 2, background: "#a78bfa", transformOrigin: "center", animation: voice === "playing" ? `rm-wave .9s ease-in-out ${(i * 0.06).toFixed(2)}s infinite` : "none", opacity: voice === "loading" ? 0.5 : 1 }} />
+              ))}
+            </div>
+            <span style={{ color: T.sub, fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{voice === "loading" ? "loading…" : "voice note"}</span>
+          </div>
+          <button style={{ marginTop: 12, width: "100%", height: 44, borderRadius: 14, border: "none", background: "#2b2742", color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: font }}>Reply to {data.name}</button>
         </motion.div>
       )}
     </AnimatePresence>

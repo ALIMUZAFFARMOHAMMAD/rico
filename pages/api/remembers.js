@@ -5,7 +5,8 @@
 // across all your friends so the relationship feels tangible (a strong demo moment).
 // Honest by design: only surfaces details actually present in your conversations.
 //
-// GET /api/remembers?userId=<id>&lang=<code>  ->  { ok, items: [string] }
+// GET /api/remembers?userId=<id>&lang=<code>[&agent=<id>]  ->  { ok, items: [string] }
+// With `agent`, only that friend's conversation is used (chat-header "<Name> remembers" chips).
 import { configured, getUserRows, getRow, upsertRow, metaKey, parseKey } from "../../lib/db";
 import { resolveAgent } from "../../lib/twins";
 import { languagePrompt, LANGS } from "../../lib/i18n";
@@ -20,6 +21,7 @@ export default async function handler(req, res) {
   if (!configured()) return res.status(200).json({ ok: false });
 
   const { userId, lang } = req.query;
+  const agent = /^[\w-]{1,64}$/.test(req.query.agent || "") ? req.query.agent : null; // ids are [a-z0-9_-]
   if (!userId) return res.status(200).json({ ok: false });
   if (!ownsUser(req, userId)) return res.status(403).json({ error: "forbidden" });
   const langCode = LANGS[lang] ? lang : "en";
@@ -27,7 +29,7 @@ export default async function handler(req, res) {
   try {
     // 1) Serve cached highlights if still fresh.
     const meta = await getRow(metaKey(userId));
-    const cached = meta?.traits?.remembers;
+    const cached = agent ? meta?.traits?.remembersBy?.[agent] : meta?.traits?.remembers;
     if (cached?.items?.length && cached.lang === langCode &&
         Date.now() - new Date(cached.at).getTime() < FRESH_WINDOW_MS) {
       return res.status(200).json({ ok: true, items: cached.items, fresh: false });
@@ -37,7 +39,7 @@ export default async function handler(req, res) {
     const rows = await getUserRows(userId);
     const convos = rows
       .map(r => ({ r, k: parseKey(r.user_id) }))
-      .filter(({ r, k }) => k.kind !== "meta" && Array.isArray(r.messages) && r.messages.length >= 2)
+      .filter(({ r, k }) => k.kind !== "meta" && Array.isArray(r.messages) && r.messages.length >= 2 && (!agent || k.agentId === agent))
       .sort((a, b) => new Date(b.r.updated_at) - new Date(a.r.updated_at))
       .slice(0, 6);
     if (!convos.length) return res.status(200).json({ ok: false });
@@ -45,7 +47,7 @@ export default async function handler(req, res) {
     let context = "";
     for (const { r, k } of convos) {
       const agent = await resolveAgent(k.agentId);
-      const snippet = (r.messages || []).slice(-6)
+      const snippet = (r.messages || []).slice(agent ? -16 : -6)
         .map(m => `${m.role === "user" ? "Them" : agent.name}: ${String(m.content || "").slice(0, 180)}`)
         .join("\n");
       context += `\n— with ${agent.name} —\n${snippet}\n`;
@@ -62,10 +64,10 @@ export default async function handler(req, res) {
 
 ${languagePrompt(langCode)}
 
-From the conversations below, list 3 to 6 SPECIFIC, real things Rico remembers about this person — concrete facts, plans, situations, preferences, or feelings they actually shared (e.g. "Preparing for the GRE in August", "Misses home and family", "Supports Arsenal", "Wants a product role").
+From the conversations below, list ${agent ? "1 to 4" : "3 to 6"} SPECIFIC, real things ${agent ? "this friend" : "Rico"} remembers about this person — concrete facts, plans, situations, preferences, or feelings they actually shared (e.g. "Preparing for the GRE in August", "Misses home and family", "Supports Arsenal", "Wants a product role").
 Rules:
 - ONLY include things actually present in the conversations. Never invent or guess. If little is known, return fewer items.
-- Each item: a short phrase, max ~8 words, warm and human, written in the user's language.
+- Each item: a short phrase, max ~${agent ? 6 : 8} words, warm and human, written in the user's language.
 - Output ONLY a JSON array of strings, nothing else. Example: ["Preparing for the GRE","Misses family back home"]
 
 CONVERSATIONS:${context}`;
@@ -97,7 +99,9 @@ CONVERSATIONS:${context}`;
     // 3) Cache on the meta row (merge traits so other meta data is untouched).
     try {
       await upsertRow(metaKey(userId), {
-        traits: { ...((meta && meta.traits) || {}), remembers: { items, at: new Date().toISOString(), lang: langCode } },
+        traits: agent
+          ? { ...((meta && meta.traits) || {}), remembersBy: { ...((meta && meta.traits && meta.traits.remembersBy) || {}), [agent]: { items, at: new Date().toISOString(), lang: langCode } } }
+          : { ...((meta && meta.traits) || {}), remembers: { items, at: new Date().toISOString(), lang: langCode } },
       });
     } catch (e) { /* non-fatal */ }
 

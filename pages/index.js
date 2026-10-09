@@ -149,6 +149,7 @@ export default function Rico() {
 
   // chat state
   const [chatAgent, setChatAgent] = useState(null);
+  const [chatMem, setChatMem] = useState([]); // "<Name> remembers" chips: only real facts from this friend's chat
   const [messages, setMessages] = useState([]);
   const [, setHistory] = useState([]);
   const [input, setInput] = useState("");
@@ -376,6 +377,14 @@ export default function Rico() {
     }).catch(() => setNeedsConsent(true));
   }, [isLoaded, isSignedIn, userId]);
 
+  useEffect(() => {
+    if (!chatAgent || !isSignedIn || !userId) return;
+    let alive = true;
+    fetch(`/api/remembers?userId=${userId}&lang=${langRef.current}&agent=${encodeURIComponent(chatAgent.id)}`)
+      .then(r => r.ok ? r.json() : null).then(d => { if (alive && d?.ok) setChatMem((d.items || []).slice(0, 3)); }).catch(() => {});
+    return () => { alive = false; };
+  }, [chatAgent?.id, isSignedIn, userId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // first-touch attribution (also runs for visitors who land directly on the app)
   useEffect(() => { captureSource(); }, []);
 
@@ -450,7 +459,7 @@ export default function Rico() {
   const cacheLast = (agentId, text) => { try { localStorage.setItem(`orbit_last_${agentId}`, text.slice(0, 64)); } catch (e) {} };
 
   async function openChat(agent) {
-    setChatAgent(agent); setMessages([]); setHistory([]); histRef.current = []; setMsgCount(0); setResults(null);
+    setChatAgent(agent); setChatMem([]); setMessages([]); setHistory([]); histRef.current = []; setMsgCount(0); setResults(null);
     setIsTyping(true);
     let mem = null;
     if (isSignedIn) {
@@ -866,6 +875,14 @@ export default function Rico() {
                   {msgCount >= 6 && <button onClick={revealResults} disabled={loadingResults} title="Personality reveal" style={{ background: T.panel2, border: `1px solid ${T.line}`, color: T.text, borderRadius: 100, padding: "7px 12px", fontSize: 13, cursor: "pointer" }}>{loadingResults ? "…" : "✨"}</button>}
                   <a href={`/voice?agent=${chatAgent.id}`} style={{ width: 40, height: 40, borderRadius: "50%", background: T.grad, display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none", fontSize: 16 }}>📞</a>
                 </div>
+                {chatMem.length > 0 && (
+                  <div style={{ padding: "10px 16px 8px", borderBottom: `1px solid ${T.line}`, background: "rgba(15,14,23,0.55)" }}>
+                    <div style={{ color: "#c4b5fd", fontSize: 11, fontWeight: 700, letterSpacing: 0.5, marginBottom: 6 }}>{chatAgent.name.toUpperCase()} REMEMBERS</div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                      {chatMem.map((m, i) => <span key={m} style={{ padding: "5px 10px", borderRadius: 100, background: "#1d1a30", border: "1px solid rgba(167,139,250,0.3)", color: "#e4e0f5", fontSize: 12.5, animation: `rm-chip .5s ease-out ${i * 0.1}s both` }}>{m}</span>)}
+                    </div>
+                  </div>
+                )}
                 {/* messages */}
                 <div ref={panelRef} style={{ flex: 1, overflowY: "auto", padding: "16px 16px 70px", display: "flex", flexDirection: "column", gap: 10 }}>
                   {messages.map(m => (
