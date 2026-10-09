@@ -1,6 +1,6 @@
 import Head from "next/head";
 
-const T = { bg: "#0f0e17", line: "rgba(255,255,255,0.1)", text: "#f5f3ff", sub: "#9b97b0", grad: "linear-gradient(135deg,#ff5e7e 0%,#8b5cf6 100%)" };
+const T = { bg: "#0f0e17", line: "rgba(255,255,255,0.1)", text: "#f5f3ff", sub: "#a9a5c0", grad: "#d6365e" };
 const font = "'DM Sans',system-ui,-apple-system,sans-serif";
 
 function H({ children }) { return <div style={{ color: T.text, fontWeight: 700, fontSize: 15, margin: "20px 0 7px" }}>{children}</div>; }
@@ -12,7 +12,7 @@ export default function Privacy() {
     <div style={{ minHeight: "100vh", background: T.bg, fontFamily: font, display: "flex", justifyContent: "center" }}>
       <div style={{ width: "100%", maxWidth: 680, padding: "22px 20px 60px" }}>
         <a href="/" style={{ color: T.text, textDecoration: "none", fontSize: 18 }}>←</a>
-        <div style={{ fontSize: 26, fontWeight: 900, background: T.grad, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", marginTop: 10 }}>Privacy Policy</div>
+        <div style={{ fontSize: 26, fontWeight: 900, color: "#ff7b96", marginTop: 10 }}>Privacy Policy</div>
         <P>Last updated: 16 June 2026</P>
         <P>This explains what we collect, why, and the control you have. We aim to collect only what's needed to run Rico. We do not sell your personal data or share it for cross-context behavioural advertising.</P>
 

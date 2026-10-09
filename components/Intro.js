@@ -47,7 +47,7 @@ export default function Intro({ onDone }) {
             <circle cx="22.4" cy="8.6" r="2" fill="#ff5e7e" />
             <defs><linearGradient id="ig" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#ff5e7e" /><stop offset="100%" stopColor="#8b5cf6" /></linearGradient></defs>
           </svg>
-          <span style={{ fontWeight: 800, fontSize: 50, letterSpacing: -2, background: "linear-gradient(135deg,#ff5e7e,#8b5cf6)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>rico</span>
+          <span className="rm-display" style={{ fontWeight: 800, fontSize: 46, letterSpacing: -1.5, color: "#f5f3ff" }}>ricomates</span>
         </motion.div>
 
         {/* heart spark rising between the friends as they gather */}

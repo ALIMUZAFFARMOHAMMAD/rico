@@ -643,30 +643,30 @@ export default function Rico() {
             )}
             <div style={{ display: "flex", gap: 9, margin: "6px 0 14px" }}>
               <a href="/groups" style={{ flex: 1, display: "flex", alignItems: "center", gap: 9, textDecoration: "none", background: `linear-gradient(140deg,${T.violet}22,${T.pink}14)`, border: `1px solid ${T.line}`, borderRadius: 16, padding: "12px 13px" }}>
-                <span style={{ fontSize: 20 }}>👥</span>
+                <span aria-hidden="true" style={{ width: 38, height: 38, borderRadius: 12, background: "rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "center", color: "#c4b5fd", flexShrink: 0 }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="8" r="3.5" /><circle cx="17" cy="9.5" r="2.5" /><path d="M3 19c.8-3.2 3.2-5 6-5s5.2 1.8 6 5M15 14.6c2.6 0 4.6 1.5 5.2 4.4" /></svg></span>
                 <span><span style={{ display: "block", color: T.text, fontWeight: 700, fontSize: 13 }}>Group chat</span><span style={{ color: T.sub, fontSize: 10.5 }}>Friends in one room</span></span>
               </a>
               <a href="/classroom" style={{ flex: 1, display: "flex", alignItems: "center", gap: 9, textDecoration: "none", background: `linear-gradient(140deg,${T.pink}1c,${T.violet}22)`, border: `1px solid ${T.line}`, borderRadius: 16, padding: "12px 13px" }}>
-                <span style={{ fontSize: 20 }}>🎓</span>
+                <span aria-hidden="true" style={{ width: 38, height: 38, borderRadius: 12, background: "rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "center", color: "#ff7b96", flexShrink: 0 }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m2 9 10-5 10 5-10 5z" /><path d="M6 11v5c3 2.5 9 2.5 12 0v-5M22 9v6" /></svg></span>
                 <span><span style={{ display: "block", color: T.text, fontWeight: 700, fontSize: 13 }}>AI Tutor</span><span style={{ color: T.sub, fontSize: 10.5 }}>Teach a friend</span></span>
               </a>
             </div>
             <a href="/translate" style={{ display: "flex", alignItems: "center", gap: 9, textDecoration: "none", background: `linear-gradient(140deg,${T.teal || "#2dd4bf"}1e,${T.violet}1e)`, border: `1px solid ${T.line}`, borderRadius: 16, padding: "12px 13px", marginBottom: 14 }}>
-              <span style={{ fontSize: 20 }}>🌐</span>
+              <span aria-hidden="true" style={{ width: 38, height: 38, borderRadius: 12, background: "rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "center", color: "#5eead4", flexShrink: 0 }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18" /></svg></span>
               <span style={{ flex: 1 }}><span style={{ display: "block", color: T.text, fontWeight: 700, fontSize: 13 }}>Live Translate</span><span style={{ color: T.sub, fontSize: 10.5 }}>Real-time interpreter — talk to anyone in another language</span></span>
               <span style={{ color: T.sub, fontSize: 16 }}>→</span>
             </a>
             <a href="/notebook" style={{ display: "flex", alignItems: "center", gap: 9, textDecoration: "none", background: `linear-gradient(140deg,${T.pink}18,${T.violet}1e)`, border: `1px solid ${T.line}`, borderRadius: 16, padding: "12px 13px", marginBottom: 14 }}>
-              <span style={{ fontSize: 20 }}>📓</span>
+              <span aria-hidden="true" style={{ width: 38, height: 38, borderRadius: 12, background: "rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fbbf24", flexShrink: 0 }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z" /><path d="M5 17a3 3 0 0 1 3-3h11M9 8h6" /></svg></span>
               <span style={{ flex: 1 }}><span style={{ display: "block", color: T.text, fontWeight: 700, fontSize: 13 }}>Rough Notebook</span><span style={{ color: T.sub, fontSize: 10.5 }}>Snap your handwritten notes — Rico remembers them</span></span>
               <span style={{ color: T.sub, fontSize: 16 }}>→</span>
             </a>
             <div style={{ color: T.sub, fontSize: 12, fontWeight: 600, letterSpacing: 1.2, textTransform: "uppercase", margin: "6px 2px 12px" }}>Your people</div>
-            {matches.map(id => {
+            {matches.map((id, i) => {
               const a = lookup(id);
               let last = ""; try { last = localStorage.getItem(`orbit_last_${id}`) || ""; } catch (e) {}
               return (
-                <motion.div key={id} whileTap={{ scale: 0.985 }} onClick={() => openChat(a)} style={{ display: "flex", alignItems: "center", gap: 13, padding: "11px 12px", borderRadius: 18, background: T.panel, border: `1px solid ${T.line}`, marginBottom: 10, cursor: "pointer", backdropFilter: "blur(10px)" }}>
+                <motion.div key={id} role="button" tabIndex={0} aria-label={`Chat with ${a.name}`} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openChat(a); } }} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 8) * 0.05, type: "spring", stiffness: 320, damping: 28 }} whileTap={{ scale: 0.97 }} onClick={() => openChat(a)} style={{ display: "flex", alignItems: "center", gap: 13, padding: "11px 12px", borderRadius: 18, background: T.panel, border: `1px solid ${T.line}`, marginBottom: 10, cursor: "pointer", backdropFilter: "blur(10px)" }}>
                   <Avatar agent={a} size={50} ring />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ color: T.text, fontWeight: 700, fontSize: 15, display: "flex", alignItems: "center", gap: 6 }}>
@@ -951,7 +951,7 @@ export default function Rico() {
           {results && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setResults(null)} style={{ position: "absolute", inset: 0, zIndex: 40, background: "rgba(0,0,0,0.65)", display: "flex", alignItems: "flex-end" }}>
               <motion.div initial={{ y: 400 }} animate={{ y: 0 }} exit={{ y: 440 }} transition={{ type: "spring", stiffness: 280, damping: 30 }} onClick={e => e.stopPropagation()} style={{ width: "100%", maxHeight: "82%", overflowY: "auto", background: "#1a1626", borderRadius: "24px 24px 0 0", padding: "22px 20px 30px", border: `1px solid ${T.line}` }}>
-                <div style={{ fontSize: 22, fontWeight: 900, background: T.grad, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>{results.personalityType}</div>
+                <div style={{ fontSize: 22, fontWeight: 900, color: "#ff7b96" }}>{results.personalityType}</div>
                 <div style={{ color: T.sub, fontSize: 13.5, lineHeight: 1.6, marginTop: 6 }}>{results.summary}</div>
                 <div style={{ color: T.text, fontWeight: 800, fontSize: 14, margin: "16px 0 8px" }}>Career matches</div>
                 {(results.careers || []).map((c, i) => (

@@ -17,7 +17,7 @@ const CODE_LANGS = [["python", "🐍 Python", /python|pandas|numpy|django|flask|
 const guessLang = (subj) => { const s = (subj || "").toLowerCase(); const hit = CODE_LANGS.find(([, , re]) => re.test(s)); return hit ? hit[0] : null; };
 const playgroundUrl = (lang) => `https://onecompiler.com/${lang || ""}`;
 
-const T = { bg: "#0f0e17", panel: "rgba(255,255,255,0.06)", panel2: "rgba(255,255,255,0.09)", line: "rgba(255,255,255,0.1)", text: "#f5f3ff", sub: "#9b97b0", grad: "linear-gradient(135deg,#ff5e7e 0%,#8b5cf6 100%)", pink: "#ff5e7e", violet: "#8b5cf6", green: "#4ade80", gold: "#f5c84b" };
+const T = { bg: "#0f0e17", panel: "rgba(255,255,255,0.06)", panel2: "rgba(255,255,255,0.09)", line: "rgba(255,255,255,0.1)", text: "#f5f3ff", sub: "#a9a5c0", grad: "#d6365e", pink: "#ff5e7e", violet: "#8b5cf6", green: "#4ade80", gold: "#f5c84b" };
 const font = "'DM Sans',system-ui,-apple-system,sans-serif";
 const DURATIONS = [1, 2, 4, 6, 8];
 const GRAD = 85;

@@ -3,7 +3,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import TonyCharacter from "./TonyCharacter";
 
-const T = { bg: "#0f0e17", panel2: "rgba(255,255,255,0.09)", line: "rgba(255,255,255,0.1)", text: "#f5f3ff", sub: "#9b97b0", grad: "linear-gradient(135deg,#ff5e7e 0%,#8b5cf6 100%)", violet: "#8b5cf6" };
+const T = { bg: "#0f0e17", panel2: "rgba(255,255,255,0.09)", line: "rgba(255,255,255,0.1)", text: "#f5f3ff", sub: "#a9a5c0", grad: "#d6365e", violet: "#8b5cf6" };
 const font = "'DM Sans',system-ui,-apple-system,sans-serif";
 
 const STEPS = [
