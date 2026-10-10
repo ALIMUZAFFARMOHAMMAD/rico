@@ -39,7 +39,9 @@ function NativeBridge() {
           const a = e.target && e.target.closest && e.target.closest('a[href]');
           if (!a) return;
           const href = a.href || '';
-          const external = /^https?:\/\//i.test(href) && !/hitony\.vercel\.app/i.test(href);
+          // ponytail: our own domains stay in the webview — opening /sign-in in the system browser
+          // signs the user in THERE, never in the app (the "can't sign in on phone" bug).
+          const external = /^https?:\/\//i.test(href) && !/^https:\/\/([a-z0-9-]+\.)*ricomates\.si(\/|$)/i.test(href);
           if (external || a.target === '_blank') {
             e.preventDefault();
             Browser.open({ url: href, presentationStyle: 'popover' }).catch(() => {});
@@ -56,7 +58,7 @@ function NativeBridge() {
 
 export default function App({ Component, pageProps }) {
   return (
-    <ClerkProvider {...pageProps}>
+    <ClerkProvider {...pageProps} signInUrl="/sign-in" signUpUrl="/sign-up">
       <Head><link rel="icon" href="/favicon.svg" type="image/svg+xml" /><link rel="apple-touch-icon" href="/favicon.svg" /></Head>
       <NativeBridge />
       <DirManager />

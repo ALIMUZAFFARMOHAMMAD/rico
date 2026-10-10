@@ -3,9 +3,13 @@
   "appName": "Rico",
   "webDir": "public",
   "server": {
-    "url": "https://hitony.vercel.app",
+    "url": "https://ricomates.si",
     "cleartext": false,
-    "androidScheme": "https"
+    "androidScheme": "https",
+    "allowNavigation": [
+      "ricomates.si",
+      "*.ricomates.si"
+    ]
   },
   "backgroundColor": "#0f0e17",
   "plugins": {
