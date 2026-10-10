@@ -5,6 +5,7 @@
 import { configured, getRow, upsertRow } from "../../lib/db";
 import mammoth from "mammoth";
 import { ownsUser } from "../../lib/auth";
+import { rateLimited } from "../../lib/ratelimit";
 
 const MODEL = "claude-sonnet-4-6";
 
@@ -78,6 +79,7 @@ Return ONLY strict JSON, no prose:
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
+  if (rateLimited(req)) return res.status(429).json({ error: "Too many requests, slow down." });
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return res.status(500).json({ error: "No API key" });
 

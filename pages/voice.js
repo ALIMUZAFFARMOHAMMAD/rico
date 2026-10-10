@@ -10,7 +10,7 @@ import { getAgent } from "../lib/agents";
 
 const S = { IDLE:"idle", CONNECTING:"connecting", ACTIVE:"active", LISTENING:"listening", THINKING:"thinking", SPEAKING:"speaking", ENDED:"ended" };
 const T = { bg:"#0f0e17", panel:"rgba(255,255,255,0.055)", panel2:"rgba(255,255,255,0.09)", line:"rgba(255,255,255,0.1)", text:"#f5f3ff", sub:"#9b97b0", grad:"linear-gradient(135deg,#ff5e7e 0%,#8b5cf6 100%)", pink:"#ff5e7e", violet:"#8b5cf6" };
-const font = "'Inter',system-ui,-apple-system,sans-serif";
+const font = "'DM Sans',system-ui,-apple-system,sans-serif";
 
 export default function VoicePage() {
   const { user, isLoaded, isSignedIn } = useUser();
@@ -53,6 +53,7 @@ export default function VoicePage() {
   const [cloneConsent, setCloneConsent] = useState(true);
   const cloneConsentRef = useRef(true);
   const [cloneStatus, setCloneStatus] = useState(""); // "" | capturing | cloning | done | short | notready | fail
+  const [cloneErr, setCloneErr] = useState(""); // server's reason when cloning fails (e.g. plan has no voice cloning)
   const clipRecRef = useRef(null);
   const clipChunksRef = useRef([]);
   const clipStreamRef = useRef(null);
@@ -379,7 +380,9 @@ export default function VoicePage() {
         const blob = new Blob(clipChunksRef.current, { type: mr.mimeType || "audio/webm" });
         const b64 = await new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = rej; fr.readAsDataURL(blob); });
         const r = await fetch("/api/twin-voice", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, userName, audio: b64, mime: blob.type, consent: true }) });
-        setCloneStatus((await r.json()).ok ? "done" : "fail");
+        const d = await r.json().catch(() => ({}));
+        setCloneErr(d.error || "");
+        setCloneStatus(d.ok ? "done" : "fail");
       } catch (e) { setCloneStatus("fail"); }
     }
   }, [userId, userName]);
@@ -416,7 +419,7 @@ export default function VoicePage() {
 
   return (<>
     <Head>
-      <title>{`Call ${agentObj.name} — rico`}</title>
+      <title>ricomates</title>
       <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
       <meta name="theme-color" content="#0f0e17" />    </Head>
     <div style={{ minHeight: "100vh", background: T.bg, fontFamily: font, display: "flex", justifyContent: "center" }}>
@@ -538,7 +541,7 @@ export default function VoicePage() {
                   {cloneStatus === "done" && "✓ Your twin now talks in your voice"}
                   {cloneStatus === "short" && "Voice not cloned — too little speech this time. Try a longer chat."}
                   {cloneStatus === "notready" && "Keep chatting a bit more — your twin needs to know you before it gets your voice."}
-                  {cloneStatus === "fail" && "Couldn't clone your voice this time — you can add it later from your profile."}
+                  {cloneStatus === "fail" && (cloneErr || "Couldn't clone your voice this time — you can add it later from your profile.")}
                 </div>
               )}
               <div style={{ display: "flex", gap: 10 }}>

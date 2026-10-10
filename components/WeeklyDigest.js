@@ -12,7 +12,13 @@ export default function WeeklyDigest({ userId, lang, T, font }) {
     let alive = true;
     fetch(`/api/digest?userId=${encodeURIComponent(userId)}&lang=${encodeURIComponent(lang || "en")}`)
       .then(r => r.json())
-      .then(d => { if (alive && d?.ok && Array.isArray(d.items) && d.items.length) setItems(d.items); })
+      .then(d => {
+        if (alive && d?.ok && Array.isArray(d.items) && d.items.length) {
+          setItems(d.items);
+          // Instrument: the weekly digest actually rendered (5th retention lever).
+          fetch("/api/track", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, event: "digest_shown" }) }).catch(() => {});
+        }
+      })
       .catch(() => {});
     return () => { alive = false; };
   }, [userId, lang]);

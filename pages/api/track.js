@@ -60,6 +60,12 @@ export default async function handler(req, res) {
       sp.shown = (sp.shown || 0) + 1;
       sp.last = now.toISOString();
       stats.spotlight = sp;
+    } else if (event === "digest_shown") {
+      // Weekly memory digest (Pillar #2 recap) impact: how often does it actually render?
+      const dg = stats.digest || { shown: 0 };
+      dg.shown = (dg.shown || 0) + 1;
+      dg.last = now.toISOString();
+      stats.digest = dg;
     } else if (event === "tour_done") {
       // Onboarding proof-moment tour (2026-07-19): did the user finish it or skip it?
       // Top-of-funnel companion to retention_by_lever — correlate against next-day activation.

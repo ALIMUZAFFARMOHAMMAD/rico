@@ -13,7 +13,7 @@ export default function Certificate({ cert, onClose }) {
     navigator.clipboard?.writeText(txt).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); }).catch(() => {});
   };
   return (
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 210, background: "rgba(8,7,14,0.92)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, fontFamily: "'Inter',system-ui,sans-serif" }}>
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 210, background: "rgba(8,7,14,0.92)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, fontFamily: "'DM Sans',system-ui,sans-serif" }}>
       <div onClick={e => e.stopPropagation()} style={{ width: "100%", maxWidth: 420, maxHeight: "92vh", overflowY: "auto" }}>
         {/* the certificate */}
         <div style={{ position: "relative", background: "linear-gradient(160deg,#1a1530,#241b3d)", border: "3px solid #f5c84b", borderRadius: 20, padding: "26px 22px 24px", textAlign: "center", boxShadow: "0 24px 70px rgba(0,0,0,0.6)", overflow: "hidden" }}>
@@ -49,7 +49,7 @@ export default function Certificate({ cert, onClose }) {
           )}
 
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginTop: 18, padding: "0 6px" }}>
-            <div style={{ textAlign: "left" }}><div style={{ color: "#f5f3ff", fontSize: 12, fontWeight: 700, fontStyle: "italic" }}>Rico</div><div style={{ color: "#9b97b0", fontSize: 9, letterSpacing: 1 }}>AI TUTOR</div></div>
+            <div style={{ textAlign: "left" }}><div style={{ color: "#f5f3ff", fontSize: 12, fontWeight: 700, fontStyle: "italic" }}>ricomates</div><div style={{ color: "#9b97b0", fontSize: 9, letterSpacing: 1 }}>AI TUTOR</div></div>
             <div style={{ textAlign: "right" }}><div style={{ color: "#f5f3ff", fontSize: 11, fontWeight: 600 }}>{cert.date}</div><div style={{ color: "#9b97b0", fontSize: 9, letterSpacing: 1 }}>DATE</div></div>
           </div>
         </div>

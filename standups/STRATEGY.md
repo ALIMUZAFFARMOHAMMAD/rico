@@ -87,6 +87,66 @@ app AND monetize like a career tool."
 Tag every link you share: `hitony.vercel.app/landing?src=reddit` (or `?src=ambassador_name`, `?src=ig`, etc.).
 
 ## 7. Strategic recommendations log (most recent first)
+- 2026-10-07 (standup run) — **The blockers are cleared; restart GTM now as a narrow 14-day pilot, because
+  the bottleneck is no longer the product, it's n=6.** Prod is fully green today (`/api/health` ok, db ok,
+  ai ok; the CEO deployed the queue and topped up credits). But there have been **zero new signups since
+  2026-07-01**, and with 6 users no retention number can tell an investor anything. Timing favours going now:
+  the J-curve research on international students finds the *first few months* after arrival are the hardest
+  ("those first few months were horrible"), so fall-semester first-years who arrived Aug/Sep are in Rico's
+  highest-need window right now. Proposed pilot (all $0, all CEO-approval-gated because it is external comms):
+  (1) post the already-drafted Week-1 set with `?src=` tags, (2) one international-student community per day
+  (subreddit / university ISA group / WhatsApp ambassador), (3) a personal "we're back" note to the 6 beta users.
+  **Success bar: ≥30 signups in 14 days**, enough for a first real D7 read by ~Oct 28. Stripe and testimonials
+  can follow the pilot instead of gating it: testimonials need more users anyway.
+  Sources: [J-curve study (LJMU)](https://researchonline.ljmu.ac.uk/id/eprint/14867/),
+  [Cross-cultural adaptation of intl. students (JIS)](https://ojed.org/jis/article/view/116).
+- 2026-10-05 (standup run) — **Run one 15-minute "unblock session" before ~2026-11-22, or the data moat
+  becomes a restore-from-backup project.** The app has been offline since at least 2026-09-04 (Supabase
+  still NXDOMAIN today). Supabase free-tier projects can only be resumed from the dashboard for **90
+  days after the pause**; the pause happened between ~2026-08-24 and 2026-09-04, so the conservative
+  deadline is **~2026-11-22 (≈48 days left)**. After that, the data (memory graph, beta-user history,
+  i.e. moat pillar #2 itself) only comes back by manually migrating backups into a new project. Second
+  observation, stated plainly: the deploy queue has 4 code-complete branches and the approvals list
+  hasn't moved in ~5 weeks, so new build work is piling up undeployed and not compounding. Recommendation, in order, all
+  CEO-only: (1) resume Supabase, (2) top up Anthropic credits (the smallest top-up is enough to verify
+  the loop), (3) approve ONE `vercel --prod` of the working tree, which ships all 4 queued branches at once
+  (keepalive cron, status banner, club-feed stale-lock fix, Anthropic health probe). Until (1)–(3) happen,
+  the team will keep build work small and reliability-focused rather than adding features nobody can use.
+  GTM hold unchanged. Source: supabase.com/docs/guides/platform/free-project-pausing.
+- 2026-09-04 (standup run) — **GTM hold now has two stacked, independent conditions instead of one.**
+  Found the app down live at the start of this run (Supabase DNS NXDOMAIN, same as 2026-08-16) —
+  root-caused this time: free-tier auto-pause after 7 days of zero DB activity, confirmed against
+  Supabase's docs. This is unrelated to yesterday's Anthropic-credits flag, and today's outage blocked
+  every route that could have confirmed whether credits are actually restored — so that condition
+  carries forward unverified, not resolved. Recommendation: hold GTM until BOTH `/api/health` reads
+  `ok:true` AND a real generate is confirmed on `/api/tony` (not just a 200). Shipped a $0 permanent fix
+  for the Supabase half today (`fix/supabase-keepalive-cron`, PRODUCT_LOG §5) — recommend NOT paying for
+  Supabase Pro yet, since the free mechanism should now hold; revisit only if the cron demonstrably fails
+  to prevent a third recurrence.
+- 2026-08-17 (standup run) — **New blocker on GTM, more urgent than the "zero engineering work left"
+  call made yesterday: the Anthropic account is out of credits, and EVERY AI-backed feature is
+  currently silently degraded** (Tony chat, proactive check-ins, memory, weekly digest, Club Feed —
+  see PRODUCT_LOG §6 urgent item, diagnosed 2026-08-16). This is the same shape of risk flagged
+  2026-07-22 during the Supabase outage ("don't start GTM onto a broken core loop") — except this
+  time the failure mode is worse for a first impression: most routes gracefully degrade to cached/
+  stale content instead of erroring, so a brand-new user would see a companion app that just... stops
+  saying anything new, with no visible error to explain why. Recommendation: hold GTM (still purely
+  the CEO's call, zero code blocks it) until credits are restored at console.anthropic.com — this is
+  a 2-minute fix, not a rebuild, so it shouldn't cost the push more than a day once actioned. Once
+  restored, re-verify `/api/tony`, `/api/checkin`, and `/api/club-feed` actually generate again (not
+  just return 200) before resuming any GTM recommendation. Everything else in yesterday's "GTM is
+  unblocked" call still stands once this one new condition clears.
+- 2026-08-16 (standup run, cont'd) — **Deploy queue is now empty and `/api/stats` shows real (if tiny)
+  data for the first time.** Earlier today's CEO-directed session deployed every queued branch — nothing
+  code-complete is sitting undeployed anymore, a first since this file existed. `/api/stats` now returns
+  6 total signups, 50% 2+-day retention, 33% activation — small enough (n=6) to mean nothing for an
+  investor deck, but proof the instrumentation and the levers themselves work end-to-end (checkin lever:
+  2/2 users returned and reached D7). None of these 6 signups came from a GTM push — GTM hasn't started
+  yet, so this is organic/testing traffic, not a channel result. Recommendation, unchanged from
+  2026-08-16 (Supabase-resolution entry below) but now sharper: GTM push is the ONLY thing standing
+  between the team and a real metric story — zero engineering dependency remains (queue is empty, health
+  is `ok:true`, `?src=` tracking has been live since 2026-06-29, all 5 retention levers are now
+  instrumented including today's digest_shown). This is purely the CEO's call to start.
 - 2026-08-16 — **The Supabase outage is resolved; withdrawing the "pause GTM" recommendation.** CEO
   restored the paused project directly in the dashboard; `/api/health` confirms `ok:true` and all
   original data (signups, activation, retention) is intact — nothing was lost. This closes the one
@@ -199,3 +259,7 @@ Tag every link you share: `hitony.vercel.app/landing?src=reddit` (or `?src=ambas
 - 2026-06-29 — Priority order to become investable: (1) get real users through the funnel so the
   instrumentation produces a metric story; (2) ship plan gating to test willingness-to-pay; (3) lock
   named testimonials. Features are ahead of distribution — the bottleneck is now users, not product.
+
+### 2026-10-05 follow-up (Sage)
+Supabase is restored. The single highest-leverage CEO action now is **Anthropic credits + one deploy before ~10-12**.
+Together they take Rico from "offline" to "demoable" and stop the 7-day re-pause loop. GTM is still on hold until both are done.

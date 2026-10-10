@@ -6,11 +6,11 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 
 const C = {
-  text: "#f5f3ff", sub: "#9b97b0", line: "rgba(255,255,255,0.1)",
+  text: "#f5f3ff", sub: "#a9a5c0", line: "rgba(255,255,255,0.1)",
   panel: "rgba(255,255,255,0.055)", panel2: "rgba(255,255,255,0.09)",
-  grad: "linear-gradient(135deg,#ff5e7e 0%,#8b5cf6 100%)", pink: "#ff5e7e", violet: "#8b5cf6",
+  grad: "#d6365e", pink: "#ff5e7e", violet: "#8b5cf6",
 };
-const font = "'Inter',system-ui,-apple-system,sans-serif";
+const font = "'DM Sans',system-ui,-apple-system,sans-serif";
 
 // Friendly names for the Big Five (we never show clinical labels to users).
 const TRAITS = [
@@ -124,7 +124,7 @@ export default function Dashboard({ userId, userName, onOpenGroups }) {
           <Ring value={connection} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ color: C.sub, fontSize: 11.5, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase" }}>Connection score</div>
-            {ocean && <div style={{ fontSize: 21, fontWeight: 900, letterSpacing: -0.5, background: C.grad, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", marginTop: 2 }}>{arch.name}</div>}
+            {ocean && <div style={{ fontSize: 21, fontWeight: 900, letterSpacing: -0.5, color: "#ff7b96", marginTop: 2 }}>{arch.name}</div>}
             <div style={{ color: C.text, fontSize: 12.5, fontWeight: 600, marginTop: 2 }}>{band(connection)} · {days} active day{days === 1 ? "" : "s"}</div>
           </div>
         </div>

@@ -3,8 +3,8 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 
 const COLORS = ["#1a1530", "#ff5e7e", "#8b5cf6", "#2563eb", "#16a34a", "#f59e0b"];
-const T = { bg: "#0f0e17", panel: "rgba(255,255,255,0.08)", line: "rgba(255,255,255,0.12)", text: "#f5f3ff", sub: "#9b97b0", grad: "linear-gradient(135deg,#ff5e7e 0%,#8b5cf6 100%)" };
-const font = "'Inter',system-ui,sans-serif";
+const T = { bg: "#0f0e17", panel: "rgba(255,255,255,0.08)", line: "rgba(255,255,255,0.12)", text: "#f5f3ff", sub: "#a9a5c0", grad: "#d6365e" };
+const font = "'DM Sans',system-ui,sans-serif";
 
 export default function Whiteboard({ onTeach, onClose, busy }) {
   const canvasRef = useRef(null);

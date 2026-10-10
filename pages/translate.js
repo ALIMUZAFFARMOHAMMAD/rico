@@ -7,8 +7,8 @@ import Head from "next/head";
 import { useUser } from "@clerk/nextjs";
 import { LANGS } from "../lib/i18n";
 
-const T = { bg: "#0f0e17", panel: "rgba(255,255,255,0.06)", panel2: "rgba(255,255,255,0.09)", line: "rgba(255,255,255,0.1)", text: "#f5f3ff", sub: "#9b97b0", grad: "linear-gradient(135deg,#ff5e7e 0%,#8b5cf6 100%)", pink: "#ff5e7e", violet: "#8b5cf6", teal: "#2dd4bf" };
-const font = "'Inter',system-ui,-apple-system,sans-serif";
+const T = { bg: "#0f0e17", panel: "rgba(255,255,255,0.06)", panel2: "rgba(255,255,255,0.09)", line: "rgba(255,255,255,0.1)", text: "#f5f3ff", sub: "#a9a5c0", grad: "#d6365e", pink: "#ff5e7e", violet: "#8b5cf6", teal: "#2dd4bf" };
+const font = "'DM Sans',system-ui,-apple-system,sans-serif";
 
 // languages offered (English is always the user side). 5 PRD langs first.
 const THEIR_LANGS = ["es", "zh", "fr", "de", "hi", "bn", "pt", "ja", "ko", "ar"];
@@ -204,7 +204,7 @@ export default function Translate() {
 
   return (<>
     <Head>
-      <title>Live Translate — rico</title>
+      <title>ricomates</title>
       <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
       <meta name="theme-color" content="#0f0e17" />    </Head>
     <div style={{ minHeight: "100vh", background: T.bg, fontFamily: font, display: "flex", justifyContent: "center" }}>

@@ -21,6 +21,7 @@ import { captureSource, getSource } from "../lib/source";
 import { CONSENT_VERSION } from "../lib/consent";
 import Onboarding from "../components/Onboarding";
 import Intro from "../components/Intro";
+import { resizeImage } from "../lib/resizeImage";
 
 const T = {
   bg: "#0f0e17",
@@ -28,44 +29,13 @@ const T = {
   panel2: "rgba(255,255,255,0.09)",
   line: "rgba(255,255,255,0.1)",
   text: "#f5f3ff",
-  sub: "#9b97b0",
-  grad: "linear-gradient(135deg,#ff5e7e 0%,#8b5cf6 100%)",
+  sub: "#a9a5c0",
+  grad: "#d6365e", // solid CTA: white text on it passes WCAG AA
   pink: "#ff5e7e",
   violet: "#8b5cf6",
 };
 
-const font = "'Inter',system-ui,-apple-system,sans-serif";
-
-// Downscale + re-encode any photo (incl. iPhone HEIC) to a small JPEG so it's
-// under the upload limit and in a format the vision model can read.
-function resizeImage(file, max = 768, quality = 0.85) {
-  return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file);
-    const img = new Image();
-    let settled = false;
-    // Some browsers (Android/in-app webviews) can't decode HEIC and fire NEITHER
-    // onload nor onerror — the promise would hang forever. Guard with a timeout.
-    const finish = (fn, arg) => {
-      if (settled) return; settled = true;
-      clearTimeout(timer);
-      try { URL.revokeObjectURL(url); } catch (e) {}
-      fn(arg);
-    };
-    const timer = setTimeout(() => finish(reject, new Error("timeout")), 12000);
-    img.onload = () => {
-      let { width, height } = img;
-      if (!width || !height) return finish(reject, new Error("empty"));
-      const scale = Math.min(1, max / Math.max(width, height));
-      width = Math.round(width * scale); height = Math.round(height * scale);
-      const canvas = document.createElement("canvas");
-      canvas.width = width; canvas.height = height;
-      canvas.getContext("2d").drawImage(img, 0, 0, width, height);
-      try { finish(resolve, canvas.toDataURL("image/jpeg", quality)); } catch (e) { finish(reject, e); }
-    };
-    img.onerror = () => finish(reject, new Error("decode"));
-    img.src = url;
-  });
-}
+const font = "'DM Sans',system-ui,-apple-system,sans-serif";
 
 function Avatar({ agent, size = 52, ring = false, emote = "none" }) {
   const [imgOk, setImgOk] = useState(true);
@@ -89,13 +59,13 @@ function Avatar({ agent, size = 52, ring = false, emote = "none" }) {
 function Logo() {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-      <svg width="26" height="26" viewBox="0 0 26 26">
+      <svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true" style={{ animation: "rm-orbit 14s linear infinite" }}>
         <ellipse cx="13" cy="13" rx="11" ry="5.5" fill="none" stroke="url(#og)" strokeWidth="2" transform="rotate(-22 13 13)" />
         <circle cx="13" cy="13" r="3.4" fill="url(#og)" />
         <circle cx="22.4" cy="8.6" r="2" fill="#ff5e7e" />
         <defs><linearGradient id="og" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#ff5e7e" /><stop offset="100%" stopColor="#8b5cf6" /></linearGradient></defs>
       </svg>
-      <span style={{ fontWeight: 800, fontSize: 21, letterSpacing: -0.5, background: T.grad, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>rico</span>
+      <span className="rm-display" style={{ fontWeight: 800, fontSize: 21, letterSpacing: -0.6, color: T.text }}>ricomates</span>
     </div>
   );
 }
@@ -135,10 +105,12 @@ function SwipeCard({ agent, onDecide, topCard, exitDir = "left" }) {
       <div style={{ height: "100%", borderRadius: 24, overflow: "hidden", background: "#1a1626", border: `1px solid ${T.line}`, boxShadow: "0 24px 60px rgba(0,0,0,0.55)", display: "flex", flexDirection: "column", position: "relative" }}>
         {/* portrait area */}
         <div style={{ flex: 1.35, background: `radial-gradient(120% 100% at 50% 0%, ${agent.look?.hoodie || "#ffe566"}40 0%, #161226 70%)`, display: "flex", alignItems: "flex-end", justifyContent: "center", position: "relative", overflow: "hidden" }}>
+          <div aria-hidden="true" style={{ position: "absolute", width: 250, height: 250, top: 18, borderRadius: "50%", border: "2px dashed rgba(255,255,255,0.22)", animation: "rm-orbit 18s linear infinite" }}><div style={{ position: "absolute", width: 12, height: 12, borderRadius: "50%", background: "#fff", top: 20, left: 42 }} /></div>
+          <div aria-hidden="true" style={{ position: "absolute", width: 330, height: 330, top: -22, borderRadius: "50%", border: "1px solid rgba(255,255,255,0.12)", animation: "rm-orbit-rev 30s linear infinite" }} />
           <TonyCharacter size={235} look={agent.look || {}} float="none" animated={false} pose="down" expr="😊" emote={topCard ? em : "none"} />
           <div style={{ position: "absolute", top: 14, left: 14, display: "flex", gap: 6 }}>
             <span style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(8px)", border: `1px solid ${T.line}`, color: T.text, fontSize: 11.5, fontWeight: 700, padding: "5px 11px", borderRadius: 100 }}>
-              {agent.isTwin ? "🪞 TWIN · echo of a real person" : `${agent.emoji} ${agent.archetype}`}
+              {agent.isTwin ? "TWIN · echo of a real person" : `AI FRIEND · ${agent.archetype}`}
             </span>
           </div>
           {/* swipe stamps */}
@@ -151,12 +123,12 @@ function SwipeCard({ agent, onDecide, topCard, exitDir = "left" }) {
         </div>
         {/* info */}
         <div style={{ padding: "16px 18px 18px" }}>
-          <div style={{ fontSize: 26, fontWeight: 800, color: T.text, letterSpacing: -0.5 }}>{agent.name}</div>
+          <div className="rm-display" style={{ fontSize: 28, fontWeight: 800, color: T.text, letterSpacing: -0.6 }}>{agent.name}</div>
           <div style={{ fontSize: 13, color: T.sub, marginTop: 3, lineHeight: 1.45 }}>{agent.bio}</div>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
             {(agent.interests || []).map(i => <span key={i} style={{ fontSize: 11.5, fontWeight: 600, color: T.text, background: T.panel2, border: `1px solid ${T.line}`, padding: "4px 11px", borderRadius: 100 }}>{i}</span>)}
           </div>
-          {agent.sample && <div style={{ marginTop: 11, fontSize: 12.5, color: T.sub, fontStyle: "italic", borderLeft: `2px solid ${T.violet}`, paddingLeft: 10, lineHeight: 1.5 }}>"{agent.sample}"</div>}
+          {agent.sample && <div style={{ marginTop: 11, fontSize: 13.5, color: T.text, background: "#262338", padding: "10px 13px", borderRadius: "16px 16px 16px 4px", lineHeight: 1.45 }}>“{agent.sample}”</div>}
         </div>
       </div>
     </motion.div>
@@ -177,6 +149,7 @@ export default function Rico() {
 
   // chat state
   const [chatAgent, setChatAgent] = useState(null);
+  const [chatMem, setChatMem] = useState([]); // "<Name> remembers" chips: only real facts from this friend's chat
   const [messages, setMessages] = useState([]);
   const [, setHistory] = useState([]);
   const [input, setInput] = useState("");
@@ -378,7 +351,11 @@ export default function Rico() {
   // resolve any matched twin ids we don't know yet (cross-device)
   useEffect(() => {
     matches.filter(id => id.startsWith("twin__") && !twinMap[id]).forEach(async id => {
-      try { const d = await fetch(`/api/twin?id=${id}`).then(r => r.json()); if (d.twin) setTwinMap(p => ({ ...p, [id]: d.twin })); } catch (e) {}
+      try {
+        const d = await fetch(`/api/twin?id=${id}`).then(r => r.json());
+        if (d.twin) setTwinMap(p => ({ ...p, [id]: d.twin }));
+        else if (d.twin === null) setMatches(p => p.filter(x => x !== id)); // twin gone/renamed — never let lookup() fall back to Tony
+      } catch (e) {}
     });
   }, [matches, twinMap]);
 
@@ -404,8 +381,29 @@ export default function Rico() {
     }).catch(() => setNeedsConsent(true));
   }, [isLoaded, isSignedIn, userId]);
 
+  useEffect(() => {
+    if (!chatAgent || !isSignedIn || !userId) return;
+    let alive = true;
+    fetch(`/api/remembers?userId=${userId}&lang=${langRef.current}&agent=${encodeURIComponent(chatAgent.id)}`)
+      .then(r => r.ok ? r.json() : null).then(d => { if (alive && d?.ok) setChatMem((d.items || []).slice(0, 3)); }).catch(() => {});
+    return () => { alive = false; };
+  }, [chatAgent?.id, isSignedIn, userId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // first-touch attribution (also runs for visitors who land directly on the app)
   useEffect(() => { captureSource(); }, []);
+
+  // one-time dev→production Clerk move: pull this person's old data across, then reload so
+  // every panel refetches it (see pages/api/migrate.js). Once per user per browser.
+  useEffect(() => {
+    if (!isSignedIn || !userId) return;
+    const flag = `rico_migrated5_${userId}`; // v5: also repoints twin__<old> refs; v4: dev key fixed; v1–v3 ran with the wrong one
+    try { if (localStorage.getItem(flag)) return; } catch (e) {}
+    fetch("/api/migrate", { method: "POST" }).then(r => r.ok ? r.json() : null).then(d => {
+      if (!d) return;
+      try { localStorage.setItem(flag, "1"); if (d.moved > 0) localStorage.removeItem("hitony_matches"); } catch (e) {} // stale local ids would re-add twin__<old>
+      if (d.moved > 0) window.location.reload();
+    }).catch(() => {});
+  }, [isSignedIn, userId]);
 
   // retention tracking: stamp first/last-seen + active days once per session (+ signup source)
   useEffect(() => {
@@ -429,6 +427,10 @@ export default function Rico() {
   const card = visibleDeck[0];
   const cardNext = visibleDeck[1];
   useEffect(() => { if (visibleDeck.length === 0 && passed.length > 0) setPassed([]); }, [visibleDeck.length, passed.length]);
+  // Matched with everyone → Discover disappears and we land on Chats. It comes back on its
+  // own as soon as someone new (a new friend or a new community twin) joins the deck.
+  const allMet = deck.length === 0;
+  useEffect(() => { if (allMet && tab === "discover") setTab("chats"); }, [allMet, tab]);
 
   function decideCard(dir) {
     if (!card) return;
@@ -461,7 +463,7 @@ export default function Rico() {
   const cacheLast = (agentId, text) => { try { localStorage.setItem(`orbit_last_${agentId}`, text.slice(0, 64)); } catch (e) {} };
 
   async function openChat(agent) {
-    setChatAgent(agent); setMessages([]); setHistory([]); histRef.current = []; setMsgCount(0); setResults(null);
+    setChatAgent(agent); setChatMem([]); setMessages([]); setHistory([]); histRef.current = []; setMsgCount(0); setResults(null);
     setIsTyping(true);
     let mem = null;
     if (isSignedIn) {
@@ -559,7 +561,7 @@ export default function Rico() {
 
   if (!isLoaded) return (
     <div style={{ height: "100vh", background: T.bg, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: font }}>
-      <Head><title>rico</title></Head>
+      <Head><title>ricomates</title></Head>
       <motion.div animate={{ scale: [1, 1.15, 1], opacity: [0.6, 1, 0.6] }} transition={{ repeat: Infinity, duration: 1.4 }}><Logo /></motion.div>
     </div>
   );
@@ -568,17 +570,17 @@ export default function Rico() {
   // effect above — render a minimal brand loader while that redirect happens.
   if (!isSignedIn) return (
     <div style={{ height: "100vh", background: T.bg, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: font }}>
-      <Head><title>rico — your people, always</title></Head>
+      <Head><title>ricomates</title></Head>
       <motion.div animate={{ scale: [1, 1.15, 1], opacity: [0.6, 1, 0.6] }} transition={{ repeat: Infinity, duration: 1.4 }}><Logo /></motion.div>
     </div>
   );
 
   // Brand intro plays first thing after sign-in (also covers data loading).
-  if (isSignedIn && !introPlayed) return (<><Head><title>rico</title></Head><Intro onDone={() => setIntroPlayed(true)} /></>);
+  if (isSignedIn && !introPlayed) return (<><Head><title>ricomates</title></Head><Intro onDone={() => setIntroPlayed(true)} /></>);
 
   if (!ready) return (
     <div style={{ height: "100vh", background: T.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4, fontFamily: font }}>
-      <Head><title>rico</title></Head>
+      <Head><title>ricomates</title></Head>
       <TonyCharacter size={150} look={{ hoodie: "#8b5cf6", hoodieD: "#7146d1" }} float="none" animated={false} emote="shuffle" />
       <div style={{ color: T.sub, fontSize: 12.5, fontWeight: 500 }}>Rico is shuffling the deck for you…</div>
     </div>
@@ -586,7 +588,7 @@ export default function Rico() {
 
   return (<>
     <Head>
-      <title>rico — your people, always</title>
+      <title>ricomates</title>
       <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
       <meta name="theme-color" content="#0f0e17" />    </Head>
     <div style={{ minHeight: "100vh", background: T.bg, fontFamily: font, display: "flex", justifyContent: "center" }}>
@@ -608,23 +610,23 @@ export default function Rico() {
         {/* ===== DISCOVER ===== */}
         {tab === "discover" && (
           <div style={{ flex: 1, padding: "4px 18px 14px", display: "flex", flexDirection: "column", minHeight: 0 }}>
-            <div style={{ flex: 1, position: "relative", minHeight: 0 }}>
+            <div style={{ padding: "2px 2px 14px" }}>
+              <h1 className="rm-display" style={{ fontSize: 32, fontWeight: 800, lineHeight: 1.05, letterSpacing: -1, color: T.text }}>Meet your <span style={{ color: "#ff7b96" }}>next friend</span></h1>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 7, color: T.sub, fontSize: 13.5 }}>
+                <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#2dd4bf", animation: "rm-blink 2s ease-in-out infinite" }} />
+                {deck.length} {deck.length === 1 ? "friend is" : "friends are"} waiting to meet you
+              </div>
+            </div>
+            <div style={{ flex: 1, position: "relative", minHeight: 0, animation: "rm-floaty 6s ease-in-out infinite" }}>
               <AnimatePresence>
                 {cardNext && <SwipeCard key={cardNext.id} agent={cardNext} topCard={false} onDecide={() => {}} />}
                 {card && <SwipeCard key={card.id} agent={card} topCard={true} onDecide={decideCard} exitDir={lastDir} />}
               </AnimatePresence>
-              {!card && (
-                <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", gap: 8 }}>
-                  <TonyCharacter size={150} look={{ hoodie: "#ff5e7e", hoodieD: "#d94768" }} float="none" animated={false} emote="walk" />
-                  <div style={{ color: T.text, fontWeight: 700, fontSize: 17 }}>You've met everyone (for now)</div>
-                  <div style={{ color: T.sub, fontSize: 13, maxWidth: 260 }}>Rico is off finding new friends — they'll show up soon. Go talk to yours!</div>
-                </div>
-              )}
             </div>
             {card && (
               <div style={{ display: "flex", justifyContent: "center", gap: 22, paddingTop: 14 }}>
                 <motion.button whileTap={{ scale: 0.82 }} onClick={() => decideCard("left")} aria-label="Pass" style={{ width: 58, height: 58, borderRadius: "50%", background: T.panel2, border: `1px solid ${T.line}`, color: "#ff5e7e", fontSize: 22, cursor: "pointer", backdropFilter: "blur(8px)" }}>✕</motion.button>
-                <motion.button whileTap={{ scale: 0.82 }} onClick={() => decideCard("right")} aria-label="Connect" style={{ width: 70, height: 70, borderRadius: "50%", background: T.grad, border: "none", color: "white", fontSize: 26, cursor: "pointer", boxShadow: "0 10px 30px rgba(255,94,126,0.45)" }}>♥</motion.button>
+                <motion.button whileTap={{ scale: 0.82 }} onClick={() => decideCard("right")} aria-label="Connect" style={{ animation: "rm-pulse 1.8s ease-out infinite", width: 70, height: 70, borderRadius: "50%", background: T.grad, border: "none", color: "white", fontSize: 26, cursor: "pointer", boxShadow: "0 10px 30px rgba(255,94,126,0.45)" }}>♥</motion.button>
               </div>
             )}
           </div>
@@ -633,21 +635,7 @@ export default function Rico() {
         {/* ===== CHATS ===== */}
         {tab === "chats" && (
           <div style={{ flex: 1, overflowY: "auto", padding: "4px 18px 80px" }}>
-            <div style={{ display: "flex", gap: 9, margin: "6px 0 14px" }}>
-              <a href="/groups" style={{ flex: 1, display: "flex", alignItems: "center", gap: 9, textDecoration: "none", background: `linear-gradient(140deg,${T.violet}22,${T.pink}14)`, border: `1px solid ${T.line}`, borderRadius: 16, padding: "12px 13px" }}>
-                <span style={{ fontSize: 20 }}>👥</span>
-                <span><span style={{ display: "block", color: T.text, fontWeight: 700, fontSize: 13 }}>Group chat</span><span style={{ color: T.sub, fontSize: 10.5 }}>Friends in one room</span></span>
-              </a>
-              <a href="/classroom" style={{ flex: 1, display: "flex", alignItems: "center", gap: 9, textDecoration: "none", background: `linear-gradient(140deg,${T.pink}1c,${T.violet}22)`, border: `1px solid ${T.line}`, borderRadius: 16, padding: "12px 13px" }}>
-                <span style={{ fontSize: 20 }}>🎓</span>
-                <span><span style={{ display: "block", color: T.text, fontWeight: 700, fontSize: 13 }}>AI Tutor</span><span style={{ color: T.sub, fontSize: 10.5 }}>Teach a friend</span></span>
-              </a>
-            </div>
-            <a href="/translate" style={{ display: "flex", alignItems: "center", gap: 9, textDecoration: "none", background: `linear-gradient(140deg,${T.teal || "#2dd4bf"}1e,${T.violet}1e)`, border: `1px solid ${T.line}`, borderRadius: 16, padding: "12px 13px", marginBottom: 14 }}>
-              <span style={{ fontSize: 20 }}>🌐</span>
-              <span style={{ flex: 1 }}><span style={{ display: "block", color: T.text, fontWeight: 700, fontSize: 13 }}>Live Translate</span><span style={{ color: T.sub, fontSize: 10.5 }}>Real-time interpreter — talk to anyone in another language</span></span>
-              <span style={{ color: T.sub, fontSize: 16 }}>→</span>
-            </a>
+            {/* Flagship #1 stays first on Chats: "Rico texts you first" only works if it's seen first. */}
             {isSignedIn && userId && (
               <ProactiveCheckin
                 userId={userId}
@@ -657,12 +645,32 @@ export default function Rico() {
                 onOpen={(id) => { const a = lookup(id); if (a) openChat(a); }}
               />
             )}
+            <div style={{ display: "flex", gap: 9, margin: "6px 0 14px" }}>
+              <a href="/groups" style={{ flex: 1, display: "flex", alignItems: "center", gap: 9, textDecoration: "none", background: `linear-gradient(140deg,${T.violet}22,${T.pink}14)`, border: `1px solid ${T.line}`, borderRadius: 16, padding: "12px 13px" }}>
+                <span aria-hidden="true" style={{ width: 38, height: 38, borderRadius: 12, background: "rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "center", color: "#c4b5fd", flexShrink: 0 }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="8" r="3.5" /><circle cx="17" cy="9.5" r="2.5" /><path d="M3 19c.8-3.2 3.2-5 6-5s5.2 1.8 6 5M15 14.6c2.6 0 4.6 1.5 5.2 4.4" /></svg></span>
+                <span><span style={{ display: "block", color: T.text, fontWeight: 700, fontSize: 13 }}>Group chat</span><span style={{ color: T.sub, fontSize: 10.5 }}>Friends in one room</span></span>
+              </a>
+              <a href="/classroom" style={{ flex: 1, display: "flex", alignItems: "center", gap: 9, textDecoration: "none", background: `linear-gradient(140deg,${T.pink}1c,${T.violet}22)`, border: `1px solid ${T.line}`, borderRadius: 16, padding: "12px 13px" }}>
+                <span aria-hidden="true" style={{ width: 38, height: 38, borderRadius: 12, background: "rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "center", color: "#ff7b96", flexShrink: 0 }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m2 9 10-5 10 5-10 5z" /><path d="M6 11v5c3 2.5 9 2.5 12 0v-5M22 9v6" /></svg></span>
+                <span><span style={{ display: "block", color: T.text, fontWeight: 700, fontSize: 13 }}>AI Tutor</span><span style={{ color: T.sub, fontSize: 10.5 }}>Teach a friend</span></span>
+              </a>
+            </div>
+            <a href="/translate" style={{ display: "flex", alignItems: "center", gap: 9, textDecoration: "none", background: `linear-gradient(140deg,${T.teal || "#2dd4bf"}1e,${T.violet}1e)`, border: `1px solid ${T.line}`, borderRadius: 16, padding: "12px 13px", marginBottom: 14 }}>
+              <span aria-hidden="true" style={{ width: 38, height: 38, borderRadius: 12, background: "rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "center", color: "#5eead4", flexShrink: 0 }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18" /></svg></span>
+              <span style={{ flex: 1 }}><span style={{ display: "block", color: T.text, fontWeight: 700, fontSize: 13 }}>Live Translate</span><span style={{ color: T.sub, fontSize: 10.5 }}>Real-time interpreter — talk to anyone in another language</span></span>
+              <span style={{ color: T.sub, fontSize: 16 }}>→</span>
+            </a>
+            <a href="/notebook" style={{ display: "flex", alignItems: "center", gap: 9, textDecoration: "none", background: `linear-gradient(140deg,${T.pink}18,${T.violet}1e)`, border: `1px solid ${T.line}`, borderRadius: 16, padding: "12px 13px", marginBottom: 14 }}>
+              <span aria-hidden="true" style={{ width: 38, height: 38, borderRadius: 12, background: "rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fbbf24", flexShrink: 0 }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z" /><path d="M5 17a3 3 0 0 1 3-3h11M9 8h6" /></svg></span>
+              <span style={{ flex: 1 }}><span style={{ display: "block", color: T.text, fontWeight: 700, fontSize: 13 }}>Rough Notebook</span><span style={{ color: T.sub, fontSize: 10.5 }}>Snap your handwritten notes — Rico remembers them</span></span>
+              <span style={{ color: T.sub, fontSize: 16 }}>→</span>
+            </a>
             <div style={{ color: T.sub, fontSize: 12, fontWeight: 600, letterSpacing: 1.2, textTransform: "uppercase", margin: "6px 2px 12px" }}>Your people</div>
-            {matches.map(id => {
+            {matches.map((id, i) => {
               const a = lookup(id);
               let last = ""; try { last = localStorage.getItem(`orbit_last_${id}`) || ""; } catch (e) {}
               return (
-                <motion.div key={id} whileTap={{ scale: 0.985 }} onClick={() => openChat(a)} style={{ display: "flex", alignItems: "center", gap: 13, padding: "11px 12px", borderRadius: 18, background: T.panel, border: `1px solid ${T.line}`, marginBottom: 10, cursor: "pointer", backdropFilter: "blur(10px)" }}>
+                <motion.div key={id} role="button" tabIndex={0} aria-label={`Chat with ${a.name}`} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openChat(a); } }} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 8) * 0.05, type: "spring", stiffness: 320, damping: 28 }} whileTap={{ scale: 0.97 }} onClick={() => openChat(a)} style={{ display: "flex", alignItems: "center", gap: 13, padding: "11px 12px", borderRadius: 18, background: T.panel, border: `1px solid ${T.line}`, marginBottom: 10, cursor: "pointer", backdropFilter: "blur(10px)" }}>
                   <Avatar agent={a} size={50} ring />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ color: T.text, fontWeight: 700, fontSize: 15, display: "flex", alignItems: "center", gap: 6 }}>
@@ -821,7 +829,7 @@ export default function Rico() {
 
         {/* tab bar */}
         <div style={{ display: "flex", borderTop: `1px solid ${T.line}`, background: "rgba(15,14,23,0.82)", backdropFilter: "blur(16px)", padding: "8px 10px 12px", position: "relative", zIndex: 5 }}>
-          {[["discover", "✨", "Discover"], ["chats", "💬", "Chats"], ["social", "🌐", "Social"], ["me", "🧭", "You"]].map(([k, icon, label]) => (
+          {[["discover", "✨", "Discover"], ["chats", "💬", "Chats"], ["social", "🌐", "Social"], ["me", "🧭", "You"]].filter(([k]) => !(k === "discover" && allMet)).map(([k, icon, label]) => (
             <button key={k} onClick={() => setTab(k)} style={{ flex: 1, background: "transparent", border: "none", cursor: "pointer", fontFamily: font, position: "relative", padding: "6px 0" }}>
               {tab === k && <motion.div layoutId="tab-pill" style={{ position: "absolute", inset: "0 18%", borderRadius: 100, background: T.panel2 }} transition={{ type: "spring", stiffness: 380, damping: 32 }} />}
               <div style={{ position: "relative", fontSize: 16 }}>{icon}</div>
@@ -833,14 +841,21 @@ export default function Rico() {
         {/* ===== MATCH SPLASH ===== */}
         <AnimatePresence>
           {splash && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: "absolute", inset: 0, zIndex: 30, background: "rgba(10,9,16,0.78)", backdropFilter: "blur(14px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 26 }}>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ position: "absolute", inset: 0, zIndex: 30, background: "rgba(10,9,16,0.82)", backdropFilter: "blur(14px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 26, overflow: "hidden" }}>
+              <div aria-hidden="true" style={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+                {Array.from({ length: 24 }, (_, i) => <span key={i} style={{ position: "absolute", top: 0, left: `${(i * 37) % 100}%`, width: 6 + (i % 3) * 2, height: 10 + (i % 4) * 3, borderRadius: 2, background: ["#ff5e7e", "#a78bfa", "#2dd4bf", "#fbbf24", "#f5f3ff"][i % 5], animation: `rm-fall ${(4.5 + (i % 5) * 0.8).toFixed(1)}s linear ${(-((i * 0.53) % 6)).toFixed(2)}s infinite` }} />)}
+              </div>
               <motion.div initial={{ scale: 0.7, y: 30 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.8, opacity: 0 }} transition={{ type: "spring", stiffness: 240, damping: 18 }} style={{ textAlign: "center", width: "100%" }}>
-                <div style={{ fontSize: 34, fontWeight: 900, letterSpacing: -1, background: T.grad, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>New friend! 🎉</div>
+                <div style={{ color: "#c4b5fd", fontSize: 12.5, fontWeight: 700, letterSpacing: 2 }}>NEW FRIEND</div>
+                <div className="rm-display" style={{ fontSize: 44, fontWeight: 800, letterSpacing: -1.5, lineHeight: 1.05, color: T.text, marginTop: 6 }}>It’s a <span style={{ color: "#ff7b96" }}>match!</span></div>
                 <div style={{ color: T.sub, fontSize: 13.5, marginTop: 4 }}>{splash.name} is already typing your first message…</div>
                 <motion.div animate={{ y: [0, -8, 0] }} transition={{ repeat: Infinity, duration: 2.4, ease: "easeInOut" }} style={{ display: "flex", justifyContent: "center", margin: "22px 0" }}>
-                  <Avatar agent={splash} size={130} ring emote="celebrate" />
+                  <div style={{ position: "relative", padding: 26 }}>
+                    <div aria-hidden="true" style={{ position: "absolute", inset: 0, borderRadius: "50%", border: "2px dashed rgba(167,139,250,0.55)", animation: "rm-orbit 9s linear infinite" }}><div style={{ position: "absolute", width: 12, height: 12, borderRadius: "50%", background: "#ff5e7e", top: 8, left: "50%" }} /></div>
+                    <Avatar agent={splash} size={130} ring emote="celebrate" />
+                  </div>
                 </motion.div>
-                <button onClick={() => { const a = splash; setSplash(null); setTab("chats"); openChat(a); }} style={{ width: "100%", background: T.grad, border: "none", color: "white", fontWeight: 800, fontSize: 15, padding: "14px 0", borderRadius: 100, cursor: "pointer", fontFamily: font }}>Say hi</button>
+                <button onClick={() => { const a = splash; setSplash(null); setTab("chats"); openChat(a); }} style={{ width: "100%", background: T.grad, border: "none", color: "white", fontWeight: 800, fontSize: 15, padding: "14px 0", borderRadius: 100, cursor: "pointer", fontFamily: font, boxShadow: "0 14px 34px rgba(214,54,94,0.45)" }}>Say hi to {splash.name}</button>
                 <button onClick={() => setSplash(null)} style={{ width: "100%", marginTop: 10, background: "transparent", border: `1px solid ${T.line}`, color: T.sub, fontWeight: 600, fontSize: 14, padding: "12px 0", borderRadius: 100, cursor: "pointer", fontFamily: font }}>Keep exploring</button>
               </motion.div>
             </motion.div>
@@ -864,6 +879,14 @@ export default function Rico() {
                   {msgCount >= 6 && <button onClick={revealResults} disabled={loadingResults} title="Personality reveal" style={{ background: T.panel2, border: `1px solid ${T.line}`, color: T.text, borderRadius: 100, padding: "7px 12px", fontSize: 13, cursor: "pointer" }}>{loadingResults ? "…" : "✨"}</button>}
                   <a href={`/voice?agent=${chatAgent.id}`} style={{ width: 40, height: 40, borderRadius: "50%", background: T.grad, display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none", fontSize: 16 }}>📞</a>
                 </div>
+                {chatMem.length > 0 && (
+                  <div style={{ padding: "10px 16px 8px", borderBottom: `1px solid ${T.line}`, background: "rgba(15,14,23,0.55)" }}>
+                    <div style={{ color: "#c4b5fd", fontSize: 11, fontWeight: 700, letterSpacing: 0.5, marginBottom: 6 }}>{chatAgent.name.toUpperCase()} REMEMBERS</div>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                      {chatMem.map((m, i) => <span key={m} style={{ padding: "5px 10px", borderRadius: 100, background: "#1d1a30", border: "1px solid rgba(167,139,250,0.3)", color: "#e4e0f5", fontSize: 12.5, animation: `rm-chip .5s ease-out ${i * 0.1}s both` }}>{m}</span>)}
+                    </div>
+                  </div>
+                )}
                 {/* messages */}
                 <div ref={panelRef} style={{ flex: 1, overflowY: "auto", padding: "16px 16px 70px", display: "flex", flexDirection: "column", gap: 10 }}>
                   {messages.map(m => (
@@ -932,7 +955,7 @@ export default function Rico() {
           {results && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setResults(null)} style={{ position: "absolute", inset: 0, zIndex: 40, background: "rgba(0,0,0,0.65)", display: "flex", alignItems: "flex-end" }}>
               <motion.div initial={{ y: 400 }} animate={{ y: 0 }} exit={{ y: 440 }} transition={{ type: "spring", stiffness: 280, damping: 30 }} onClick={e => e.stopPropagation()} style={{ width: "100%", maxHeight: "82%", overflowY: "auto", background: "#1a1626", borderRadius: "24px 24px 0 0", padding: "22px 20px 30px", border: `1px solid ${T.line}` }}>
-                <div style={{ fontSize: 22, fontWeight: 900, background: T.grad, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>{results.personalityType}</div>
+                <div style={{ fontSize: 22, fontWeight: 900, color: "#ff7b96" }}>{results.personalityType}</div>
                 <div style={{ color: T.sub, fontSize: 13.5, lineHeight: 1.6, marginTop: 6 }}>{results.summary}</div>
                 <div style={{ color: T.text, fontWeight: 800, fontSize: 14, margin: "16px 0 8px" }}>Career matches</div>
                 {(results.careers || []).map((c, i) => (

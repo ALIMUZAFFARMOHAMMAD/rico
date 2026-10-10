@@ -37,7 +37,7 @@ export default function Intro({ onDone }) {
   }, []);
 
   return (
-    <motion.div animate={{ opacity: phase === "out" ? 0 : 1 }} transition={{ duration: 0.5 }} style={{ position: "fixed", inset: 0, zIndex: 130, background: "#0f0e17", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", fontFamily: "'Inter',system-ui,sans-serif" }}>
+    <motion.div animate={{ opacity: phase === "out" ? 0 : 1 }} transition={{ duration: 0.5 }} style={{ position: "fixed", inset: 0, zIndex: 130, background: "#0f0e17", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", fontFamily: "'DM Sans',system-ui,sans-serif" }}>
       <div style={{ position: "relative", width: 320, height: 200, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
         {/* logo */}
         <motion.div initial={{ opacity: 0, scale: 0.72, y: 6 }} animate={{ opacity: 1, scale: phase === "sniff" ? [1, 1.06, 1] : 1, y: 0 }} transition={{ opacity: { duration: 0.7 }, y: { duration: 0.7, ease: "easeOut" }, scale: phase === "sniff" ? { duration: 0.55, times: [0, 0.5, 1] } : { duration: 0.7, ease: "easeOut" } }} style={{ display: "flex", alignItems: "center", gap: 12, zIndex: 2 }}>
@@ -47,7 +47,7 @@ export default function Intro({ onDone }) {
             <circle cx="22.4" cy="8.6" r="2" fill="#ff5e7e" />
             <defs><linearGradient id="ig" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#ff5e7e" /><stop offset="100%" stopColor="#8b5cf6" /></linearGradient></defs>
           </svg>
-          <span style={{ fontWeight: 800, fontSize: 50, letterSpacing: -2, background: "linear-gradient(135deg,#ff5e7e,#8b5cf6)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>rico</span>
+          <span className="rm-display" style={{ fontWeight: 800, fontSize: 46, letterSpacing: -1.5, color: "#f5f3ff" }}>ricomates</span>
         </motion.div>
 
         {/* heart spark rising between the friends as they gather */}

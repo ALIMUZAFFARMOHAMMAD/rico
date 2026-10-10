@@ -1,8 +1,8 @@
 // Record ~30s of the user's voice and clone it onto their AI twin (consent-gated).
 import { useState, useRef, useEffect, useCallback } from "react";
 
-const T = { panel2: "rgba(255,255,255,0.09)", line: "rgba(255,255,255,0.1)", text: "#f5f3ff", sub: "#9b97b0", grad: "linear-gradient(135deg,#ff5e7e 0%,#8b5cf6 100%)", pink: "#ff5e7e", violet: "#8b5cf6" };
-const font = "'Inter',system-ui,-apple-system,sans-serif";
+const T = { panel2: "rgba(255,255,255,0.09)", line: "rgba(255,255,255,0.1)", text: "#f5f3ff", sub: "#a9a5c0", grad: "#d6365e", pink: "#ff5e7e", violet: "#8b5cf6" };
+const font = "'DM Sans',system-ui,-apple-system,sans-serif";
 const MAX = 45, MIN = 20;
 
 const SCRIPT = "Hey, it's me — this is my real voice for my Rico twin. I like good conversations, the people I care about, and a bit of fun along the way. If we match, I'd love to actually talk. So tell me — what's something good that happened to you this week?";

@@ -12,16 +12,18 @@
 // the same posts/debates/memes/comments — and can add their own. Generation is
 // lazy + cached (same pattern as checkin.js/remembers.js): on-demand when a space
 // goes stale, not a background cron — keeps this free when nobody's looking.
+import { randomUUID } from "crypto";
 import { CLUBS, AGENTS, AGENT_LIST } from "../../lib/agents";
 import { languagePrompt, LANGS } from "../../lib/i18n";
 import { configured, getRow, upsertRow } from "../../lib/db";
+import { rateLimited } from "../../lib/ratelimit";
 
 const FAST = "claude-haiku-4-5-20251001";
 const FRESH_WINDOW_MS = 6 * 60 * 60 * 1000; // 6h — shorter than check-in's 18h, feed should feel alive
 const MAX_ITEMS = 100;
 
 const feedKey = (spaceId) => `club::${spaceId}::feed`;
-const uid = () => Math.random().toString(36).slice(2, 10);
+const uid = () => randomUUID();
 
 async function claude(apiKey, system, userContent, maxTokens) {
   const r = await fetch("https://api.anthropic.com/v1/messages", {
@@ -29,7 +31,7 @@ async function claude(apiKey, system, userContent, maxTokens) {
     headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
     body: JSON.stringify({ model: FAST, max_tokens: maxTokens, system, messages: [{ role: "user", content: userContent }] }),
   });
-  if (!r.ok) throw new Error("API " + r.status);
+  if (!r.ok) throw new Error(`API ${r.status}: ${(await r.text()).slice(0, 300)}`);
   const d = await r.json();
   return d.content[0].text.trim().replace(/^["']|["']$/g, "");
 }
@@ -173,13 +175,20 @@ async function getOrGenerateSpaceItems(apiKey, resolved, language) {
   let items = existing;
   if (!fresh) {
     const batch = await generateBatch(apiKey, space, members, reactorPool, language);
-    items = [...existing, ...batch].slice(-MAX_ITEMS);
-    await upsertRow(key, { messages: items, traits: { ...(row?.traits || {}), lastGeneratedAt: new Date().toISOString() } });
+    // Only stamp lastGeneratedAt on an actual success — generateBatch swallows its own
+    // errors and returns [] on total failure (e.g. Anthropic API down), and stamping
+    // "just tried" as "just generated" would silently block retries for the full
+    // FRESH_WINDOW_MS window even though nothing new was produced.
+    if (batch.length) {
+      items = [...existing, ...batch].slice(-MAX_ITEMS);
+      await upsertRow(key, { messages: items, traits: { ...(row?.traits || {}), lastGeneratedAt: new Date().toISOString() } });
+    }
   }
   return { items, fresh };
 }
 
 export default async function handler(req, res) {
+  if (rateLimited(req)) return res.status(429).json({ error: "Too many requests, slow down." });
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return res.status(500).json({ error: "No API key" });
   if (!configured()) return res.status(200).json({ ok: false, items: [], club: null });

@@ -155,31 +155,31 @@ export default function Groups() {
 
   return (<>
     <Head>
-      <title>Groups — hitony.ai</title>
+      <title>ricomates</title>
       <meta name="viewport" content="width=device-width,initial-scale=1" />    </Head>
-    <div style={{ height: "calc(100vh - 36px)", maxWidth: 560, margin: "18px auto", border: "none", borderRadius: 26, boxShadow: "0 24px 70px rgba(60,40,20,0.35)", background: "#fdf8f0", fontFamily: "'Comic Neue',cursive", display: "flex", flexDirection: "column", position: "relative", overflow: "hidden", backgroundImage: "linear-gradient(rgba(26,16,8,0.05) 1px,transparent 1px),linear-gradient(90deg,rgba(26,16,8,0.05) 1px,transparent 1px)", backgroundSize: "28px 28px" }}>
+    <div style={{ height: "calc(100vh - 36px)", maxWidth: 560, margin: "18px auto", border: "none", borderRadius: 26, boxShadow: "0 24px 70px rgba(0,0,0,0.5)", background: "#1d1a30", fontFamily: "'DM Sans',sans-serif", display: "flex", flexDirection: "column", position: "relative", overflow: "hidden", backgroundImage: "none" }}>
 
       {/* header */}
-      <div style={{ background: YELLOW, borderBottom: `4px solid ${INK}`, padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", boxShadow: `0 4px 0 ${INK}`, zIndex: 2 }}>
+      <div style={{ background: "#14121f", borderBottom: "1px solid rgba(255,255,255,0.1)", padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", boxShadow: "none", zIndex: 2 }}>
         {(active || viewingClub)
-          ? <button onClick={() => { setActiveId(null); setViewingClub(null); setVoiceCall(false); }} style={{ background: "white", border: `3px solid ${INK}`, padding: "4px 10px", fontFamily: "Bangers,cursive", fontSize: 15, cursor: "pointer", color: INK, boxShadow: `3px 3px 0 ${INK}` }}>← GROUPS</button>
-          : <a href="/" style={{ background: "white", border: `3px solid ${INK}`, padding: "4px 10px", fontFamily: "Bangers,cursive", fontSize: 15, textDecoration: "none", color: INK, boxShadow: `3px 3px 0 ${INK}` }}>← CHAT</a>}
-        <div style={{ fontFamily: "Bangers,cursive", fontSize: 22, color: INK, letterSpacing: 2 }}>{active ? active.name.toUpperCase() : viewingClub ? `${viewingClub.emoji} ${viewingClub.name}`.toUpperCase() : "👥 GROUPS"}</div>
+          ? <button onClick={() => { setActiveId(null); setViewingClub(null); setVoiceCall(false); }} style={{ background: "#1a1826", border: "1px solid rgba(255,255,255,0.1)", padding: "4px 10px", fontFamily: "'Bricolage Grotesque',sans-serif", fontSize: 15, cursor: "pointer", color: "#f5f3ff", boxShadow: "none" }}>← GROUPS</button>
+          : <a href="/" style={{ background: "#1a1826", border: "1px solid rgba(255,255,255,0.1)", padding: "4px 10px", fontFamily: "'Bricolage Grotesque',sans-serif", fontSize: 15, textDecoration: "none", color: "#f5f3ff", boxShadow: "none" }}>← CHAT</a>}
+        <div style={{ fontFamily: "'Bricolage Grotesque',sans-serif", fontSize: 22, color: "#f5f3ff", letterSpacing: 2 }}>{active ? active.name.toUpperCase() : viewingClub ? `${viewingClub.emoji} ${viewingClub.name}`.toUpperCase() : "👥 GROUPS"}</div>
         {active
           ? <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <button onClick={() => setShowGames(true)} title="Play a game with the group" style={{ background: "white", border: `3px solid ${INK}`, padding: "4px 9px", fontFamily: "Bangers,cursive", fontSize: 15, cursor: "pointer", color: INK, boxShadow: `3px 3px 0 ${INK}` }}>🎮 PLAY</button>
-              <button onClick={() => setVoiceCall(v => !v)} title={voiceCall ? "End call" : "Group voice call"} style={{ background: voiceCall ? "#e63946" : "white", border: `3px solid ${voiceCall ? "#e63946" : INK}`, width: 32, height: 32, borderRadius: "50%", cursor: "pointer", fontSize: 15, boxShadow: `2px 2px 0 ${INK}`, display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>{voiceCall ? "📵" : "🎙"}</button>
+              <button onClick={() => setShowGames(true)} title="Play a game with the group" style={{ background: "#1a1826", border: "1px solid rgba(255,255,255,0.1)", padding: "4px 9px", fontFamily: "'Bricolage Grotesque',sans-serif", fontSize: 15, cursor: "pointer", color: "#f5f3ff", boxShadow: "none" }}>🎮 PLAY</button>
+              <button onClick={() => setVoiceCall(v => !v)} title={voiceCall ? "End call" : "Group voice call"} style={{ background: voiceCall ? "#e63946" : "#1a1826", border: "1px solid rgba(255,255,255,0.1)", width: 32, height: 32, borderRadius: "50%", cursor: "pointer", fontSize: 15, boxShadow: "none", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}>{voiceCall ? "📵" : "🎙"}</button>
               <div style={{ display: "flex" }}>{active.agentIds.map((id, i) => (
-                <div key={id} title={getAgent(id).name} style={{ width: 30, height: 30, borderRadius: "50%", border: `2px solid ${INK}`, background: getAgent(id).look.hoodie || YELLOW, overflow: "hidden", marginLeft: i ? -8 : 0, display: "flex", justifyContent: "center" }}>
+                <div key={id} title={getAgent(id).name} style={{ width: 30, height: 30, borderRadius: "50%", border: "1px solid rgba(255,255,255,0.1)", background: getAgent(id).look.hoodie || "#2b2742", overflow: "hidden", marginLeft: i ? -8 : 0, display: "flex", justifyContent: "center" }}>
                   <div style={{ marginTop: 1 }}><TonyCharacter size={48} look={getAgent(id).look} float="none" animated={false} pose="down" /></div>
                 </div>))}</div>
             </div>
           : viewingClub
             ? <div style={{ display: "flex" }}>{(viewingClub.agents || []).map((id, i) => (
-                <div key={id} title={getAgent(id).name} style={{ width: 30, height: 30, borderRadius: "50%", border: `2px solid ${INK}`, background: getAgent(id).look.hoodie || YELLOW, overflow: "hidden", marginLeft: i ? -8 : 0, display: "flex", justifyContent: "center" }}>
+                <div key={id} title={getAgent(id).name} style={{ width: 30, height: 30, borderRadius: "50%", border: "1px solid rgba(255,255,255,0.1)", background: getAgent(id).look.hoodie || "#2b2742", overflow: "hidden", marginLeft: i ? -8 : 0, display: "flex", justifyContent: "center" }}>
                   <div style={{ marginTop: 1 }}><TonyCharacter size={48} look={getAgent(id).look} float="none" animated={false} pose="down" /></div>
                 </div>))}</div>
-            : <a href="/discover" style={{ background: "white", border: `3px solid ${INK}`, padding: "4px 10px", fontFamily: "Bangers,cursive", fontSize: 15, textDecoration: "none", color: INK, boxShadow: `3px 3px 0 ${INK}` }}>🔍</a>}
+            : <a href="/discover" style={{ background: "#1a1826", border: "1px solid rgba(255,255,255,0.1)", padding: "4px 10px", fontFamily: "'Bricolage Grotesque',sans-serif", fontSize: 15, textDecoration: "none", color: "#f5f3ff", boxShadow: "none" }}>🔍</a>}
       </div>
 
       {viewingClub ? (
@@ -188,54 +188,54 @@ export default function Groups() {
         /* ===== group list + clubs ===== */
         <div style={{ flex: 1, overflowY: "auto", padding: 16, paddingBottom: 70 }}>
           {groups.length > 0 && <>
-            <div style={{ fontFamily: "Bangers,cursive", fontSize: 15, color: "#999", letterSpacing: 1, marginBottom: 8 }}>MY GROUPS</div>
+            <div style={{ fontFamily: "'Bricolage Grotesque',sans-serif", fontSize: 15, color: "#a9a5c0", letterSpacing: 1, marginBottom: 8 }}>MY GROUPS</div>
             {groups.map(g => (
-              <div key={g.id} style={{ border: `3px solid ${INK}`, background: "white", boxShadow: `4px 4px 0 ${INK}`, padding: 12, marginBottom: 10, display: "flex", alignItems: "center", gap: 10 }}>
+              <div key={g.id} style={{ border: "1px solid rgba(255,255,255,0.1)", background: "#1a1826", boxShadow: "none", padding: 12, marginBottom: 10, display: "flex", alignItems: "center", gap: 10 }}>
                 <div style={{ flex: 1, cursor: "pointer" }} onClick={() => setActiveId(g.id)}>
-                  <div style={{ fontFamily: "Bangers,cursive", fontSize: 17, color: INK, letterSpacing: 1 }}>{g.name}</div>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: "#888" }}>{g.agentIds.map(id => getAgent(id).name).join(", ")} · {g.messages.length} msgs</div>
+                  <div style={{ fontFamily: "'Bricolage Grotesque',sans-serif", fontSize: 17, color: "#f5f3ff", letterSpacing: 1 }}>{g.name}</div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "#a9a5c0" }}>{g.agentIds.map(id => getAgent(id).name).join(", ")} · {g.messages.length} msgs</div>
                 </div>
-                <button onClick={() => setActiveId(g.id)} style={{ background: PURPLE, color: "white", border: `2px solid ${INK}`, padding: "5px 12px", fontFamily: "Bangers,cursive", fontSize: 13, cursor: "pointer", boxShadow: `2px 2px 0 ${INK}` }}>OPEN</button>
-                <button onClick={() => deleteGroup(g.id)} style={{ background: "white", border: `2px solid #ccc`, padding: "5px 8px", fontSize: 11, cursor: "pointer", color: "#999" }}>🗑</button>
+                <button onClick={() => setActiveId(g.id)} style={{ background: "#7c4dd8", color: "white", border: "1px solid rgba(255,255,255,0.1)", padding: "5px 12px", fontFamily: "'Bricolage Grotesque',sans-serif", fontSize: 13, cursor: "pointer", boxShadow: "none" }}>OPEN</button>
+                <button onClick={() => deleteGroup(g.id)} style={{ background: "#1a1826", border: "1px solid rgba(255,255,255,0.1)", padding: "5px 8px", fontSize: 11, cursor: "pointer", color: "#a9a5c0" }}>🗑</button>
               </div>
             ))}
           </>}
 
-          <div style={{ fontFamily: "Bangers,cursive", fontSize: 15, color: "#999", letterSpacing: 1, margin: "14px 0 8px" }}>CLUBS — HOSTED BY YOUR FRIENDS</div>
+          <div style={{ fontFamily: "'Bricolage Grotesque',sans-serif", fontSize: 15, color: "#a9a5c0", letterSpacing: 1, margin: "14px 0 8px" }}>CLUBS — HOSTED BY YOUR FRIENDS</div>
           {CLUBS.map(c => {
             const activity = clubActivity[c.id];
             const seen = clubSeen[c.id];
             const isNew = activity?.latest && seen && new Date(activity.latest) > new Date(seen);
             return (
-            <div key={c.id} style={{ border: `3px solid ${PURPLE}`, background: "white", boxShadow: `4px 4px 0 ${PURPLE}`, padding: 12, marginBottom: 10, display: "flex", alignItems: "center", gap: 10 }}>
+            <div key={c.id} style={{ border: "1px solid rgba(167,139,250,0.4)", background: "#1a1826", boxShadow: "none", padding: 12, marginBottom: 10, display: "flex", alignItems: "center", gap: 10 }}>
               <div style={{ fontSize: 26 }}>{c.emoji}</div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontFamily: "Bangers,cursive", fontSize: 16, color: INK, letterSpacing: 1, display: "flex", alignItems: "center", gap: 6 }}>
+                <div style={{ fontFamily: "'Bricolage Grotesque',sans-serif", fontSize: 16, color: "#f5f3ff", letterSpacing: 1, display: "flex", alignItems: "center", gap: 6 }}>
                   {c.name}
-                  {isNew && <span style={{ background: RED, color: "white", fontFamily: "'Comic Neue',cursive", fontSize: 10, fontWeight: 800, borderRadius: 100, padding: "2px 8px", letterSpacing: 0 }}>NEW POSTS</span>}
+                  {isNew && <span style={{ background: "#d6365e", color: "white", fontFamily: "'DM Sans',sans-serif", fontSize: 10, fontWeight: 800, borderRadius: 100, padding: "2px 8px", letterSpacing: 0 }}>NEW POSTS</span>}
                 </div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: "#888" }}>hosted by {getAgent(c.host).name} · {c.theme}</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: "#a9a5c0" }}>hosted by {getAgent(c.host).name} · {c.theme}</div>
               </div>
-              <button onClick={() => joinClub(c)} style={{ background: RED, color: "white", border: `2px solid ${INK}`, padding: "6px 12px", fontFamily: "Bangers,cursive", fontSize: 13, cursor: "pointer", boxShadow: `2px 2px 0 ${INK}` }}>JOIN</button>
+              <button onClick={() => joinClub(c)} style={{ background: "#d6365e", color: "white", border: "1px solid rgba(255,255,255,0.1)", padding: "6px 12px", fontFamily: "'Bricolage Grotesque',sans-serif", fontSize: 13, cursor: "pointer", boxShadow: "none" }}>JOIN</button>
             </div>
             );
           })}
 
           {!creating ? (
-            <button onClick={() => setCreating(true)} style={{ width: "100%", marginTop: 12, background: YELLOW, border: `3px solid ${INK}`, padding: 12, fontFamily: "Bangers,cursive", fontSize: 17, cursor: "pointer", boxShadow: `4px 4px 0 ${INK}`, color: INK, letterSpacing: 1 }}>+ CREATE YOUR OWN GROUP</button>
+            <button onClick={() => setCreating(true)} style={{ width: "100%", marginTop: 12, background: "#14121f", border: "1px solid rgba(255,255,255,0.1)", padding: 12, fontFamily: "'Bricolage Grotesque',sans-serif", fontSize: 17, cursor: "pointer", boxShadow: "none", color: "#f5f3ff", letterSpacing: 1 }}>+ CREATE YOUR OWN GROUP</button>
           ) : (
-            <div style={{ border: `3px solid ${INK}`, background: "white", boxShadow: `4px 4px 0 ${INK}`, padding: 14, marginTop: 12 }}>
-              <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Group name…" style={{ width: "100%", border: `3px solid ${INK}`, padding: "8px 10px", fontFamily: "'Comic Neue',cursive", fontWeight: 700, fontSize: 14, outline: "none", marginBottom: 10 }} />
-              <div style={{ fontSize: 11, fontWeight: 700, color: "#888", marginBottom: 6 }}>PICK 2–4 FRIENDS:</div>
+            <div style={{ border: "1px solid rgba(255,255,255,0.1)", background: "#1a1826", boxShadow: "none", padding: 14, marginTop: 12 }}>
+              <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Group name…" style={{ width: "100%", border: "1px solid rgba(255,255,255,0.1)", padding: "8px 10px", fontFamily: "'DM Sans',sans-serif", fontWeight: 700, fontSize: 14, outline: "none", marginBottom: 10 }} />
+              <div style={{ fontSize: 11, fontWeight: 700, color: "#a9a5c0", marginBottom: 6 }}>PICK 2–4 FRIENDS:</div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
                 {AGENT_LIST.map(a => {
                   const on = newAgents.includes(a.id);
-                  return <button key={a.id} onClick={() => setNewAgents(p => on ? p.filter(x => x !== a.id) : p.length < 4 ? [...p, a.id] : p)} style={{ background: on ? PURPLE : "white", color: on ? "white" : INK, border: `2px solid ${INK}`, padding: "4px 10px", fontFamily: "Bangers,cursive", fontSize: 12, cursor: "pointer", boxShadow: `2px 2px 0 ${INK}` }}>{a.emoji} {a.name}</button>;
+                  return <button key={a.id} onClick={() => setNewAgents(p => on ? p.filter(x => x !== a.id) : p.length < 4 ? [...p, a.id] : p)} style={{ background: on ? PURPLE : "#1a1826", color: on ? "#fff" : "#f5f3ff", border: "1px solid rgba(255,255,255,0.1)", padding: "4px 10px", fontFamily: "'Bricolage Grotesque',sans-serif", fontSize: 12, cursor: "pointer", boxShadow: "none" }}>{a.emoji} {a.name}</button>;
                 })}
               </div>
               <div style={{ display: "flex", gap: 8 }}>
-                <button disabled={!newName.trim() || newAgents.length < 2} onClick={() => createGroup(newName.trim(), newAgents)} style={{ flex: 1, background: RED, color: "white", border: `3px solid ${INK}`, padding: 10, fontFamily: "Bangers,cursive", fontSize: 15, cursor: "pointer", boxShadow: `3px 3px 0 ${INK}`, opacity: (!newName.trim() || newAgents.length < 2) ? 0.5 : 1 }}>START IT!</button>
-                <button onClick={() => setCreating(false)} style={{ background: "white", border: `3px solid ${INK}`, padding: 10, fontFamily: "Bangers,cursive", fontSize: 15, cursor: "pointer", boxShadow: `3px 3px 0 ${INK}`, color: INK }}>CANCEL</button>
+                <button disabled={!newName.trim() || newAgents.length < 2} onClick={() => createGroup(newName.trim(), newAgents)} style={{ flex: 1, background: "#d6365e", color: "white", border: "1px solid rgba(255,255,255,0.1)", padding: 10, fontFamily: "'Bricolage Grotesque',sans-serif", fontSize: 15, cursor: "pointer", boxShadow: "none", opacity: (!newName.trim() || newAgents.length < 2) ? 0.5 : 1 }}>START IT!</button>
+                <button onClick={() => setCreating(false)} style={{ background: "#1a1826", border: "1px solid rgba(255,255,255,0.1)", padding: 10, fontFamily: "'Bricolage Grotesque',sans-serif", fontSize: 15, cursor: "pointer", boxShadow: "none", color: "#f5f3ff" }}>CANCEL</button>
               </div>
             </div>
           )}
@@ -247,33 +247,33 @@ export default function Groups() {
             {active.messages.map((m, i) => {
               if (m.from === "system") return (
                 <div key={i} style={{ textAlign: "center" }}>
-                  <span style={{ display: "inline-block", background: YELLOW, border: `2px solid ${INK}`, borderRadius: 100, padding: "3px 12px", fontFamily: "Bangers,cursive", fontSize: 12, color: INK, letterSpacing: 0.5, boxShadow: `2px 2px 0 ${INK}` }}>{m.text.replace(/\*/g, "")}</span>
+                  <span style={{ display: "inline-block", background: "#14121f", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 100, padding: "3px 12px", fontFamily: "'Bricolage Grotesque',sans-serif", fontSize: 12, color: "#f5f3ff", letterSpacing: 0.5, boxShadow: "none" }}>{m.text.replace(/\*/g, "")}</span>
                 </div>
               );
               const isUser = m.from === "user";
               const a = isUser ? null : getAgent(m.from);
               return (
                 <div key={i} style={{ display: "flex", flexDirection: isUser ? "row-reverse" : "row", gap: 8, alignItems: "flex-end" }}>
-                  {!isUser && <div style={{ width: 34, height: 34, borderRadius: "50%", border: `2px solid ${INK}`, background: a.look.hoodie || YELLOW, overflow: "hidden", flexShrink: 0, display: "flex", justifyContent: "center" }}>
+                  {!isUser && <div style={{ width: 34, height: 34, borderRadius: "50%", border: "1px solid rgba(255,255,255,0.1)", background: a.look.hoodie || "#2b2742", overflow: "hidden", flexShrink: 0, display: "flex", justifyContent: "center" }}>
                     <div style={{ marginTop: 1 }}><TonyCharacter size={56} look={a.look} float="none" animated={false} pose="down" /></div>
                   </div>}
                   <div style={{ maxWidth: "76%" }}>
-                    {!isUser && <div style={{ fontFamily: "Bangers,cursive", fontSize: 10, color: PURPLE, letterSpacing: 1, marginBottom: 2 }}>{a.emoji} {a.name.toUpperCase()}</div>}
-                    <div style={{ background: isUser ? "#fff0f5" : "white", border: `3px solid ${INK}`, borderLeft: isUser ? `3px solid ${INK}` : `5px solid ${a.look.hoodie || YELLOW}`, borderRadius: isUser ? "14px 4px 14px 14px" : "4px 14px 14px 14px", padding: "8px 12px", fontWeight: 700, fontSize: 13, color: INK, lineHeight: 1.5, boxShadow: `3px 3px 0 ${INK}` }}>
+                    {!isUser && <div style={{ fontFamily: "'Bricolage Grotesque',sans-serif", fontSize: 10, color: "#c4b5fd", letterSpacing: 1, marginBottom: 2 }}>{a.emoji} {a.name.toUpperCase()}</div>}
+                    <div style={{ background: isUser ? "#1d1a30" : "#1a1826", border: "1px solid rgba(255,255,255,0.1)", borderLeft: isUser ? "1px solid rgba(255,255,255,0.1)" : `3px solid ${a.look.hoodie || "#2b2742"}`, borderRadius: isUser ? "14px 4px 14px 14px" : "4px 14px 14px 14px", padding: "8px 12px", fontWeight: 700, fontSize: 13, color: "#f5f3ff", lineHeight: 1.5, boxShadow: "none" }}>
                       {m.text.replace(/\*(.*?)\*/g, "$1")}
                     </div>
                   </div>
                 </div>
               );
             })}
-            {typing && <div style={{ fontFamily: "Bangers,cursive", fontSize: 12, color: "#aaa", letterSpacing: 1 }}>{typing === "…" ? "SOMEONE IS TYPING…" : `${typing.toUpperCase()} IS TYPING…`}</div>}
+            {typing && <div style={{ fontFamily: "'Bricolage Grotesque',sans-serif", fontSize: 12, color: "#a9a5c0", letterSpacing: 1 }}>{typing === "…" ? "SOMEONE IS TYPING…" : `${typing.toUpperCase()} IS TYPING…`}</div>}
           </div>
-          <div style={{ background: YELLOW, borderTop: `3px solid ${INK}`, padding: "10px 12px", display: "flex", gap: 8, zIndex: 2 }}>
+          <div style={{ background: "#14121f", borderTop: "1px solid rgba(255,255,255,0.1)", padding: "10px 12px", display: "flex", gap: 8, zIndex: 2 }}>
             <textarea value={input} onChange={e => setInput(e.target.value)} rows={1}
               onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
               placeholder="Say something to the group…"
-              style={{ flex: 1, border: `3px solid ${INK}`, background: "white", padding: "9px 12px", fontFamily: "'Comic Neue',cursive", fontSize: 13, fontWeight: 700, resize: "none", outline: "none", boxShadow: `3px 3px 0 ${INK}`, color: INK }} />
-            <button onClick={send} disabled={!!typing} style={{ background: RED, color: "white", border: `3px solid ${INK}`, padding: "9px 14px", fontFamily: "Bangers,cursive", fontSize: 16, cursor: "pointer", boxShadow: `4px 4px 0 ${INK}` }}>SEND!</button>
+              style={{ flex: 1, border: "1px solid rgba(255,255,255,0.1)", background: "#1a1826", padding: "9px 12px", fontFamily: "'DM Sans',sans-serif", fontSize: 13, fontWeight: 700, resize: "none", outline: "none", boxShadow: "none", color: "#f5f3ff" }} />
+            <button onClick={send} disabled={!!typing} style={{ background: "#d6365e", color: "white", border: "1px solid rgba(255,255,255,0.1)", padding: "9px 14px", fontFamily: "'Bricolage Grotesque',sans-serif", fontSize: 16, cursor: "pointer", boxShadow: "none" }}>SEND!</button>
           </div>
         </>
       )}
@@ -282,16 +282,16 @@ export default function Groups() {
 
     {/* game picker — play with the group */}
     {showGames && active && (
-      <div onClick={() => setShowGames(false)} style={{ position: "fixed", inset: 0, zIndex: 140, background: "rgba(26,16,8,0.55)", display: "flex", alignItems: "center", justifyContent: "center", padding: 18 }}>
-        <div onClick={e => e.stopPropagation()} style={{ width: "100%", maxWidth: 380, background: "#fdf8f0", border: `4px solid ${INK}`, boxShadow: `6px 6px 0 ${INK}`, borderRadius: 18, padding: 18, fontFamily: "'Comic Neue',cursive" }}>
+      <div onClick={() => setShowGames(false)} style={{ position: "fixed", inset: 0, zIndex: 140, background: "rgba(8,7,14,0.75)", display: "flex", alignItems: "center", justifyContent: "center", padding: 18 }}>
+        <div onClick={e => e.stopPropagation()} style={{ width: "100%", maxWidth: 380, background: "#1d1a30", border: "1px solid rgba(255,255,255,0.1)", boxShadow: "none", borderRadius: 18, padding: 18, fontFamily: "'DM Sans',sans-serif" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-            <div style={{ fontFamily: "Bangers,cursive", fontSize: 22, color: INK, letterSpacing: 1 }}>🎮 PLAY WITH THE GROUP</div>
-            <button onClick={() => setShowGames(false)} style={{ background: "white", border: `3px solid ${INK}`, width: 30, height: 30, fontSize: 14, cursor: "pointer", boxShadow: `2px 2px 0 ${INK}` }}>✕</button>
+            <div style={{ fontFamily: "'Bricolage Grotesque',sans-serif", fontSize: 22, color: "#f5f3ff", letterSpacing: 1 }}>🎮 PLAY WITH THE GROUP</div>
+            <button onClick={() => setShowGames(false)} style={{ background: "#1a1826", border: "1px solid rgba(255,255,255,0.1)", width: 30, height: 30, fontSize: 14, cursor: "pointer", boxShadow: "none" }}>✕</button>
           </div>
-          <div style={{ fontSize: 11.5, fontWeight: 700, color: "#888", marginBottom: 12 }}>{active.agentIds.slice(0, 3).map(id => getAgent(id).name).join(", ")} are in. Multiplayer games seat the whole crew!</div>
+          <div style={{ fontSize: 11.5, fontWeight: 700, color: "#a9a5c0", marginBottom: 12 }}>{active.agentIds.slice(0, 3).map(id => getAgent(id).name).join(", ")} are in. Multiplayer games seat the whole crew!</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
             {GROUP_GAMES.map(g => (
-              <button key={g.key} onClick={() => launchGame(g.key)} style={{ display: "flex", alignItems: "center", gap: 8, background: g.multi ? PURPLE : "white", color: g.multi ? "white" : INK, border: `3px solid ${INK}`, padding: "10px 12px", fontFamily: "Bangers,cursive", fontSize: 14, letterSpacing: 1, cursor: "pointer", boxShadow: `3px 3px 0 ${INK}`, textAlign: "left" }}>
+              <button key={g.key} onClick={() => launchGame(g.key)} style={{ display: "flex", alignItems: "center", gap: 8, background: g.multi ? PURPLE : "#1a1826", color: g.multi ? "#fff" : "#f5f3ff", border: "1px solid rgba(255,255,255,0.1)", padding: "10px 12px", fontFamily: "'Bricolage Grotesque',sans-serif", fontSize: 14, letterSpacing: 1, cursor: "pointer", boxShadow: "none", textAlign: "left" }}>
                 <span style={{ fontSize: 18 }}>{g.icon}</span>
                 <span>{g.label}{g.multi && <span style={{ display: "block", fontSize: 8.5, opacity: 0.85, letterSpacing: 0 }}>4-PLAYER</span>}</span>
               </button>
@@ -322,6 +322,6 @@ export default function Groups() {
       />
     )}
 
-    <style>{`*{box-sizing:border-box;margin:0;padding:0;}body{background:linear-gradient(165deg,#f7efe3 0%,#eee0cb 55%,#e3cfae 100%);min-height:100vh;}`}</style>
+    <style>{`*{box-sizing:border-box;margin:0;padding:0;}body{background:#0f0e17;min-height:100vh;}`}</style>
   </>);
 }

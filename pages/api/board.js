@@ -6,6 +6,7 @@
 // POST /api/board?key=KEY  { action, ... }         -> { ok, tasks }
 //   actions: add{title,assignee,status} · move{id,status} · assign{id,assignee} ·
 //            edit{id,title} · delete{id} · seed
+import { randomUUID } from "crypto";
 import { configured, getRow, upsertRow } from "../../lib/db";
 import { safeKeyEq } from "../../lib/keys";
 
@@ -31,7 +32,7 @@ const SEED = [
 ];
 
 const mkTask = (t) => ({
-  id: "t_" + Math.random().toString(36).slice(2, 9),
+  id: "t_" + randomUUID(),
   title: String(t.title).slice(0, 200),
   assignee: TEAM.includes(t.assignee) ? t.assignee : "Atlas",
   status: COLS.includes(t.status) ? t.status : "todo",

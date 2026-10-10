@@ -2,8 +2,8 @@
 import { useState } from "react";
 import { CONSENT_VERSION } from "../lib/consent";
 
-const T = { bg: "#0f0e17", panel: "rgba(255,255,255,0.055)", panel2: "rgba(255,255,255,0.09)", line: "rgba(255,255,255,0.1)", text: "#f5f3ff", sub: "#9b97b0", grad: "linear-gradient(135deg,#ff5e7e 0%,#8b5cf6 100%)", pink: "#ff5e7e", violet: "#8b5cf6" };
-const font = "'Inter',system-ui,-apple-system,sans-serif";
+const T = { bg: "#0f0e17", panel: "rgba(255,255,255,0.055)", panel2: "rgba(255,255,255,0.09)", line: "rgba(255,255,255,0.1)", text: "#f5f3ff", sub: "#a9a5c0", grad: "#d6365e", pink: "#ff5e7e", violet: "#8b5cf6" };
+const font = "'DM Sans',system-ui,-apple-system,sans-serif";
 
 function Section({ icon, title, children }) {
   return (
@@ -40,7 +40,7 @@ export default function ConsentGate({ userId, onAccept }) {
     <div style={{ position: "fixed", inset: 0, zIndex: 100, background: T.bg, fontFamily: font, display: "flex", justifyContent: "center" }}>
       <div style={{ width: "100%", maxWidth: 430, height: "100%", display: "flex", flexDirection: "column" }}>
         <div style={{ padding: "20px 20px 12px" }}>
-          <div style={{ fontSize: 22, fontWeight: 900, background: T.grad, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Before you start</div>
+          <div style={{ fontSize: 22, fontWeight: 900, color: "#ff7b96" }}>Before you start</div>
           <div style={{ color: T.sub, fontSize: 12.5, marginTop: 3 }}>A quick, honest heads-up about how Rico works and your rights.</div>
         </div>
 
