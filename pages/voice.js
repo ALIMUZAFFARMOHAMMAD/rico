@@ -334,6 +334,7 @@ export default function VoicePage() {
     await new Promise(r => setTimeout(r, 700));
     try {
       const r = await fetch("/api/voice", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: [], mode: "init", userName, userId, language: langRef.current, agentId: agentRef.current.id, build: buildRef.current }) });
+      if (r.status === 401) { callActiveRef.current = false; setState(S.IDLE); setError("You're signed out — sign in again to call."); return; }
       const d = await r.json();
       const g = d.text || `Hey${userName ? ` ${userName}` : ""}! So good to hear you. What's going on?`;
       histRef.current = [{ role: "assistant", content: g }];
