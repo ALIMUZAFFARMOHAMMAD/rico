@@ -16,8 +16,20 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // ponytail: signing secrets live in android/keystore.properties (gitignored); without it, release builds stay unsigned
+    def ksFile = rootProject.file("keystore.properties")
+    signingConfigs {
+        if (ksFile.exists()) {
+            def ks = new Properties(); ksFile.withInputStream { ks.load(it) }
+            release {
+                storeFile file(ks.storeFile); storePassword ks.storePassword
+                keyAlias ks.keyAlias; keyPassword ks.keyPassword
+            }
+        }
+    }
     buildTypes {
         release {
+            if (ksFile.exists()) signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
