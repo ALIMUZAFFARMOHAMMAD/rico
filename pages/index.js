@@ -816,6 +816,7 @@ export default function Rico() {
               ["🧠", "Memory vault", <a key="m" href="/memory" style={{ color: T.sub, textDecoration: "none", fontSize: 13.5 }}>Open →</a>],
               ["📖", "How Rico works", <button key="hr" onClick={() => setNeedsTour(true)} style={{ background: "transparent", border: "none", color: T.sub, fontSize: 13.5, fontWeight: 600, cursor: "pointer", fontFamily: font }}>Take the tour →</button>],
               ["📄", "Terms & Privacy", <span key="tp" style={{ fontSize: 13.5 }}><a href="/terms" style={{ color: T.sub, textDecoration: "none" }}>Terms</a> <span style={{ color: T.line }}>·</span> <a href="/privacy" style={{ color: T.sub, textDecoration: "none" }}>Privacy</a></span>],
+              ["🗑️", "Delete account", <a key="da" href="/delete-account" style={{ color: "#f87171", textDecoration: "none", fontSize: 13.5 }}>Delete →</a>],
               ].map(([icon, label, control], i) => (
                 <div key={label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", borderTop: i ? `1px solid ${T.line}` : "none" }}>
                   <div style={{ color: T.text, fontSize: 14, fontWeight: 600 }}>{icon}&nbsp;&nbsp;{label}</div>
