@@ -65,7 +65,7 @@ Location (approximate or precise) · Financial info · Health and fitness · Con
 ## Section 3: Before you submit
 
 1. ✅ **Account deletion:** fixed. The app has Me → Delete account, and the web page is `/delete-account`. Both call `DELETE /api/account`, which removes every row the user owns, the twin and the cloned voice, career results and the Clerk user.
-2. ⚠️ **Contact email:** still open. The privacy policy says "contact us" with no address. Add a support email to `pages/privacy.js`; Play also asks for one on the listing.
+2. ✅ **Contact email:** `mohammadmuzaffarali165@gmail.com` is now in the privacy policy and terms. Use it for the Play listing too. 
 3. ✅ **Speech-to-text:** fixed. The privacy policy now names ElevenLabs for speech-to-text and links the delete page.
 
 ## Not covered by the data-safety form, but asked nearby

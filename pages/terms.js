@@ -52,7 +52,7 @@ export default function Terms() {
         <P>These terms are governed by the laws of the State of Missouri, United States, without regard to its conflict-of-laws rules, and you agree to the exclusive jurisdiction of its courts, except where mandatory local consumer-protection law gives you other rights that cannot be waived. If any provision is found unenforceable, the rest remain in effect.</P>
 
         <H>13. Contact</H>
-        <P>Questions about these terms, or to exercise your rights or request deletion of your data, contact the operator through the support contact provided in the app.</P>
+        <P>Questions about these terms, or to exercise your rights or request deletion of your data, email <a href="mailto:mohammadmuzaffarali165@gmail.com" style={{ color: T.text }}>mohammadmuzaffarali165@gmail.com</a>.</P>
 
         <div style={{ marginTop: 24, display: "flex", gap: 14 }}>
           <a href="/privacy" style={{ color: "#8b5cf6", fontSize: 13, fontWeight: 600, textDecoration: "none" }}>Privacy Policy →</a>

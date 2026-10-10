@@ -39,7 +39,7 @@ export default function Privacy() {
         <P>• <b style={{ color: T.text }}>Memory Vault</b> lets you view and delete what each agent remembers, or make an agent forget you entirely.</P>
         <P>• You can retire your twin and remove your cloned voice anytime.</P>
         <P>• You can delete your whole account and all its data at any time from Me → Delete account, or at <a href="/delete-account" style={{ color: T.text }}>ricomates.si/delete-account</a>.</P>
-        <P>• You may request access to, correction of, or full deletion of your data, and (where applicable under GDPR/CCPA) object to or restrict processing and request portability. Contact the operator via the in-app support contact.</P>
+        <P>• You may request access to, correction of, or full deletion of your data, and (where applicable under GDPR/CCPA) object to or restrict processing and request portability. Email <a href="mailto:mohammadmuzaffarali165@gmail.com" style={{ color: T.text }}>mohammadmuzaffarali165@gmail.com</a>.</P>
 
         <H>7. Retention</H>
         <P>We keep your data while your account is active. When you delete content or your account, we remove it from our systems and instruct our processors to do the same, subject to limited legal retention requirements.</P>
@@ -48,7 +48,7 @@ export default function Privacy() {
         <P>Sign-in is handled by a dedicated provider; secrets are stored server-side and never exposed to your browser. No system is perfectly secure, but we take reasonable measures to protect your data.</P>
 
         <H>9. Younger users</H>
-        <P>Rico is for users aged 13 and over. We do not knowingly collect data from anyone under 13; if you believe a child under 13 has used Rico, contact us and we will delete their data. If you are between 13 and the age of digital consent in your country, you need a parent or guardian's permission to use Rico, and they may contact us to review or delete your data.</P>
+        <P>Rico is for users aged 13 and over. We do not knowingly collect data from anyone under 13; if you believe a child under 13 has used Rico, email <a href="mailto:mohammadmuzaffarali165@gmail.com" style={{ color: T.text }}>mohammadmuzaffarali165@gmail.com</a> and we will delete their data. If you are between 13 and the age of digital consent in your country, you need a parent or guardian's permission to use Rico, and they may contact us to review or delete your data.</P>
 
         <H>10. International transfers</H>
         <P>Our processors (including Anthropic, ElevenLabs, Clerk, Supabase, and Vercel) may process your data in countries other than your own, including the United States. Where required by law, we rely on appropriate safeguards such as the EU Standard Contractual Clauses for these transfers.</P>
