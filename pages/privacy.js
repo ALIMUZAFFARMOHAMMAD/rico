@@ -13,16 +13,16 @@ export default function Privacy() {
       <div style={{ width: "100%", maxWidth: 680, padding: "22px 20px 60px" }}>
         <a href="/" style={{ color: T.text, textDecoration: "none", fontSize: 18 }}>←</a>
         <div style={{ fontSize: 26, fontWeight: 900, color: "#ff7b96", marginTop: 10 }}>Privacy Policy</div>
-        <P>Last updated: 16 June 2026</P>
+        <P>Last updated: 10 October 2026</P>
         <P>This explains what we collect, why, and the control you have. We aim to collect only what's needed to run Rico. We do not sell your personal data or share it for cross-context behavioural advertising.</P>
 
         <H>1. Who handles your data</H>
-        <P>The operator of Rico is the data controller. We use trusted processors to run the service: a sign-in provider (Clerk), a database/host (Supabase, Vercel), an AI provider for replies and analysis (Anthropic), and a voice provider for text-to-speech and voice cloning (ElevenLabs). Each only receives what's needed for its function.</P>
+        <P>The operator of Rico is the data controller. We use trusted processors to run the service: a sign-in provider (Clerk), a database/host (Supabase, Vercel), an AI provider for replies and analysis (Anthropic), and a voice provider for speech-to-text, text-to-speech and voice cloning (ElevenLabs). Each only receives what's needed for its function.</P>
 
         <H>2. What we collect</H>
         <P>• <b style={{ color: T.text }}>Account</b>: your name and email from the sign-in provider.</P>
         <P>• <b style={{ color: T.text }}>Conversations</b>: the messages you send, the AI replies, and a short personality read the AI forms from them.</P>
-        <P>• <b style={{ color: T.text }}>Calls</b>: brief text notes summarising voice calls (so your friends "remember" you). We do not retain call audio.</P>
+        <P>• <b style={{ color: T.text }}>Calls</b>: brief text notes summarising voice calls (so your friends "remember" you). During a call your speech is sent to our voice provider to be transcribed; we do not retain call audio.</P>
         <P>• <b style={{ color: T.text }}>Matches & reports</b>: who you've connected with, and any content you report.</P>
         <P>• <b style={{ color: T.text }}>Your twin</b>: the AI persona derived from your conversations, if you create one.</P>
 
@@ -38,6 +38,7 @@ export default function Privacy() {
         <H>6. Your controls & rights</H>
         <P>• <b style={{ color: T.text }}>Memory Vault</b> lets you view and delete what each agent remembers, or make an agent forget you entirely.</P>
         <P>• You can retire your twin and remove your cloned voice anytime.</P>
+        <P>• You can delete your whole account and all its data at any time from Me → Delete account, or at <a href="/delete-account" style={{ color: T.text }}>ricomates.si/delete-account</a>.</P>
         <P>• You may request access to, correction of, or full deletion of your data, and (where applicable under GDPR/CCPA) object to or restrict processing and request portability. Contact the operator via the in-app support contact.</P>
 
         <H>7. Retention</H>
