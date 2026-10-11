@@ -40,7 +40,10 @@ export default async function handler(req, res) {
 
       const form = new FormData();
       form.append("name", `rico_twin_${(userName || "user").replace(/[^a-z0-9]/gi, "")}_${String(userId).slice(-6)}`);
-      form.append("files", new Blob([buf], { type: mime || "audio/webm" }), "sample.webm");
+      // iPhone Safari can't record webm — it sends audio/mp4, so name the file to match its real format
+      const type = String(mime || "audio/webm").split(";")[0];
+      const ext = /mp4|m4a|aac/.test(type) ? "m4a" : /ogg/.test(type) ? "ogg" : /mpeg|mp3/.test(type) ? "mp3" : /wav/.test(type) ? "wav" : "webm";
+      form.append("files", new Blob([buf], { type }), `sample.${ext}`);
       form.append("description", "Rico AI-twin voice — cloned with the owner's explicit consent.");
 
       const r = await fetch(`${EL}/voices/add`, { method: "POST", headers: { "xi-api-key": apiKey }, body: form });
