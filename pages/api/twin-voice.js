@@ -1,25 +1,22 @@
 // Clone the user's real voice for their AI twin (consent-gated Instant Voice Cloning).
-// POST: take a recorded sample → ElevenLabs IVC → store voice_id on the twin.
+// POST: take a recorded sample → self-hosted voice server (RICO_VOICE_URL, unlimited clones) or,
+// if that isn't configured, ElevenLabs IVC → store the voice id on the twin.
 // DELETE: remove the cloned voice and revert the twin to a stock voice.
 import { configured, getRow, upsertRow } from "../../lib/db";
 import { twinKey, twinVoice } from "../../lib/twins";
 import { ownsUser } from "../../lib/auth";
 import { rateLimited } from "../../lib/ratelimit";
+import { selfVoiceOn, selfVoice, selfVoiceId, removeTwinVoice } from "../../lib/selfvoice";
 
 export const config = { api: { bodyParser: { sizeLimit: "8mb" } } };
 
 const EL = "https://api.elevenlabs.io/v1";
 
-async function removeVoice(apiKey, voiceId) {
-  if (!voiceId) return;
-  try { await fetch(`${EL}/voices/${voiceId}`, { method: "DELETE", headers: { "xi-api-key": apiKey } }); } catch (e) {}
-}
-
 export default async function handler(req, res) {
   if (!configured()) return res.status(500).json({ error: "Not configured" });
   if (rateLimited(req)) return res.status(429).json({ error: "Too many requests, slow down." });
   const apiKey = process.env.ELEVENLABS_API_KEY;
-  if (!apiKey) return res.status(503).json({ error: "Voice cloning isn't available right now." });
+  if (!apiKey && !selfVoiceOn()) return res.status(503).json({ error: "Voice cloning isn't available right now." });
 
   if (req.method === "POST") {
     const { userId, userName, audio, mime, consent } = req.body || {};
@@ -36,7 +33,18 @@ export default async function handler(req, res) {
       if (buf.length < 24000) return res.status(400).json({ error: "That was too short — record about 30 seconds of clear speech." });
 
       // replace any previous clone for this user (don't leak voice slots)
-      if (row.traits.voiceCloned && row.traits.voice) await removeVoice(apiKey, row.traits.voice);
+      if (row.traits.voiceCloned && row.traits.voice) await removeTwinVoice(row.traits.voice);
+
+      if (selfVoiceOn()) {
+        const id = selfVoiceId(userId);
+        const r = await selfVoice("/clone", { voice: id, audio_b64: audio }, 60000); // first call may wake a cold GPU
+        if (!r.ok) {
+          console.error("self clone error", r.status, (await r.text()).slice(0, 200));
+          return res.status(502).json({ error: r.status === 400 ? "Couldn't read that recording — try ~30s of clear speech." : "Voice cloning is busy — try again in a minute." });
+        }
+        await upsertRow(twinKey(userId), { traits: { ...row.traits, voice: `self:${id}`, voiceCloned: true } });
+        return res.status(200).json({ ok: true, cloned: true });
+      }
 
       const form = new FormData();
       form.append("name", `rico_twin_${(userName || "user").replace(/[^a-z0-9]/gi, "")}_${String(userId).slice(-6)}`);
@@ -71,7 +79,7 @@ export default async function handler(req, res) {
     if (!ownsUser(req, userId)) return res.status(403).json({ error: "forbidden" });
     const row = await getRow(twinKey(userId));
     if (row?.traits?.voiceCloned && row.traits.voice) {
-      await removeVoice(apiKey, row.traits.voice);
+      await removeTwinVoice(row.traits.voice);
       await upsertRow(twinKey(userId), { traits: { ...row.traits, voice: twinVoice(userId), voiceCloned: false } });
     }
     return res.status(200).json({ ok: true });

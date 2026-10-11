@@ -79,6 +79,7 @@ export default function VoicePage() {
     const aid = params.get("agent") || "tony";
     if (params.get("build") === "1") { buildRef.current = true; setBuildMode(true); }
     if (aid.startsWith("twin__")) {
+      fetch("/api/tts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ warm: true, agentId: aid }) }).catch(() => {}); // wake the self-hosted voice GPU before the first reply
       fetch(`/api/twin?id=${aid}`).then(r => r.json()).then(d => {
         if (d.twin) { const a = { ...d.twin, id: aid }; agentRef.current = a; setAgentObj(a); }
       }).catch(() => {});
