@@ -6,6 +6,7 @@ import { getAuth, clerkClient } from "@clerk/nextjs/server";
 import { configured, sb, getRow } from "../../lib/db";
 import { twinKey } from "../../lib/twins";
 import { rateLimited } from "../../lib/ratelimit";
+import { removeTwinVoice } from "../../lib/selfvoice";
 
 // Rows that belong to userId: "<id>", "<id>::…", "twin::<id>". LIKE treats `_` as a
 // wildcard, so the server query is broad and this exact check decides.
@@ -20,9 +21,7 @@ export default async function handler(req, res) {
 
   try {
     const twin = await getRow(twinKey(userId));
-    if (twin?.traits?.voiceCloned && twin.traits.voice && process.env.ELEVENLABS_API_KEY) {
-      await fetch(`https://api.elevenlabs.io/v1/voices/${twin.traits.voice}`, { method: "DELETE", headers: { "xi-api-key": process.env.ELEVENLABS_API_KEY } }).catch(() => {});
-    }
+    if (twin?.traits?.voiceCloned) await removeTwinVoice(twin.traits.voice);
     const enc = encodeURIComponent(userId);
     const rows = [
       ...((await sb(`/conversations?user_id=eq.${enc}&select=id,user_id`)) || []),
