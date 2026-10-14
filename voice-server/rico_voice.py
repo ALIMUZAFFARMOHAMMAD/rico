@@ -41,11 +41,21 @@ class Voice:
     def load(self):
         from chatterbox.mtl_tts import ChatterboxMultilingualTTS
         from chatterbox.tts_turbo import ChatterboxTurboTTS
+        import torch
+        torch.backends.cuda.matmul.allow_tf32 = True
+        torch.backends.cudnn.allow_tf32 = True
         # English → Turbo (350M, one-step decoder, several times faster); other languages → Multilingual (500M).
         self.models = {
             "turbo": ChatterboxTurboTTS.from_pretrained(device="cuda"),
             "mtl": ChatterboxMultilingualTTS.from_pretrained(device="cuda"),  # ponytail: PyPI 0.1.7 predates the v3 checkpoint (git master only); bump the pin when a release ships it
         }
+        # first bf16 generate compiles CUDA kernels (~25s) — pay it at boot (triggered by /warm), not on a user's first reply
+        for name, kw in (("turbo", {}), ("mtl", {"language_id": "en"})):
+            try:  # uses the model's built-in voice; never let warm-up failure crash-loop the container
+                with torch.inference_mode(), torch.autocast("cuda", dtype=torch.bfloat16):
+                    self.models[name].generate("Hello there, nice to meet you.", **kw)
+            except Exception as e:
+                print("warm-up skipped:", name, e)
         self.loaded = {}  # model name → clip whose speaker is cached. ponytail: one speaker per model per container; per-voice cache if containers juggle many callers
 
     @modal.asgi_app()
@@ -96,16 +106,21 @@ class Voice:
             name = "turbo" if lang == "en" else "mtl"
             model = self.models[name]
             prompt = None if self.loaded.get(name) == path else path  # reuse speaker conditioning when the same twin keeps talking
-            if name == "turbo":
-                wav = model.generate(text, audio_prompt_path=prompt)
-            else:
-                wav = model.generate(text, language_id=lang, audio_prompt_path=prompt)
+            import time, torch
+            t0 = time.perf_counter()
+            # bf16 autocast: half-precision matmuls, numerically sensitive ops stay fp32
+            with torch.inference_mode(), torch.autocast("cuda", dtype=torch.bfloat16, enabled=os.environ.get("RICO_FP32") != "1"):
+                if name == "turbo":
+                    wav = model.generate(text, audio_prompt_path=prompt)
+                else:
+                    wav = model.generate(text, language_id=lang, audio_prompt_path=prompt)
+            gen_ms = int((time.perf_counter() - t0) * 1000)
             self.loaded[name] = path
-            pcm = (wav.squeeze().clamp(-1, 1) * 32767).short().cpu().numpy().tobytes()
+            pcm = (wav.float().squeeze().clamp(-1, 1) * 32767).short().cpu().numpy().tobytes()
             mp3 = subprocess.run(["ffmpeg", "-f", "s16le", "-ar", str(model.sr), "-ac", "1", "-i", "pipe:0",
                                   "-codec:a", "libmp3lame", "-b:a", "64k", "-f", "mp3", "pipe:1"],
                                  input=pcm, capture_output=True, check=True).stdout
-            return Response(mp3, media_type="audio/mpeg")
+            return Response(mp3, media_type="audio/mpeg", headers={"x-gen-ms": str(gen_ms)})
 
         @api.post("/delete")
         def delete(body: dict, x_rico_key: str = Header(None)):
