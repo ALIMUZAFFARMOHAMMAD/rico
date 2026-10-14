@@ -70,7 +70,7 @@ Delete your account: https://ricomates.si/delete-account
 |---|---|
 | App category | **Social** (alternative: Lifestyle) |
 | Tags | AI chat, Social, Entertainment |
-| Contact email | mohammadmuzaffarali165@gmail.com |
+| Contact email | support@ricomates.si |
 | Website | https://ricomates.si |
 | Privacy policy URL | https://ricomates.si/privacy |
 | App icon | `rico-icon-512.png` |
