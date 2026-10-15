@@ -57,6 +57,11 @@ test('photo data is served separately and requires sign-in',async()=>{
   assert.equal(helpers.publicPost({id:'post1',image}).image,'/api/social-image?postId=post1');
   for(const[userId,code]of[[null,401],['owner',200]]){const handler=load('pages/api/social-image.js',{...imageHelpers,...helpers,getAuth:()=>({userId}),configured:()=>true,findSocialPost:async()=>({traits:{image}})},['handler']).handler;const res=response();await handler({method:'GET',query:{postId:'post1'}},res);assert.equal(res.code,code);assert.equal(res.headers['Cache-Control'],'private, no-store');}
 });
+test('social photos and activity never enter private memory or twin signal reads',async()=>{
+  const queries=[];
+  const db=load('lib/db.js',{process:{env:{}},fetch:async url=>{queries.push(url);return{ok:true,text:async()=>JSON.stringify([{user_id:'user_owner',traits:{}},{user_id:'user_owner::social::post::p',traits:{image}},{user_id:'user_owner::social::like::p',traits:{}},{user_id:'user_owner::agent::tony',traits:{}},{user_id:'userXowner::agent::tony',traits:{private:true}}])};}},['getUserRows']);
+  const rows=await db.getUserRows('user_owner');assert.ok(rows.length);assert.ok(rows.every(r=>!r.user_id.includes('::social::')));assert.ok(rows.every(r=>r.user_id.startsWith('user_owner')));assert.ok(queries.some(q=>q.includes('user_id=not.like.user_owner::social::*')));
+});
 const authors=Array.from({length:4},(_,i)=>({id:'ai'+i,name:'AI '+i,interests:['creativity'],bio:'A creative friend'}));
 function daily(overrides={}) {return load('lib/social-daily.js',{AGENT_LIST:authors,...helpers,process:{env:{ANTHROPIC_API_KEY:'test'}},getRow:async()=>null,saveSocialPost:async()=>{},fetch:async()=>({ok:true,json:async()=>({content:[{type:'text',text:JSON.stringify(authors.map(a=>({authorId:a.id,topic:'A small idea',content:'Try a five-minute sketch.'})))}]})}),...overrides},['generateDailySocial']).generateDailySocial;}
 test('daily generation creates four clearly labeled posts and same-day retries spend nothing',async()=>{
