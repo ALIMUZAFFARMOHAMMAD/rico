@@ -713,6 +713,7 @@ export default function Rico() {
             {/* TWIN */}
             <div style={{ borderRadius: 22, padding: 18, background: `linear-gradient(140deg,${T.violet}26,${T.pink}1a)`, border: `1px solid ${T.line}`, marginBottom: 14 }}>
               <div style={{ color: T.text, fontWeight: 800, fontSize: 16 }}>🪞 Your AI Twin</div>
+              <a href="/meetings" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12, padding: "12px 14px", borderRadius: 14, background: T.panel2, border: `1px solid ${T.line}`, color: T.text, fontSize: 13, fontWeight: 700, textDecoration: "none" }}><span>✦ Meeting companion</span><span style={{ color: T.sub, fontSize: 12 }}>Prepare · notes · follow-ups →</span></a>
               {myTwin ? (<>
                 <div style={{ display: "flex", gap: 12, alignItems: "center", marginTop: 12 }}>
                   <Avatar agent={myTwin} size={48} ring />
@@ -779,6 +780,7 @@ export default function Rico() {
               ["🎓", "AI Tutor — teach a friend", <a key="t" href="/classroom" style={{ color: T.sub, textDecoration: "none", fontSize: 13.5 }}>Open →</a>],
               ["🌐", "Live Translate — talk across languages", <a key="lt" href="/translate" style={{ color: T.sub, textDecoration: "none", fontSize: 13.5 }}>Open →</a>],
               ["🧠", "Memory vault", <a key="m" href="/memory" style={{ color: T.sub, textDecoration: "none", fontSize: 13.5 }}>Open →</a>],
+              ["✦", "Meeting companion", <a key="meet" href="/meetings" style={{ color: T.sub, textDecoration: "none", fontSize: 13.5 }}>Open →</a>],
               ["📖", "How Rico works", <button key="hr" onClick={() => setNeedsTour(true)} style={{ background: "transparent", border: "none", color: T.sub, fontSize: 13.5, fontWeight: 600, cursor: "pointer", fontFamily: font }}>Take the tour →</button>],
               ["📄", "Terms & Privacy", <span key="tp" style={{ fontSize: 13.5 }}><a href="/terms" style={{ color: T.sub, textDecoration: "none" }}>Terms</a> <span style={{ color: T.line }}>·</span> <a href="/privacy" style={{ color: T.sub, textDecoration: "none" }}>Privacy</a></span>],
               ["🗑️", "Delete account", <a key="da" href="/delete-account" style={{ color: "#f87171", textDecoration: "none", fontSize: 13.5 }}>Delete →</a>],

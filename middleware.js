@@ -12,7 +12,7 @@ const PAID_API = /^\/api\/(tony|banter|club-feed|group|stt|translate|tts|voice|r
 // render — every request is then anonymous (ownsUser() is always false, protected
 // API routes 403 gracefully instead of crashing). Production always has the real
 // key set in Vercel, so this branch never runs there.
-export default process.env.CLERK_SECRET_KEY
+const clerkHandler = process.env.CLERK_SECRET_KEY
   ? clerkMiddleware(async (auth, req) => {
       if (PAID_API.test(req.nextUrl.pathname)) {
         const { userId } = await auth();
@@ -21,6 +21,12 @@ export default process.env.CLERK_SECRET_KEY
       return NextResponse.next();
     })
   : () => NextResponse.next();
+
+// This endpoint uses an owner-bound, revocable PC token, not a Clerk JWT.
+export default function middleware(req, event) {
+  if (req.nextUrl.pathname === "/api/meeting-worker") return NextResponse.next();
+  return clerkHandler(req, event);
+}
 
 export const config = {
   matcher: ["/((?!_next|[^?]*\\.(?:html?|css|js|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)"],
