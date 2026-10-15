@@ -18,6 +18,9 @@ import MemorySpotlight from "../components/MemorySpotlight";
 import WeeklyDigest from "../components/WeeklyDigest";
 import SocialFeed from "../components/SocialFeed";
 import DailyHome from "../components/DailyHome";
+import SocialInbox from "../components/SocialInbox";
+import GameLobby from "../components/GameLobby";
+import { visibleMessages } from "../lib/conversation-view";
 import { captureSource, getSource } from "../lib/source";
 import { CONSENT_VERSION } from "../lib/consent";
 import Onboarding from "../components/Onboarding";
@@ -150,6 +153,12 @@ export default function Rico() {
 
   // chat state
   const [chatAgent, setChatAgent] = useState(null);
+  const [chatError, setChatError] = useState("");
+  const [chatLoadError, setChatLoadError] = useState(false);
+  const [saveState, setSaveState] = useState("idle");
+  const chatTokenRef = useRef(0);
+  const pendingSavesRef = useRef({});
+  const matchStorageKey = 'rico_matches_' + userId;
   const [chatMem, setChatMem] = useState([]); // "<Name> remembers" chips: only real facts from this friend's chat
   const [messages, setMessages] = useState([]);
   const [, setHistory] = useState([]);
@@ -320,11 +329,19 @@ export default function Rico() {
   // app at "/" is only for signed-in users.
   useEffect(() => { if (isLoaded && !isSignedIn) window.location.replace("/landing"); }, [isLoaded, isSignedIn]);
 
+  useEffect(() => {
+    chatTokenRef.current += 1;
+    pendingSavesRef.current = {};
+    setChatAgent(null); setMessages([]); setInput(""); setMatches(["tony"]); setMyTwin(null); setReady(false);
+    return () => { chatTokenRef.current += 1; };
+  }, [userId]);
+
   // matches + twins
   useEffect(() => {
-    if (!isLoaded) return;
+    if (!isLoaded || !userId) return;
+    let alive = true;
     let local = ["tony"];
-    try { const m = JSON.parse(localStorage.getItem("hitony_matches") || '["tony"]'); if (Array.isArray(m)) local = [...new Set(["tony", ...m])]; } catch (e) {}
+    try { const m = JSON.parse(localStorage.getItem(matchStorageKey) || '["tony"]'); if (Array.isArray(m)) local = [...new Set(["tony", ...m])]; } catch (e) {}
     (async () => {
       if (isSignedIn) {
         try {
@@ -335,19 +352,22 @@ export default function Rico() {
           if (missing.length) fetch("/api/matches", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, agentIds: missing }) }).catch(() => {});
         } catch (e) {}
       }
+      if (!alive) return;
       setMatches(local);
-      localStorage.setItem("hitony_matches", JSON.stringify(local));
+      try { localStorage.setItem(matchStorageKey, JSON.stringify(local)); } catch (error) {}
       try {
         const tw = await fetch(`/api/twin${userId ? `?exclude=${userId}` : ""}`).then(r => r.json());
+        if (!alive) return;
         setTwins(tw.twins || []);
         setTwinMap(Object.fromEntries((tw.twins || []).map(t => [t.id, t])));
       } catch (e) {}
       if (isSignedIn) {
         try { const mt = await fetch(`/api/twin?id=twin__${userId}`).then(r => r.json()); if (mt.twin) setMyTwin(mt.twin); } catch (e) {}
       }
-      setReady(true);
+      if (alive) setReady(true);
     })();
-  }, [isLoaded, isSignedIn]);
+    return () => { alive = false; };
+  }, [isLoaded, isSignedIn, userId, matchStorageKey]);
 
   // resolve any matched twin ids we don't know yet (cross-device)
   useEffect(() => {
@@ -401,10 +421,10 @@ export default function Rico() {
     try { if (localStorage.getItem(flag)) return; } catch (e) {}
     fetch("/api/migrate", { method: "POST" }).then(r => r.ok ? r.json() : null).then(d => {
       if (!d) return;
-      try { localStorage.setItem(flag, "1"); if (d.moved > 0) localStorage.removeItem("hitony_matches"); } catch (e) {} // stale local ids would re-add twin__<old>
+      try { localStorage.setItem(flag, "1"); if (d.moved > 0) localStorage.removeItem(matchStorageKey); } catch (e) {} // stale local ids would re-add twin__<old>
       if (d.moved > 0) window.location.reload();
     }).catch(() => {});
-  }, [isSignedIn, userId]);
+  }, [isSignedIn, userId, matchStorageKey]);
 
   // retention tracking: stamp first/last-seen + active days once per session (+ signup source)
   useEffect(() => {
@@ -439,7 +459,7 @@ export default function Rico() {
     if (dir === "right") {
       const m = [...new Set([...matches, card.id])];
       setMatches(m);
-      localStorage.setItem("hitony_matches", JSON.stringify(m));
+      localStorage.setItem(matchStorageKey, JSON.stringify(m));
       if (isSignedIn) fetch("/api/matches", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, agentIds: [card.id] }) }).catch(() => {});
       setSplash(card);
     } else {
@@ -449,7 +469,7 @@ export default function Rico() {
 
   // ---------- chat ----------
   const callAPI = useCallback(async (body) => {
-    const res = await fetch("/api/tony", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ language: langRef.current, ...body }) });
+    const res = await fetch("/api/tony", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ language: langRef.current, ...body }), signal: AbortSignal.timeout(60000) });
     if (!res.ok) throw new Error("API " + res.status);
     return res.json();
   }, []);
@@ -461,75 +481,94 @@ export default function Rico() {
     return { data, text };
   };
 
-  const cacheLast = (agentId, text) => { try { localStorage.setItem(`orbit_last_${agentId}`, text.slice(0, 64)); } catch (e) {} };
+  const cacheLast = (agentId, text) => { try { localStorage.setItem(`orbit_last_${userId}_${agentId}`, text.slice(0, 64)); } catch (e) {} };
+
+  async function saveChat(payload, token) {
+    pendingSavesRef.current[payload.agent] = payload;
+    if (token === chatTokenRef.current) setSaveState("saving");
+    try {
+      const response = await fetch("/api/conversation", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload), signal: AbortSignal.timeout(15000) });
+      if (!response.ok) throw new Error();
+      if (pendingSavesRef.current[payload.agent] === payload) delete pendingSavesRef.current[payload.agent];
+      if (token === chatTokenRef.current) { setSaveState("saved"); setChatError(""); }
+    } catch (error) {
+      if (token === chatTokenRef.current) { setSaveState("error"); setChatError("Your reply is here, but it hasn’t saved yet. Keep this page open and retry."); }
+    }
+  }
 
   async function openChat(agent) {
+    const token = ++chatTokenRef.current;
     setChatAgent(agent); setChatMem([]); setMessages([]); setHistory([]); histRef.current = []; setMsgCount(0); setResults(null);
-    setIsTyping(true);
-    let mem = null;
-    if (isSignedIn) {
-      try { mem = await fetch(`/api/conversation?userId=${userId}&agent=${agent.id}`).then(r => r.json()); } catch (e) {}
-    }
+    setChatError(""); setChatLoadError(false); setSaveState("idle"); setIsTyping(true);
+    let mem = pendingSavesRef.current[agent.id];
     try {
-      if (mem && mem.messages && mem.messages.length > 0) {
-        setHistory(mem.messages); histRef.current = mem.messages;
-        setTraits(mem.traits || { O: 0, C: 0, E: 0, A: 0, N: 0 }); setRiasec(mem.riasec || ""); setMsgCount(mem.msgCount || 0);
-        const d = await callAPI({ messages: [...mem.messages, { role: "user", content: `[RETURNING USER: ${userName}. Welcome them back warmly, reference something from your past chats naturally. 1-3 sentences.]` }], mode: "chat", userName, userId, agentId: agent.id });
-        const { data, text } = parse(d.raw || d.text);
-        setMessages([{ role: "agent", text, id: Date.now() }]);
-        const fh = [...mem.messages, { role: "assistant", content: d.raw || d.text }];
-        setHistory(fh); histRef.current = fh;
-        cacheLast(agent.id, text);
-        if (data) { setTraits({ O: data.O, C: data.C, E: data.E, A: data.A, N: data.N }); if (data.riasec) setRiasec(data.riasec); }
-      } else {
-        const d = await callAPI({ messages: [], mode: "init", userName, userId, agentId: agent.id });
-        const { text } = parse(d.raw || d.text);
-        setMessages([{ role: "agent", text, id: Date.now() }]);
-        const fh = [{ role: "user", content: "[START]" }, { role: "assistant", content: d.raw || d.text }];
-        setHistory(fh); histRef.current = fh;
-        cacheLast(agent.id, text);
+      if (!mem && isSignedIn) {
+        const response = await fetch(`/api/conversation?userId=${encodeURIComponent(userId)}&agent=${encodeURIComponent(agent.id)}`, { signal: AbortSignal.timeout(15000) });
+        if (!response.ok) throw new Error("load");
+        mem = await response.json();
       }
-    } catch (e) {
-      setMessages([{ role: "agent", text: `Hey! I'm ${agent.name} — so glad we matched. What's on your mind?`, id: Date.now() }]);
-    }
-    setIsTyping(false);
+      if (token !== chatTokenRef.current) return;
+      if (mem?.messages?.length) {
+        setHistory(mem.messages); histRef.current = mem.messages;
+        setMessages(visibleMessages(mem.messages));
+        setTraits(Object.fromEntries(["O", "C", "E", "A", "N"].map(key => [key, mem.traits?.[key] || 0])));
+        setRiasec(mem.riasec || ""); setMsgCount(mem.msgCount || 0);
+        setSaveState(pendingSavesRef.current[agent.id] ? "error" : "saved");
+        if (pendingSavesRef.current[agent.id]) setChatError("This conversation has unsaved messages. Retry to keep them on your account.");
+      } else {
+        setTraits({ O: 0, C: 0, E: 0, A: 0, N: 0 }); setRiasec("");
+        const response = await callAPI({ messages: [], mode: "init", userName, userId, agentId: agent.id });
+        if (token !== chatTokenRef.current) return;
+        const raw = response.raw || response.text;
+        if (typeof raw !== "string" || !raw.trim()) throw new Error("reply");
+        setMessages([{ role: "agent", text: parse(raw).text, id: Date.now() }]);
+        const history = [{ role: "user", content: "[START]" }, { role: "assistant", content: raw }];
+        setHistory(history); histRef.current = history;
+      }
+    } catch (error) {
+      if (token === chatTokenRef.current) { setChatLoadError(true); setChatError("We couldn’t open this conversation. Retry before sending so your saved history stays together."); }
+    } finally { if (token === chatTokenRef.current) setIsTyping(false); }
   }
 
   async function send(textArg) {
     const msg = (typeof textArg === "string" ? textArg : input).trim();
-    if (!msg || isTyping || !chatAgent) return;
-    if (getStoredPref() === "auto") { const d = detectLang(msg); if (d && d !== langRef.current) { langRef.current = d; storeDetectedLang(d); } }
-    setInput("");
-    setMessages(p => [...p, { role: "user", text: msg, id: Date.now() }]);
-    const nh = [...histRef.current, { role: "user", content: msg }];
-    setHistory(nh); histRef.current = nh;
+    if (!msg || isTyping || !chatAgent || chatLoadError || (saveState === "error" || saveState === "saving")) return;
+    const token = chatTokenRef.current;
+    const agent = chatAgent;
+    const previousHistory = histRef.current;
+    const previousMessages = messages;
+    if (getStoredPref() === "auto") { const detected = detectLang(msg); if (detected && detected !== langRef.current) { langRef.current = detected; storeDetectedLang(detected); } }
+    setInput(""); setChatError("");
+    setMessages(previous => [...previous, { role: "user", text: msg, id: Date.now() }]);
+    const nextHistory = [...previousHistory, { role: "user", content: msg }];
     setIsTyping(true);
     try {
-      const d = await callAPI({ messages: nh, mode: "chat", userName, userId, agentId: chatAgent.id });
-      const { data, text } = parse(d.raw || d.text);
-      setMessages(p => [...p, { role: "agent", text, id: Date.now() }]);
+      const response = await callAPI({ messages: nextHistory, mode: "chat", userName, userId, agentId: agent.id });
+      if (token !== chatTokenRef.current) return;
+      const raw = response.raw || response.text;
+      if (typeof raw !== "string" || !raw.trim()) throw new Error();
+      const { data, text } = parse(raw);
+      setMessages(previous => [...previous, { role: "agent", text, id: Date.now() + 1 }]);
       if (data?.expr) reactTo(data.expr);
-      cacheLast(chatAgent.id, text);
-      const fh = [...nh, { role: "assistant", content: d.raw || d.text }];
-      setHistory(fh); histRef.current = fh;
-      const nt = data ? { O: data.O, C: data.C, E: data.E, A: data.A, N: data.N } : traits;
-      if (data) { setTraits(nt); if (data.riasec) setRiasec(data.riasec); }
-      const nc = msgCount + 2; setMsgCount(nc);
-      if (isSignedIn) fetch("/api/conversation", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, agent: chatAgent.id, messages: fh, traits: nt, riasec: data?.riasec || riasec, msgCount: nc }) }).catch(() => {});
-      // Activation (North Star leading indicator): first real conversation = 6+ messages. Fire once.
-      if (isSignedIn && userId && nc >= 6) {
+      cacheLast(agent.id, text);
+      const fullHistory = [...nextHistory, { role: "assistant", content: raw }];
+      setHistory(fullHistory); histRef.current = fullHistory;
+      const scores = Object.fromEntries(["O", "C", "E", "A", "N"].map(key => [key, Number.isFinite(data?.[key]) ? Math.max(0, Math.min(100, data[key])) : traits[key] || 0]));
+      setTraits(scores); if (data?.riasec) setRiasec(data.riasec);
+      const count = msgCount + 2; setMsgCount(count);
+      if (isSignedIn) await saveChat({ userId, agent: agent.id, messages: fullHistory, traits: scores, riasec: data?.riasec || riasec, msgCount: count }, token);
+      if (isSignedIn && count >= 6) {
         try {
-          const ak = `rico_act_${userId}`;
-          if (!localStorage.getItem(ak)) {
-            localStorage.setItem(ak, "1");
+          const key = `rico_act_${userId}`;
+          if (!localStorage.getItem(key)) {
+            localStorage.setItem(key, "1");
             fetch("/api/track", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, event: "activation" }) }).catch(() => {});
           }
-        } catch (e) {}
+        } catch (error) {}
       }
-    } catch (e) {
-      setMessages(p => [...p, { role: "agent", text: "Something went quiet on my end — say that again?", id: Date.now() }]);
-    }
-    setIsTyping(false);
+    } catch (error) {
+      if (token === chatTokenRef.current) { setMessages(previousMessages); setInput(msg); setChatError("Your message couldn’t be sent. It’s back in the box below—try again when you’re ready."); }
+    } finally { if (token === chatTokenRef.current) setIsTyping(false); }
   }
 
   async function revealResults() {
@@ -597,7 +636,7 @@ export default function Rico() {
       {needsConsent && isSignedIn && <ConsentGate userId={userId} onAccept={() => setNeedsConsent(false)} />}
       {!needsConsent && needsTour && isSignedIn && <Onboarding onDone={finishTour} />}
       {/* phone canvas */}
-      <div className="rm-app-shell" data-home={tab === "home" && !chatAgent ? "true" : "false"} style={{ width: "100%", maxWidth: tab === "home" && !chatAgent ? 1120 : 430, height: "100dvh", position: "relative", zIndex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div className="rm-app-shell" data-home={tab === "home" && !chatAgent ? "true" : "false"} style={{ width: "100%", maxWidth: chatAgent ? 760 : ["home", "chats"].includes(tab) ? 1120 : 640, height: "100dvh", position: "relative", zIndex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
 
         {/* top bar */}
         <div style={{ padding: "16px 20px 10px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -622,7 +661,7 @@ export default function Rico() {
                 if (!matches.includes(id)) {
                   const next = [...new Set([...matches, id])];
                   setMatches(next);
-                  try { localStorage.setItem("hitony_matches", JSON.stringify(next)); } catch (error) {}
+                  try { localStorage.setItem(matchStorageKey, JSON.stringify(next)); } catch (error) {}
                   fetch("/api/matches", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, agentIds: [id] }) }).catch(() => {});
                 }
                 openChat(agent);
@@ -660,57 +699,11 @@ export default function Rico() {
         )}
 
         {/* ===== CHATS ===== */}
-        {tab === "chats" && (
-          <div style={{ flex: 1, overflowY: "auto", padding: "4px 18px 80px" }}>
-            {/* Flagship #1 stays first on Chats: "Rico texts you first" only works if it's seen first. */}
-            {isSignedIn && userId && (
-              <ProactiveCheckin
-                userId={userId}
-                lang={langRef.current}
-                T={T}
-                font={font}
-                onOpen={(id) => { const a = lookup(id); if (a) openChat(a); }}
-              />
-            )}
-            <div style={{ display: "flex", gap: 9, margin: "6px 0 14px" }}>
-              <a href="/groups" style={{ flex: 1, display: "flex", alignItems: "center", gap: 9, textDecoration: "none", background: `linear-gradient(140deg,${T.violet}22,${T.pink}14)`, border: `1px solid ${T.line}`, borderRadius: 16, padding: "12px 13px" }}>
-                <span aria-hidden="true" style={{ width: 38, height: 38, borderRadius: 12, background: "rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "center", color: "#c4b5fd", flexShrink: 0 }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="8" r="3.5" /><circle cx="17" cy="9.5" r="2.5" /><path d="M3 19c.8-3.2 3.2-5 6-5s5.2 1.8 6 5M15 14.6c2.6 0 4.6 1.5 5.2 4.4" /></svg></span>
-                <span><span style={{ display: "block", color: T.text, fontWeight: 700, fontSize: 13 }}>Group chat</span><span style={{ color: T.sub, fontSize: 10.5 }}>Friends in one room</span></span>
-              </a>
-              <a href="/classroom" style={{ flex: 1, display: "flex", alignItems: "center", gap: 9, textDecoration: "none", background: `linear-gradient(140deg,${T.pink}1c,${T.violet}22)`, border: `1px solid ${T.line}`, borderRadius: 16, padding: "12px 13px" }}>
-                <span aria-hidden="true" style={{ width: 38, height: 38, borderRadius: 12, background: "rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "center", color: "#ff7b96", flexShrink: 0 }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m2 9 10-5 10 5-10 5z" /><path d="M6 11v5c3 2.5 9 2.5 12 0v-5M22 9v6" /></svg></span>
-                <span><span style={{ display: "block", color: T.text, fontWeight: 700, fontSize: 13 }}>AI Tutor</span><span style={{ color: T.sub, fontSize: 10.5 }}>Teach a friend</span></span>
-              </a>
-            </div>
-            <a href="/translate" style={{ display: "flex", alignItems: "center", gap: 9, textDecoration: "none", background: `linear-gradient(140deg,${T.teal || "#2dd4bf"}1e,${T.violet}1e)`, border: `1px solid ${T.line}`, borderRadius: 16, padding: "12px 13px", marginBottom: 14 }}>
-              <span aria-hidden="true" style={{ width: 38, height: 38, borderRadius: 12, background: "rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "center", color: "#5eead4", flexShrink: 0 }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18" /></svg></span>
-              <span style={{ flex: 1 }}><span style={{ display: "block", color: T.text, fontWeight: 700, fontSize: 13 }}>Live Translate</span><span style={{ color: T.sub, fontSize: 10.5 }}>Real-time interpreter — talk to anyone in another language</span></span>
-              <span style={{ color: T.sub, fontSize: 16 }}>→</span>
-            </a>
-            <a href="/notebook" style={{ display: "flex", alignItems: "center", gap: 9, textDecoration: "none", background: `linear-gradient(140deg,${T.pink}18,${T.violet}1e)`, border: `1px solid ${T.line}`, borderRadius: 16, padding: "12px 13px", marginBottom: 14 }}>
-              <span aria-hidden="true" style={{ width: 38, height: 38, borderRadius: 12, background: "rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fbbf24", flexShrink: 0 }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z" /><path d="M5 17a3 3 0 0 1 3-3h11M9 8h6" /></svg></span>
-              <span style={{ flex: 1 }}><span style={{ display: "block", color: T.text, fontWeight: 700, fontSize: 13 }}>Rough Notebook</span><span style={{ color: T.sub, fontSize: 10.5 }}>Snap your handwritten notes — Rico remembers them</span></span>
-              <span style={{ color: T.sub, fontSize: 16 }}>→</span>
-            </a>
-            <div style={{ color: T.sub, fontSize: 12, fontWeight: 600, letterSpacing: 1.2, textTransform: "uppercase", margin: "6px 2px 12px" }}>Your people</div>
-            {matches.map((id, i) => {
-              const a = lookup(id);
-              let last = ""; try { last = localStorage.getItem(`orbit_last_${id}`) || ""; } catch (e) {}
-              return (
-                <motion.div key={id} role="button" tabIndex={0} aria-label={`Chat with ${a.name}`} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openChat(a); } }} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 8) * 0.05, type: "spring", stiffness: 320, damping: 28 }} whileTap={{ scale: 0.97 }} onClick={() => openChat(a)} style={{ display: "flex", alignItems: "center", gap: 13, padding: "11px 12px", borderRadius: 18, background: T.panel, border: `1px solid ${T.line}`, marginBottom: 10, cursor: "pointer", backdropFilter: "blur(10px)" }}>
-                  <Avatar agent={a} size={50} ring />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ color: T.text, fontWeight: 700, fontSize: 15, display: "flex", alignItems: "center", gap: 6 }}>
-                      {a.name} {a.isTwin && <span style={{ fontSize: 10, fontWeight: 700, color: T.violet, background: `${T.violet}22`, padding: "2px 7px", borderRadius: 100 }}>TWIN</span>}
-                    </div>
-                    <div style={{ color: T.sub, fontSize: 12.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{last || a.bio}</div>
-                  </div>
-                  <a href={`/voice?agent=${id}`} onClick={e => e.stopPropagation()} style={{ width: 40, height: 40, borderRadius: "50%", background: T.panel2, border: `1px solid ${T.line}`, display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none", fontSize: 16 }}>📞</a>
-                </motion.div>
-              );
-            })}
-          </div>
-        )}
+        {tab === "chats" && <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
+          <SocialInbox key={chatAgent ? "chat-open" : "inbox"} userId={userId} friends={matches.map(lookup).filter(Boolean)} onChat={agent => { setInput(""); openChat(agent); }} onDiscover={() => setTab(allMet ? "social" : "discover")} onProfile={() => setTab("me")} onPlay={() => { setInput(""); openChat(lookup("tony")); setShowGames(true); }}>
+            <ProactiveCheckin userId={userId} lang={langRef.current} T={T} font={font} onOpen={id => openChat(lookup(id))} />
+          </SocialInbox>
+        </div>}
 
         {/* ===== SOCIAL — unified cross-club feed ===== */}
         {tab === "social" && (
@@ -898,11 +891,11 @@ export default function Rico() {
               <div style={{ position: "relative", zIndex: 2, display: "flex", flexDirection: "column", height: "100%" }}>
                 {/* chat header */}
                 <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", borderBottom: `1px solid ${T.line}`, background: "rgba(15,14,23,0.7)", backdropFilter: "blur(14px)" }}>
-                  <button onClick={() => setChatAgent(null)} style={{ background: "transparent", border: "none", color: T.text, fontSize: 20, cursor: "pointer", padding: 4 }}>←</button>
+                  <button aria-label="Back to your friends" disabled={isTyping} onClick={() => { chatTokenRef.current += 1; setChatAgent(null); setIsTyping(false); }} style={{ background: "transparent", border: "none", color: T.text, fontSize: 20, cursor: "pointer", padding: 4, opacity: isTyping ? 0.4 : 1 }}>←</button>
                   <Avatar agent={chatAgent} size={40} ring emote={chatEmote} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ color: T.text, fontWeight: 700, fontSize: 15 }}>{chatAgent.name}</div>
-                    <div style={{ color: T.sub, fontSize: 11.5 }}>{isTyping ? "typing…" : tier}</div>
+                    <div style={{ color: T.sub, fontSize: 11.5 }}>{isTyping ? "Thinking of a reply…" : `${chatAgent.isTwin ? "AI twin" : "AI friend"} · ${tier}`}</div>
                   </div>
                   {msgCount >= 6 && <button onClick={revealResults} disabled={loadingResults} title="Personality reveal" style={{ background: T.panel2, border: `1px solid ${T.line}`, color: T.text, borderRadius: 100, padding: "7px 12px", fontSize: 13, cursor: "pointer" }}>{loadingResults ? "…" : "✨"}</button>}
                   <a href={`/voice?agent=${chatAgent.id}`} style={{ width: 40, height: 40, borderRadius: "50%", background: T.grad, display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none", fontSize: 16 }}>📞</a>
@@ -915,8 +908,10 @@ export default function Rico() {
                     </div>
                   </div>
                 )}
+                <div className="rm-chat-status" role="status">{saveState === "saving" ? "Saving your conversation…" : saveState === "saved" ? "✓ Conversation saved" : "Your conversation"}</div>
+                {chatError && <div className="rm-chat-notice" role="alert">{chatError}<button disabled={saveState === "saving" || isTyping} onClick={() => chatLoadError ? openChat(chatAgent) : pendingSavesRef.current[chatAgent.id] ? saveChat(pendingSavesRef.current[chatAgent.id], chatTokenRef.current) : setChatError("")}>{chatLoadError ? "Try loading again" : saveState === "error" ? "Retry save" : "Dismiss"}</button></div>}
                 {/* messages */}
-                <div ref={panelRef} style={{ flex: 1, overflowY: "auto", padding: "16px 16px 70px", display: "flex", flexDirection: "column", gap: 10 }}>
+                <div ref={panelRef} role="log" aria-label="Conversation messages" aria-live="polite" style={{ flex: 1, overflowY: "auto", padding: "16px 16px 70px", display: "flex", flexDirection: "column", gap: 10 }}>
                   {messages.map(m => (
                     <motion.div key={m.id} initial={{ opacity: 0, y: 10, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ type: "spring", stiffness: 380, damping: 28 }}
                       style={{ alignSelf: m.role === "user" ? "flex-end" : "flex-start", maxWidth: "80%", position: "relative" }}
@@ -926,7 +921,7 @@ export default function Rico() {
                         background: m.role === "user" ? T.grad : T.panel2,
                         border: m.role === "user" ? "none" : `1px solid ${T.line}`,
                         borderRadius: m.role === "user" ? "20px 20px 5px 20px" : "20px 20px 20px 5px",
-                        backdropFilter: "blur(8px)",
+                        backdropFilter: "blur(8px)", whiteSpace: "pre-wrap", overflowWrap: "anywhere",
                       }} dangerouslySetInnerHTML={{ __html: m.text.replace(/</g, "&lt;").replace(/\*(.*?)\*/g, "<em>$1</em>") }} />
                     </motion.div>
                   ))}
@@ -953,10 +948,10 @@ export default function Rico() {
                 <div style={{ padding: "10px 14px 14px", display: "flex", gap: 9, alignItems: "center", background: "rgba(15,14,23,0.8)", backdropFilter: "blur(14px)", borderTop: `1px solid ${T.line}` }}>
                   {chatAgent.id === "tony" && <button onClick={() => { setResumeMsg(""); setShowResume(true); }} disabled={isTyping} aria-label="Share your résumé" title="Share your résumé with Tony" style={{ width: 46, height: 46, borderRadius: "50%", background: T.panel2, border: `1px solid ${T.line}`, color: T.text, fontSize: 17, cursor: "pointer", flexShrink: 0 }}>📄</button>}
                   <button onClick={() => setShowGames(true)} disabled={isTyping} aria-label="Play a game" title="Play a game" style={{ width: 46, height: 46, borderRadius: "50%", background: T.panel2, border: `1px solid ${T.line}`, color: T.text, fontSize: 18, cursor: "pointer", flexShrink: 0 }}>🎮</button>
-                  <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter") send(); }}
+                  <input value={input} onChange={e => setInput(e.target.value)} aria-label={`Message ${chatAgent.name}`} maxLength={8000} disabled={chatLoadError} onKeyDown={e => { if (e.key === "Enter" && !e.nativeEvent.isComposing) send(); }}
                     placeholder={`Message ${chatAgent.name}…`}
-                    style={{ flex: 1, background: T.panel2, border: `1px solid ${T.line}`, borderRadius: 100, padding: "13px 18px", color: T.text, fontSize: 14, outline: "none", fontFamily: font }} />
-                  <motion.button whileTap={{ scale: 0.85 }} onClick={() => send()} disabled={isTyping} style={{ width: 46, height: 46, borderRadius: "50%", background: T.grad, border: "none", color: "white", fontSize: 17, cursor: "pointer", flexShrink: 0 }}>↑</motion.button>
+                    style={{ flex: 1, minWidth: 0, background: T.panel2, border: `1px solid ${T.line}`, borderRadius: 100, padding: "13px 18px", color: T.text, fontSize: 14, outline: "none", fontFamily: font }} />
+                  <motion.button whileTap={{ scale: 0.85 }} onClick={() => send()} aria-label="Send message" disabled={isTyping || chatLoadError || (saveState === "error" || saveState === "saving") || !input.trim()} style={{ width: 46, height: 46, borderRadius: "50%", background: T.grad, border: "none", color: "white", fontSize: 17, cursor: "pointer", flexShrink: 0 }}>↑</motion.button>
                 </div>
               </div>
             </motion.div>
@@ -998,24 +993,7 @@ export default function Rico() {
           )}
         </AnimatePresence>
 
-        {/* games picker */}
-        <AnimatePresence>
-          {showGames && chatAgent && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowGames(false)} style={{ position: "absolute", inset: 0, zIndex: 45, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "flex-end" }}>
-              <motion.div initial={{ y: 360 }} animate={{ y: 0 }} exit={{ y: 400 }} transition={{ type: "spring", stiffness: 300, damping: 30 }} onClick={e => e.stopPropagation()} style={{ width: "100%", background: "#1a1626", borderRadius: "24px 24px 0 0", padding: "20px 18px 26px", border: `1px solid ${T.line}` }}>
-                <div style={{ color: T.text, fontWeight: 800, fontSize: 16, marginBottom: 2 }}>🎮 Play a game with {chatAgent.name}</div>
-                <div style={{ color: T.sub, fontSize: 12.5, marginBottom: 14 }}>Pick one — or just ask {chatAgent.name} for any game you like.</div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 9 }}>
-                  {GAMES.map(g => (
-                    <button key={g.key} onClick={() => startGame(g)} style={{ display: "flex", alignItems: "center", gap: 9, textAlign: "left", background: T.panel2, border: `1px solid ${T.line}`, color: T.text, fontWeight: 600, fontSize: 13, padding: "12px 13px", borderRadius: 14, cursor: "pointer", fontFamily: font }}>
-                      <span style={{ fontSize: 18, flexShrink: 0 }}>{g.icon}</span><span style={{ flex: 1 }}>{g.label}</span>{g.board && <span style={{ fontSize: 8.5, color: T.violet, fontWeight: 700, border: `1px solid ${T.line}`, borderRadius: 5, padding: "2px 4px" }}>BOARD</span>}
-                    </button>
-                  ))}
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {showGames && chatAgent && <GameLobby games={GAMES} friend={chatAgent} busy={isTyping || chatLoadError || saveState === "error" || saveState === "saving"} onStart={startGame} onClose={() => setShowGames(false)} />}
 
         {/* résumé sheet (Tony only) */}
         <AnimatePresence>

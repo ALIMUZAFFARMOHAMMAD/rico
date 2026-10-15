@@ -1,0 +1,18 @@
+.shell { min-height: 100dvh; display: grid; grid-template-columns: 1fr 1fr; background: #faf8fd; color: #30263b; }
+.story { background: #e9dff4; padding: 40px clamp(24px,5vw,80px); display: flex; flex-direction: column; justify-content: space-between; gap: 34px; overflow: hidden; }
+.logo { font-weight: 800; font-size: 25px; color: #493059; text-decoration: none; letter-spacing: -.04em; }
+.tag { font-size: 11px; text-transform: uppercase; letter-spacing: .12em; font-weight: 800; color: #745c88; }
+.story h1 { font-size: clamp(38px,4.6vw,68px); line-height: 1.04; letter-spacing: -.045em; margin: 18px 0; }
+.story p { color: #665271; font-size: 16px; line-height: 1.7; }
+.scene { align-self: center; position: relative; padding-top: 30px; width: 280px; height: 260px; display: flex; justify-content: center; background: #f5ccae; border-radius: 140px 140px 32px 32px; }
+.bubble { position: absolute; top: -12px; right: -18px; background: #fff; padding: 15px 19px; border-radius: 20px 20px 20px 4px; font-size: 12px; box-shadow: 0 12px 40px #49305916; }
+.pills { display: flex; flex-wrap: wrap; gap: 8px; }
+.pills span { border: 1px solid #cfbddf; border-radius: 99px; padding: 9px 12px; font-size: 11px; color: #5a416e; }
+.form { padding: 48px 24px; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+.heading { width: 100%; max-width: 420px; margin-bottom: 24px; }
+.heading h2 { font-size: 29px; margin: 10px 0; line-height: 1.12; }
+.heading p, .privacy { color: #756b80; font-size: 13px; line-height: 1.7; }
+.privacy { max-width: 370px; margin: 20px 0; text-align: center; }
+.links { display: flex; gap: 24px; }
+.links a { color: #7046a3; font-size: 12px; }
+@media(max-width: 760px) { .shell { grid-template-columns: 1fr; align-content: start; } .story { padding: 24px; gap: 22px; justify-content: flex-start; } .story h1 { font-size: 36px; } .story p, .scene, .pills { display: none; } .form { padding: 28px 16px; } .heading h2 { font-size: 25px; } }
