@@ -5,7 +5,7 @@ import { NextResponse } from "next/server";
 // APIs check ownership with lib/auth ownsUser). The routes below spend Anthropic/ElevenLabs
 // credits, so a signed-out caller gets a 401 before any money is spent. All app pages already
 // require sign-in, so no real user ever hits this as anonymous.
-const PAID_API = /^\/api\/(tony|banter|club-feed|group|stt|translate|tts|voice|resume|tutor|notebook|avatar|checkin|remembers|digest|twin-voice)(\/|$)/;
+const PAID_API = /^\/api\/(tony|banter|club-feed|group|stt|translate|tts|voice|resume|tutor|notebook|avatar|portrait|checkin|remembers|digest|twin-voice)(\/|$)/;
 
 // Local dev without a real CLERK_SECRET_KEY would otherwise 500 on every request
 // (Clerk needs a valid secret to authenticate requests). Skip Clerk entirely in that case so pages still

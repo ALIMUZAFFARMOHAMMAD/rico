@@ -478,7 +478,7 @@ export default function GameBoard({ game, agent, onClose, friends, onGameEnd }) 
       <div className={w.room}>
         <div className={w.boardStage}><Game say={say} friendName={name} players={friends} onWin={notifyEnd} /></div>
         <aside className={w.roomInfo} aria-label="Game information">
-          <div className={w.opponent}><div style={{ width: 42, height: 42, overflow: "hidden", borderRadius: 12, background: "#34463a", display: "flex", justifyContent: "center" }}><TonyCharacter size={64} look={agent?.look || {}} float="none" animated={false} pose="down" /></div><div><strong>{name}</strong><small>{agent?.isTwin ? "AI twin" : "AI opponent"}</small></div></div>
+          <div className={w.opponent}><div style={{ width: 42, height: 42, overflow: "hidden", borderRadius: 12, background: "#34463a", display: "flex", justifyContent: "center" }}>{agent?.avatar ? <img src={agent.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <TonyCharacter size={64} look={agent?.look || {}} float="none" animated={false} pose="down" />}</div><div><strong>{name}</strong><small>{agent?.isTwin ? "AI twin" : "AI opponent"}</small></div></div>
           <h3>How to play</h3><p>{GAME_GUIDE[game]?.rules}</p>
           <h3>From {name}</h3><p className={w.roomNote} role="status">{banter}</p>
           <p>Use the controls below the board to start a new round. Closing this room ends the current game.</p>

@@ -44,8 +44,8 @@ test('invalid palettes including truthy non-boolean facial hair are rejected',()
   assert.equal(palette.cleanLook({...look,beard:'false'}),null);assert.equal(palette.cleanLook({...look,hair:'javascript:x'}),null);assert.equal(palette.cleanLook(look).beard,false);
 });
 test('refreshing twin preserves its custom appearance and cloned voice',async()=>{
-  let saved; const res=response(); const previous={persona:'Previous persona',look,voice:'self:clone',voiceCloned:true};
+  let saved; const res=response(); const previous={persona:'Previous persona',look,voice:'self:clone',voiceCloned:true,portrait:'saved-photo',avatar:'/api/twin-portrait?id=twin__owner',avatarKind:'ai-portrait'};
   const twin=load('pages/api/twin.js',{configured:()=>true,rateLimited:()=>false,ownsUser:()=>true,getUserRows:async()=>[{user_id:'owner',messages:Array.from({length:12},()=>({role:'user',content:'A substantive conversation message'})),traits:{O:60}}],parseKey:()=>({kind:'tony'}),getRow:async()=>({traits:previous}),twinKey:id=>id,twinLook:()=>({wrong:true}),twinVoice:()=> 'stock',saveTwin:async(_,value)=>{saved=value;},process:{env:{}},fetch:async()=>({json:async()=>({content:[{text:JSON.stringify({name:'Test',persona:'Refreshed persona'})}]})})},['handler']).handler;
   await twin({method:'POST',body:{userId:'owner',userName:'Test'}},res);
-  assert.equal(res.code,200);assert.equal(saved.look,look);assert.equal(saved.voice,'self:clone');assert.equal(saved.voiceCloned,true);assert.equal(saved.persona,'Refreshed persona');
+  assert.equal(res.code,200);assert.equal(saved.look,look);assert.equal(saved.voice,'self:clone');assert.equal(saved.voiceCloned,true);assert.equal(saved.persona,'Refreshed persona');assert.equal(saved.portrait,'saved-photo');assert.equal(saved.avatarKind,'ai-portrait');assert.equal(res.body.twin.portrait,undefined);
 });

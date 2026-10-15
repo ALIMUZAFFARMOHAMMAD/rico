@@ -16,7 +16,7 @@ function middleware(userId) {
   return pathname => context.module.exports({ nextUrl: { pathname } });
 }
 test('signed-out paid APIs return 401 without redirecting to HTML', async () => {
-  for (const route of ['tony', 'voice', 'tts', 'stt', 'resume', 'twin-voice', 'group']) {
+  for (const route of ['tony', 'voice', 'tts', 'stt', 'resume', 'twin-voice', 'group', 'portrait']) {
     assert.equal((await middleware(null)('/api/' + route)).status, 401);
   }
 });

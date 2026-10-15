@@ -112,7 +112,7 @@ function SwipeCard({ agent, onDecide, topCard, exitDir = "left" }) {
         <div style={{ flex: 1.35, background: `radial-gradient(120% 100% at 50% 0%, ${agent.look?.hoodie || "#ffe566"}40 0%, #161226 70%)`, display: "flex", alignItems: "flex-end", justifyContent: "center", position: "relative", overflow: "hidden" }}>
           <div aria-hidden="true" style={{ position: "absolute", width: 250, height: 250, top: 18, borderRadius: "50%", border: "2px dashed rgba(255,255,255,0.22)", animation: "rm-orbit 18s linear infinite" }}><div style={{ position: "absolute", width: 12, height: 12, borderRadius: "50%", background: "#fff", top: 20, left: 42 }} /></div>
           <div aria-hidden="true" style={{ position: "absolute", width: 330, height: 330, top: -22, borderRadius: "50%", border: "1px solid rgba(255,255,255,0.12)", animation: "rm-orbit-rev 30s linear infinite" }} />
-          <TonyCharacter size={235} look={agent.look || {}} float="none" animated={false} pose="down" expr="😊" emote={topCard ? em : "none"} />
+          {agent.avatar ? <img src={agent.avatar} alt={`${agent.name}'s AI portrait`} style={{ width: "100%", height: "100%", objectFit: "cover", position: "absolute", inset: 0 }} /> : <TonyCharacter size={235} look={agent.look || {}} float="none" animated={false} pose="down" expr="😊" emote={topCard ? em : "none"} />}
           <div style={{ position: "absolute", top: 14, left: 14, display: "flex", gap: 6 }}>
             <span style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(8px)", border: `1px solid ${T.line}`, color: T.text, fontSize: 11.5, fontWeight: 700, padding: "5px 11px", borderRadius: 100 }}>
               {agent.isTwin ? "TWIN · echo of a real person" : `AI FRIEND · ${agent.archetype}`}
@@ -729,7 +729,7 @@ export default function Rico() {
                   <span style={{ color: T.sub, fontSize: 12.5, fontWeight: 700 }}>Make it from my photo →</span>
                 </button>
                 {lookSaved && <div role="status" style={{ color: "#4ade80", fontSize: 12, marginTop: 8 }}>Your twin’s new look is saved ✓</div>}
-                <div style={{ color: T.sub, fontSize: 10.5, marginTop: 6, lineHeight: 1.45 }}>Preview a cartoon inspired by your photo, adjust its colours, and save it to your twin.</div>
+                <div style={{ color: T.sub, fontSize: 10.5, marginTop: 6, lineHeight: 1.45 }}>Create a realistic AI portrait from your photo. Preview it before saving it to your twin.</div>
                 <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
                   <button onClick={createTwin} disabled={twinBusy} style={{ flex: 1, background: T.panel2, border: `1px solid ${T.line}`, color: T.text, fontWeight: 600, fontSize: 12.5, padding: "9px 0", borderRadius: 100, cursor: "pointer", fontFamily: font }}>{twinBusy ? "Re-learning you…" : "Refresh twin"}</button>
                   <button onClick={async () => { await fetch("/api/twin", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId }) }); setMyTwin(null); }} style={{ background: "transparent", border: `1px solid ${T.line}`, color: T.sub, fontWeight: 600, fontSize: 12.5, padding: "9px 16px", borderRadius: 100, cursor: "pointer", fontFamily: font }}>Retire</button>
@@ -1015,9 +1015,11 @@ export default function Rico() {
         </AnimatePresence>
 
         {/* twin voice recorder */}
-        {showLookEditor && myTwin && <TwinLookEditor key={userId} userId={userId} twin={myTwin} onClose={() => setShowLookEditor(false)} onSaved={look => {
-          setMyTwin(previous => ({ ...previous, look, avatar: null }));
-          setTwinMap(previous => ({ ...previous, [myTwin.id]: { ...myTwin, look, avatar: null } }));
+        {showLookEditor && myTwin && <TwinLookEditor key={userId} userId={userId} twin={myTwin} onClose={() => setShowLookEditor(false)} onSaved={avatar => {
+          setMyTwin(previous => ({ ...previous, avatar }));
+          setTwinMap(previous => ({ ...previous, [myTwin.id]: { ...myTwin, avatar } }));
+          setTwins(previous => previous.map(twin => twin.id === myTwin.id ? { ...twin, avatar } : twin));
+          setChatAgent(previous => previous?.id === myTwin.id ? { ...previous, avatar } : previous);
           setLookSaved(true);
         }} />}
         {showVoiceRec && myTwin && (

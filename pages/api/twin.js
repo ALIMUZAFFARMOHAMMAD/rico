@@ -42,7 +42,7 @@ export default async function handler(req, res) {
     if (req.query.id && req.query.id.startsWith("twin__")) {
       const { resolveAgent } = await import("../../lib/twins");
       const a = await resolveAgent(req.query.id);
-      return res.status(200).json({ twin: a.isTwin ? { id: a.id, name: a.name, bio: a.bio, interests: a.interests, look: a.look, isTwin: true, voiceCloned: !!a.voiceCloned } : null });
+      return res.status(200).json({ twin: a.isTwin ? { id: a.id, name: a.name, bio: a.bio, interests: a.interests, look: a.look, avatar: a.avatar || null, isTwin: true, voiceCloned: !!a.voiceCloned } : null });
     }
     const twins = await listTwins(req.query.exclude || null);
     return res.status(200).json({ twins });
@@ -80,10 +80,13 @@ export default async function handler(req, res) {
       twin.voice = previous?.voice || twinVoice(userId);
       twin.voiceCloned = !!previous?.voiceCloned;
       twin.avatar = previous?.avatar || null;
+      if (previous?.portrait) twin.portrait = previous.portrait;
+      if (previous?.avatarKind) twin.avatarKind = previous.avatarKind;
       twin.ownerName = userName;
       twin.createdAt = new Date().toISOString();
       await saveTwin(userId, twin);
-      return res.status(200).json({ twin: { ...twin, id: `twin__${userId}` } });
+      const { portrait, ...publicTwin } = twin;
+      return res.status(200).json({ twin: { ...publicTwin, id: `twin__${userId}` } });
     } catch (e) {
       console.error("twin create error:", e.message);
       return res.status(500).json({ error: "Failed" });
