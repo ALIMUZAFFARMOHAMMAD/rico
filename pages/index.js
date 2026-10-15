@@ -17,6 +17,7 @@ import ProactiveCheckin from "../components/ProactiveCheckin";
 import MemorySpotlight from "../components/MemorySpotlight";
 import WeeklyDigest from "../components/WeeklyDigest";
 import SocialFeed from "../components/SocialFeed";
+import DailyHome from "../components/DailyHome";
 import { captureSource, getSource } from "../lib/source";
 import { CONSENT_VERSION } from "../lib/consent";
 import Onboarding from "../components/Onboarding";
@@ -140,7 +141,7 @@ export default function Rico() {
   const userName = user?.firstName || user?.fullName?.split(" ")[0] || "";
   const userId = user?.id || null;
 
-  const [tab, setTab] = useState("discover");
+  const [tab, setTab] = useState("home");
   const [matches, setMatches] = useState(["tony"]);
   const [twins, setTwins] = useState([]);
   const [twinMap, setTwinMap] = useState({});
@@ -589,14 +590,14 @@ export default function Rico() {
   return (<>
     <Head>
       <title>ricomates</title>
-      <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
+      <meta name="viewport" content="width=device-width,initial-scale=1" />
       <meta name="theme-color" content="#0f0e17" />    </Head>
     <div style={{ minHeight: "100vh", background: T.bg, fontFamily: font, display: "flex", justifyContent: "center" }}>
       <Aurora />
       {needsConsent && isSignedIn && <ConsentGate userId={userId} onAccept={() => setNeedsConsent(false)} />}
       {!needsConsent && needsTour && isSignedIn && <Onboarding onDone={finishTour} />}
       {/* phone canvas */}
-      <div style={{ width: "100%", maxWidth: 430, height: "100vh", position: "relative", zIndex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div className="rm-app-shell" data-home={tab === "home" && !chatAgent ? "true" : "false"} style={{ width: "100%", maxWidth: tab === "home" && !chatAgent ? 1120 : 430, height: "100dvh", position: "relative", zIndex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
 
         {/* top bar */}
         <div style={{ padding: "16px 20px 10px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -606,6 +607,32 @@ export default function Rico() {
               : <SignInButton mode="modal"><button style={{ background: T.grad, border: "none", color: "white", fontWeight: 700, fontSize: 12.5, padding: "7px 16px", borderRadius: 100, cursor: "pointer", fontFamily: font }}>Sign in</button></SignInButton>}
           </div>
         </div>
+
+        {/* ===== TODAY ===== */}
+        {tab === "home" && (
+          <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
+            <DailyHome
+              userId={userId}
+              userName={userName}
+              friends={matches.map(lookup).filter(Boolean)}
+              onChat={(id, draft = "") => {
+                const agent = lookup(id);
+                if (!agent) return;
+                setInput(draft);
+                if (!matches.includes(id)) {
+                  const next = [...new Set([...matches, id])];
+                  setMatches(next);
+                  try { localStorage.setItem("hitony_matches", JSON.stringify(next)); } catch (error) {}
+                  fetch("/api/matches", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, agentIds: [id] }) }).catch(() => {});
+                }
+                openChat(agent);
+              }}
+              onDiscover={() => setTab(allMet ? "chats" : "discover")}
+              onChats={() => setTab("chats")}
+              onPlay={() => { setInput(""); openChat(lookup("tony")); setShowGames(true); }}
+            />
+          </div>
+        )}
 
         {/* ===== DISCOVER ===== */}
         {tab === "discover" && (
@@ -829,9 +856,9 @@ export default function Rico() {
         )}
 
         {/* tab bar */}
-        <div style={{ display: "flex", borderTop: `1px solid ${T.line}`, background: "rgba(15,14,23,0.82)", backdropFilter: "blur(16px)", padding: "8px 10px 12px", position: "relative", zIndex: 5 }}>
-          {[["discover", "✨", "Discover"], ["chats", "💬", "Chats"], ["social", "🌐", "Social"], ["me", "🧭", "You"]].filter(([k]) => !(k === "discover" && allMet)).map(([k, icon, label]) => (
-            <button key={k} onClick={() => setTab(k)} style={{ flex: 1, background: "transparent", border: "none", cursor: "pointer", fontFamily: font, position: "relative", padding: "6px 0" }}>
+        <div style={{ display: "flex", borderTop: `1px solid ${T.line}`, background: "rgba(15,14,23,0.82)", backdropFilter: "blur(16px)", padding: "8px 10px max(12px, env(safe-area-inset-bottom))", position: "relative", zIndex: 5, flexShrink: 0 }}>
+          {[["home", "☀", "Today"], ["discover", "✨", "Discover"], ["chats", "💬", "Chats"], ["social", "🌐", "Social"], ["me", "🧭", "You"]].filter(([k]) => !(k === "discover" && allMet)).map(([k, icon, label]) => (
+            <button key={k} aria-current={tab === k ? "page" : undefined} onClick={() => setTab(k)} style={{ flex: 1, background: "transparent", border: "none", cursor: "pointer", fontFamily: font, position: "relative", padding: "6px 0" }}>
               {tab === k && <motion.div layoutId="tab-pill" style={{ position: "absolute", inset: "0 18%", borderRadius: 100, background: T.panel2 }} transition={{ type: "spring", stiffness: 380, damping: 32 }} />}
               <div style={{ position: "relative", fontSize: 16 }}>{icon}</div>
               <div style={{ position: "relative", fontSize: 10.5, fontWeight: 700, color: tab === k ? T.text : T.sub, marginTop: 2 }}>{label}</div>
@@ -1144,3 +1171,4 @@ export default function Rico() {
     `}</style>
   </>);
 }
+
