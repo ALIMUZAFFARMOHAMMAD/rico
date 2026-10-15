@@ -52,7 +52,7 @@ export default async function handler(req, res) {
     if (!response.ok) {
       const code = result.error?.code;
       console.error("portrait provider status:", response.status, code);
-      const message = code === "billing_hard_limit_reached" || code === "insufficient_quota" ? "The portrait service needs API credits. Please ask the app owner to check OpenAI billing." : response.status === 401 ? "The portrait service couldn't authenticate. The app owner needs to check its OpenAI API key." : response.status === 403 ? "The portrait service needs access to the image model. Please ask the app owner to check OpenAI project access." : response.status === 400 ? "That photo couldn't be used. Try a clear, well-lit photo of just yourself." : "The portrait service is busy. Please try again shortly.";
+      const message = ["billing_hard_limit_reached", "insufficient_quota", "credit_balance_exhausted"].includes(code) ? "The portrait service needs API credits. Please ask the app owner to check OpenAI billing." : response.status === 401 ? "The portrait service couldn't authenticate. The app owner needs to check its OpenAI API key." : response.status === 403 ? "The portrait service needs access to the image model. Please ask the app owner to check OpenAI project access." : response.status === 400 ? "That photo couldn't be used. Try a clear, well-lit photo of just yourself." : "The portrait service is busy. Please try again shortly.";
       return res.status(502).json({ error: message });
     }
     const generated = `data:image/jpeg;base64,${result.data?.[0]?.b64_json || ""}`;

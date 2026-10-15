@@ -35,7 +35,7 @@ test('malformed photos, arbitrary URLs and oversized images are rejected',()=>{
   assert.ok(imageHelpers.portraitBytes(image));
 });
 test('provider authentication and billing failures produce actionable errors without leaking provider response',async()=>{
-  for(const[status,code,expected]of[[401,'invalid_api_key',/API key/],[429,'insufficient_quota',/credits/],[403,'access_denied',/access/]]){const res=response();await api({fetch:async()=>({ok:false,status,json:async()=>({error:{code,message:'secret detail'}})})})({method:'POST',body},res);assert.equal(res.code,502);assert.match(res.body.error,expected);assert.doesNotMatch(res.body.error,/secret detail/);}
+  for(const[status,code,expected]of[[401,'invalid_api_key',/API key/],[429,'insufficient_quota',/credits/],[429,'credit_balance_exhausted',/credits/],[403,'access_denied',/access/]]){const res=response();await api({fetch:async()=>({ok:false,status,json:async()=>({error:{code,message:'secret detail'}})})})({method:'POST',body},res);assert.equal(res.code,502);assert.match(res.body.error,expected);assert.doesNotMatch(res.body.error,/secret detail/);}
 });
 test('removing portrait clears saved pixels and leaves the twin and voice intact',async()=>{
   let saved;const res=response();await api({getRow:async()=>({traits:{...traits,portrait:image,avatar:'/api/twin-portrait',avatarKind:'ai-portrait'}}),upsertRow:async(_,data)=>{saved=data;}})({method:'POST',body:{userId:'owner',action:'remove'}},res);
