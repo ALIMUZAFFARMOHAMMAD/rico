@@ -1,4 +1,4 @@
-import { authMiddleware } from "@clerk/nextjs";
+import { clerkMiddleware } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 // Every page and most APIs stay public here (pages redirect to /landing themselves; user-data
@@ -8,14 +8,21 @@ import { NextResponse } from "next/server";
 const PAID_API = /^\/api\/(tony|banter|club-feed|group|stt|translate|tts|voice|resume|tutor|notebook|avatar|checkin|remembers|digest|twin-voice)(\/|$)/;
 
 // Local dev without a real CLERK_SECRET_KEY would otherwise 500 on every request
-// (authMiddleware throws on init). Skip Clerk entirely in that case so pages still
+// (Clerk needs a valid secret to authenticate requests). Skip Clerk entirely in that case so pages still
 // render — every request is then anonymous (ownsUser() is always false, protected
 // API routes 403 gracefully instead of crashing). Production always has the real
 // key set in Vercel, so this branch never runs there.
 export default process.env.CLERK_SECRET_KEY
-  ? authMiddleware({ publicRoutes: (req) => !PAID_API.test(req.nextUrl.pathname) })
+  ? clerkMiddleware(async (auth, req) => {
+      if (PAID_API.test(req.nextUrl.pathname)) {
+        const { userId } = await auth();
+        if (!userId) return NextResponse.json({ error: "Sign in first" }, { status: 401 });
+      }
+      return NextResponse.next();
+    })
   : () => NextResponse.next();
 
 export const config = {
   matcher: ["/((?!_next|[^?]*\\.(?:html?|css|js|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)"],
 };
+

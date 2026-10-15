@@ -24,7 +24,7 @@ import { visibleMessages } from "../lib/conversation-view";
 import { captureSource, getSource } from "../lib/source";
 import { CONSENT_VERSION } from "../lib/consent";
 import Onboarding from "../components/Onboarding";
-import Intro from "../components/Intro";
+
 import { resizeImage } from "../lib/resizeImage";
 
 const T = {
@@ -149,7 +149,7 @@ export default function Rico() {
   const [twins, setTwins] = useState([]);
   const [twinMap, setTwinMap] = useState({});
   const [splash, setSplash] = useState(null);
-  const [ready, setReady] = useState(false);
+
 
   // chat state
   const [chatAgent, setChatAgent] = useState(null);
@@ -332,42 +332,45 @@ export default function Rico() {
   useEffect(() => {
     chatTokenRef.current += 1;
     pendingSavesRef.current = {};
-    setChatAgent(null); setMessages([]); setInput(""); setMatches(["tony"]); setMyTwin(null); setReady(false);
+    setChatAgent(null); setMessages([]); setInput(""); setMatches(["tony"]); setMyTwin(null);
     return () => { chatTokenRef.current += 1; };
   }, [userId]);
 
-  // matches + twins
+  // Show the app immediately; account data fills in independently in the background.
   useEffect(() => {
     if (!isLoaded || !userId) return;
     let alive = true;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
     let local = ["tony"];
     try { const m = JSON.parse(localStorage.getItem(matchStorageKey) || '["tony"]'); if (Array.isArray(m)) local = [...new Set(["tony", ...m])]; } catch (e) {}
-    (async () => {
-      if (isSignedIn) {
-        try {
-          const r = await fetch(`/api/matches?userId=${userId}`);
-          const server = (await r.json()).matches || [];
-          local = [...new Set(["tony", ...server, ...local])];
-          const missing = local.filter(id => !server.includes(id));
-          if (missing.length) fetch("/api/matches", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, agentIds: missing }) }).catch(() => {});
-        } catch (e) {}
-      }
-      if (!alive) return;
-      setMatches(local);
-      try { localStorage.setItem(matchStorageKey, JSON.stringify(local)); } catch (error) {}
-      try {
-        const tw = await fetch(`/api/twin${userId ? `?exclude=${userId}` : ""}`).then(r => r.json());
+    setMatches(local);
+    const read = async url => {
+      const response = await fetch(url, { signal: controller.signal });
+      if (!response.ok) throw new Error("Profile unavailable");
+      return response.json();
+    };
+    Promise.allSettled([
+      read('/api/matches?userId=' + encodeURIComponent(userId)).then(data => {
         if (!alive) return;
-        setTwins(tw.twins || []);
-        setTwinMap(Object.fromEntries((tw.twins || []).map(t => [t.id, t])));
-      } catch (e) {}
-      if (isSignedIn) {
-        try { const mt = await fetch(`/api/twin?id=twin__${userId}`).then(r => r.json()); if (mt.twin) setMyTwin(mt.twin); } catch (e) {}
-      }
-      if (alive) setReady(true);
-    })();
-    return () => { alive = false; };
-  }, [isLoaded, isSignedIn, userId, matchStorageKey]);
+        const server = data.matches || [];
+        const merged = [...new Set(["tony", ...server, ...local])];
+        setMatches(merged);
+        try { localStorage.setItem(matchStorageKey, JSON.stringify(merged)); } catch (e) {}
+        const missing = merged.filter(id => !server.includes(id));
+        if (missing.length) fetch("/api/matches", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, agentIds: missing }), signal: controller.signal }).catch(() => {});
+      }),
+      read('/api/twin?exclude=' + encodeURIComponent(userId)).then(data => {
+        if (!alive) return;
+        setTwins(data.twins || []);
+        setTwinMap(Object.fromEntries((data.twins || []).map(t => [t.id, t])));
+      }),
+      read('/api/twin?id=twin__' + encodeURIComponent(userId)).then(data => {
+        if (alive && data.twin) setMyTwin(data.twin);
+      }),
+    ]);
+    return () => { alive = false; clearTimeout(timeout); controller.abort(); };
+  }, [isLoaded, userId, matchStorageKey]);
 
   // resolve any matched twin ids we don't know yet (cross-device)
   useEffect(() => {
@@ -386,7 +389,7 @@ export default function Rico() {
   const [passed, setPassed] = useState([]);
   const [lastDir, setLastDir] = useState("left");
   const [chatEmote, setChatEmote] = useState("none");
-  const [introPlayed, setIntroPlayed] = useState(false);
+
   const [needsConsent, setNeedsConsent] = useState(false);
   const [needsTour, setNeedsTour] = useState(false);
   // After sign-in, require agreement to Terms/Privacy/AI consent once, then a feature tour once.
@@ -615,17 +618,6 @@ export default function Rico() {
     </div>
   );
 
-  // Brand intro plays first thing after sign-in (also covers data loading).
-  if (isSignedIn && !introPlayed) return (<><Head><title>ricomates</title></Head><Intro onDone={() => setIntroPlayed(true)} /></>);
-
-  if (!ready) return (
-    <div style={{ height: "100vh", background: T.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4, fontFamily: font }}>
-      <Head><title>ricomates</title></Head>
-      <TonyCharacter size={150} look={{ hoodie: "#8b5cf6", hoodieD: "#7146d1" }} float="none" animated={false} emote="shuffle" />
-      <div style={{ color: T.sub, fontSize: 12.5, fontWeight: 500 }}>Rico is shuffling the deck for you…</div>
-    </div>
-  );
-
   return (<>
     <Head>
       <title>ricomates</title>
@@ -642,7 +634,7 @@ export default function Rico() {
         <div style={{ padding: "16px 20px 10px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <Logo />
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            {isSignedIn ? <UserButton afterSignOutUrl="/" appearance={{ elements: { avatarBox: { width: 30, height: 30 } } }} />
+            {isSignedIn ? <UserButton appearance={{ elements: { avatarBox: { width: 30, height: 30 } } }} />
               : <SignInButton mode="modal"><button style={{ background: T.grad, border: "none", color: "white", fontWeight: 700, fontSize: 12.5, padding: "7px 16px", borderRadius: 100, cursor: "pointer", fontFamily: font }}>Sign in</button></SignInButton>}
           </div>
         </div>
