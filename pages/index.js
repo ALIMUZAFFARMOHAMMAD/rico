@@ -20,6 +20,7 @@ import SocialFeed from "../components/SocialFeed";
 import DailyHome from "../components/DailyHome";
 import SocialInbox from "../components/SocialInbox";
 import GameLobby from "../components/GameLobby";
+import ChatWorkspace from "../components/ChatWorkspace";
 import { visibleMessages } from "../lib/conversation-view";
 import { captureSource, getSource } from "../lib/source";
 import { CONSENT_VERSION } from "../lib/consent";
@@ -388,7 +389,7 @@ export default function Rico() {
   const deck = [...AGENT_LIST.filter(a => !matches.includes(a.id)), ...twins.filter(t => !matches.includes(t.id))];
   const [passed, setPassed] = useState([]);
   const [lastDir, setLastDir] = useState("left");
-  const [chatEmote, setChatEmote] = useState("none");
+
 
   const [needsConsent, setNeedsConsent] = useState(false);
   const [needsTour, setNeedsTour] = useState(false);
@@ -439,14 +440,6 @@ export default function Rico() {
     setNeedsTour(false);
     fetch("/api/track", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, event: "tour_done", variant: variant || "complete" }) }).catch(() => {});
   };
-  const reactTo = useCallback((expr) => {
-    const e = ["😄", "😆", "🎉", "😁"].includes(expr) ? "laugh"
-      : ["🤍", "❤️", "💙", "🥰"].includes(expr) ? "dance"
-      : ["💡", "🤝", "👍", "✨"].includes(expr) ? "nod"
-      : ["😳", "🙈", "😅"].includes(expr) ? "shy"
-      : "none";
-    if (e !== "none") { setChatEmote(e); setTimeout(() => setChatEmote("none"), 2800); }
-  }, []);
   const visibleDeck = deck.filter(a => !passed.includes(a.id));
   const card = visibleDeck[0];
   const cardNext = visibleDeck[1];
@@ -552,7 +545,7 @@ export default function Rico() {
       if (typeof raw !== "string" || !raw.trim()) throw new Error();
       const { data, text } = parse(raw);
       setMessages(previous => [...previous, { role: "agent", text, id: Date.now() + 1 }]);
-      if (data?.expr) reactTo(data.expr);
+
       cacheLast(agent.id, text);
       const fullHistory = [...nextHistory, { role: "assistant", content: raw }];
       setHistory(fullHistory); histRef.current = fullHistory;
@@ -600,7 +593,7 @@ export default function Rico() {
     setTwinBusy(false);
   }
 
-  const tier = msgCount >= 40 ? "Close friend" : msgCount >= 10 ? "Friend" : "New friend";
+
 
   if (!isLoaded) return (
     <div style={{ height: "100vh", background: T.bg, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: font }}>
@@ -628,7 +621,7 @@ export default function Rico() {
       {needsConsent && isSignedIn && <ConsentGate userId={userId} onAccept={() => setNeedsConsent(false)} />}
       {!needsConsent && needsTour && isSignedIn && <Onboarding onDone={finishTour} />}
       {/* phone canvas */}
-      <div className="rm-app-shell" data-home={tab === "home" && !chatAgent ? "true" : "false"} style={{ width: "100%", maxWidth: chatAgent ? 760 : ["home", "chats"].includes(tab) ? 1120 : 640, height: "100dvh", position: "relative", zIndex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div className="rm-app-shell" data-home={tab === "home" && !chatAgent ? "true" : "false"} style={{ width: "100%", maxWidth: chatAgent ? 1360 : ["home", "chats"].includes(tab) ? 1120 : 640, height: "100dvh", position: "relative", zIndex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
 
         {/* top bar */}
         <div style={{ padding: "16px 20px 10px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -875,80 +868,17 @@ export default function Rico() {
           )}
         </AnimatePresence>
 
-        {/* ===== CHAT SCREEN ===== */}
-        <AnimatePresence>
-          {chatAgent && (
-            <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ type: "spring", stiffness: 320, damping: 32 }} style={{ position: "absolute", inset: 0, zIndex: 20, background: T.bg, display: "flex", flexDirection: "column" }}>
-              <Aurora />
-              <div style={{ position: "relative", zIndex: 2, display: "flex", flexDirection: "column", height: "100%" }}>
-                {/* chat header */}
-                <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", borderBottom: `1px solid ${T.line}`, background: "rgba(15,14,23,0.7)", backdropFilter: "blur(14px)" }}>
-                  <button aria-label="Back to your friends" disabled={isTyping} onClick={() => { chatTokenRef.current += 1; setChatAgent(null); setIsTyping(false); }} style={{ background: "transparent", border: "none", color: T.text, fontSize: 20, cursor: "pointer", padding: 4, opacity: isTyping ? 0.4 : 1 }}>←</button>
-                  <Avatar agent={chatAgent} size={40} ring emote={chatEmote} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ color: T.text, fontWeight: 700, fontSize: 15 }}>{chatAgent.name}</div>
-                    <div style={{ color: T.sub, fontSize: 11.5 }}>{isTyping ? "Thinking of a reply…" : `${chatAgent.isTwin ? "AI twin" : "AI friend"} · ${tier}`}</div>
-                  </div>
-                  {msgCount >= 6 && <button onClick={revealResults} disabled={loadingResults} title="Personality reveal" style={{ background: T.panel2, border: `1px solid ${T.line}`, color: T.text, borderRadius: 100, padding: "7px 12px", fontSize: 13, cursor: "pointer" }}>{loadingResults ? "…" : "✨"}</button>}
-                  <a href={`/voice?agent=${chatAgent.id}`} style={{ width: 40, height: 40, borderRadius: "50%", background: T.grad, display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none", fontSize: 16 }}>📞</a>
-                </div>
-                {chatMem.length > 0 && (
-                  <div style={{ padding: "10px 16px 8px", borderBottom: `1px solid ${T.line}`, background: "rgba(15,14,23,0.55)" }}>
-                    <div style={{ color: "#c4b5fd", fontSize: 11, fontWeight: 700, letterSpacing: 0.5, marginBottom: 6 }}>{chatAgent.name.toUpperCase()} REMEMBERS</div>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                      {chatMem.map((m, i) => <span key={m} style={{ padding: "5px 10px", borderRadius: 100, background: "#1d1a30", border: "1px solid rgba(167,139,250,0.3)", color: "#e4e0f5", fontSize: 12.5, animation: `rm-chip .5s ease-out ${i * 0.1}s both` }}>{m}</span>)}
-                    </div>
-                  </div>
-                )}
-                <div className="rm-chat-status" role="status">{saveState === "saving" ? "Saving your conversation…" : saveState === "saved" ? "✓ Conversation saved" : "Your conversation"}</div>
-                {chatError && <div className="rm-chat-notice" role="alert">{chatError}<button disabled={saveState === "saving" || isTyping} onClick={() => chatLoadError ? openChat(chatAgent) : pendingSavesRef.current[chatAgent.id] ? saveChat(pendingSavesRef.current[chatAgent.id], chatTokenRef.current) : setChatError("")}>{chatLoadError ? "Try loading again" : saveState === "error" ? "Retry save" : "Dismiss"}</button></div>}
-                {/* messages */}
-                <div ref={panelRef} role="log" aria-label="Conversation messages" aria-live="polite" style={{ flex: 1, overflowY: "auto", padding: "16px 16px 70px", display: "flex", flexDirection: "column", gap: 10 }}>
-                  {messages.map(m => (
-                    <motion.div key={m.id} initial={{ opacity: 0, y: 10, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ type: "spring", stiffness: 380, damping: 28 }}
-                      style={{ alignSelf: m.role === "user" ? "flex-end" : "flex-start", maxWidth: "80%", position: "relative" }}
-                      onDoubleClick={() => m.role === "agent" && setReportMsg(m)}>
-                      <div style={{
-                        padding: "11px 15px", fontSize: 14.5, lineHeight: 1.55, color: m.role === "user" ? "white" : T.text,
-                        background: m.role === "user" ? T.grad : T.panel2,
-                        border: m.role === "user" ? "none" : `1px solid ${T.line}`,
-                        borderRadius: m.role === "user" ? "20px 20px 5px 20px" : "20px 20px 20px 5px",
-                        backdropFilter: "blur(8px)", whiteSpace: "pre-wrap", overflowWrap: "anywhere",
-                      }} dangerouslySetInnerHTML={{ __html: m.text.replace(/</g, "&lt;").replace(/\*(.*?)\*/g, "<em>$1</em>") }} />
-                    </motion.div>
-                  ))}
-                  {isTyping && (
-                    <div style={{ alignSelf: "flex-start", background: T.panel2, border: `1px solid ${T.line}`, borderRadius: "20px 20px 20px 5px", padding: "13px 16px", display: "flex", gap: 4 }}>
-                      {[0, 1, 2].map(i => <motion.div key={i} animate={{ y: [0, -4, 0] }} transition={{ repeat: Infinity, duration: 0.9, delay: i * 0.15 }} style={{ width: 6, height: 6, borderRadius: "50%", background: T.sub }} />)}
-                    </div>
-                  )}
-                </div>
-                {/* career tools — discover résumé / ATS / tailor without hunting */}
-                {chatAgent.id === "tony" && (
-                  <div style={{ display: "flex", gap: 7, padding: "0 14px 4px", overflowX: "auto", alignItems: "center" }}>
-                    <span style={{ color: T.sub, fontSize: 11, fontWeight: 800, flexShrink: 0 }}>🧰 Career tools:</span>
-                    {!hasResume
-                      ? <button onClick={() => { setResumeMsg(""); setShowResume(true); }} style={{ background: T.panel2, border: `1px solid ${T.line}`, color: T.text, fontWeight: 700, fontSize: 11.5, padding: "6px 11px", borderRadius: 100, cursor: "pointer", fontFamily: font, flexShrink: 0, whiteSpace: "nowrap" }}>📄 Share résumé → ATS &amp; tailoring</button>
-                      : <>
-                          <button onClick={() => { setAtsErr(""); setShowAts(true); }} style={{ background: T.panel2, border: `1px solid ${T.line}`, color: T.text, fontWeight: 700, fontSize: 11.5, padding: "6px 11px", borderRadius: 100, cursor: "pointer", fontFamily: font, flexShrink: 0, whiteSpace: "nowrap" }}>🎯 ATS score</button>
-                          <button onClick={() => { setTailorErr(""); setShowTailor(true); }} style={{ background: T.panel2, border: `1px solid ${T.line}`, color: T.text, fontWeight: 700, fontSize: 11.5, padding: "6px 11px", borderRadius: 100, cursor: "pointer", fontFamily: font, flexShrink: 0, whiteSpace: "nowrap" }}>✍️ Tailor to a job</button>
-                          <button onClick={() => { setResumeMsg(""); setShowResume(true); }} style={{ background: T.panel2, border: `1px solid ${T.line}`, color: T.sub, fontWeight: 700, fontSize: 11.5, padding: "6px 11px", borderRadius: 100, cursor: "pointer", fontFamily: font, flexShrink: 0, whiteSpace: "nowrap" }}>📄 Update</button>
-                        </>}
-                  </div>
-                )}
-                {/* input */}
-                <div style={{ padding: "10px 14px 14px", display: "flex", gap: 9, alignItems: "center", background: "rgba(15,14,23,0.8)", backdropFilter: "blur(14px)", borderTop: `1px solid ${T.line}` }}>
-                  {chatAgent.id === "tony" && <button onClick={() => { setResumeMsg(""); setShowResume(true); }} disabled={isTyping} aria-label="Share your résumé" title="Share your résumé with Tony" style={{ width: 46, height: 46, borderRadius: "50%", background: T.panel2, border: `1px solid ${T.line}`, color: T.text, fontSize: 17, cursor: "pointer", flexShrink: 0 }}>📄</button>}
-                  <button onClick={() => setShowGames(true)} disabled={isTyping} aria-label="Play a game" title="Play a game" style={{ width: 46, height: 46, borderRadius: "50%", background: T.panel2, border: `1px solid ${T.line}`, color: T.text, fontSize: 18, cursor: "pointer", flexShrink: 0 }}>🎮</button>
-                  <input value={input} onChange={e => setInput(e.target.value)} aria-label={`Message ${chatAgent.name}`} maxLength={8000} disabled={chatLoadError} onKeyDown={e => { if (e.key === "Enter" && !e.nativeEvent.isComposing) send(); }}
-                    placeholder={`Message ${chatAgent.name}…`}
-                    style={{ flex: 1, minWidth: 0, background: T.panel2, border: `1px solid ${T.line}`, borderRadius: 100, padding: "13px 18px", color: T.text, fontSize: 14, outline: "none", fontFamily: font }} />
-                  <motion.button whileTap={{ scale: 0.85 }} onClick={() => send()} aria-label="Send message" disabled={isTyping || chatLoadError || (saveState === "error" || saveState === "saving") || !input.trim()} style={{ width: 46, height: 46, borderRadius: "50%", background: T.grad, border: "none", color: "white", fontSize: 17, cursor: "pointer", flexShrink: 0 }}>↑</motion.button>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {chatAgent && <ChatWorkspace
+          friend={chatAgent} friends={matches.map(lookup)} messages={messages} input={input}
+          onInput={setInput} onSend={() => send()} onSelect={agent => { setInput(""); openChat(agent); }}
+          onBack={() => { chatTokenRef.current += 1; setChatAgent(null); setIsTyping(false); }}
+          onGames={() => setShowGames(true)} onResume={() => { setResumeMsg(""); setShowResume(true); }}
+          onAts={() => { setAtsErr(""); setShowAts(true); }} onTailor={() => { setTailorErr(""); setShowTailor(true); }}
+          hasResume={hasResume} onReveal={revealResults} canReveal={msgCount >= 6} revealing={loadingResults}
+          onReport={setReportMsg} memories={chatMem} busy={isTyping} loadError={chatLoadError}
+          error={chatError} saveState={saveState} panelRef={panelRef}
+          onRetry={() => chatLoadError ? openChat(chatAgent) : pendingSavesRef.current[chatAgent.id] ? saveChat(pendingSavesRef.current[chatAgent.id], chatTokenRef.current) : setChatError("")}
+        />}
 
         {/* report sheet */}
         <AnimatePresence>

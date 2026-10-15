@@ -4,6 +4,8 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { Chess } from "chess.js";
 import TonyCharacter from "./TonyCharacter";
 import Dialog from "./Dialog";
+import { GAME_GUIDE } from "../lib/game-guide";
+import w from "./Workspace.module.css";
 
 const T = { bg: "#0f0e17", panel: "rgba(255,255,255,0.06)", panel2: "rgba(255,255,255,0.09)", line: "rgba(255,255,255,0.1)", text: "#f5f3ff", sub: "#a9a5c0", grad: "#d6365e", pink: "#ff5e7e", violet: "#8b5cf6" };
 const font = "'DM Sans',system-ui,-apple-system,sans-serif";
@@ -51,7 +53,7 @@ function ChessGame({ say, friendName, onWin }) {
   const reset = () => { gameRef.current = new Chess(); setSel(null); setTargets([]); setOver(false); setStatus("New game — your move."); say("starting a fresh game of chess", "Rematch! Bring it. ♟️"); force(); };
   const board = gameRef.current.board();
   return (<>
-    <div style={{ width: "min(88vw, 360px)", aspectRatio: "1", display: "grid", gridTemplateColumns: "repeat(8,1fr)", borderRadius: 12, overflow: "hidden", border: `1px solid ${T.line}`, boxShadow: "0 18px 50px rgba(0,0,0,0.5)" }}>
+    <div style={{ width: "min(88vw, 440px)", aspectRatio: "1", display: "grid", gridTemplateColumns: "repeat(8,1fr)", borderRadius: 12, overflow: "hidden", border: `1px solid ${T.line}`, boxShadow: "0 18px 50px rgba(0,0,0,0.5)" }}>
       {board.map((row, r) => row.map((cell, c) => { const sq = "abcdefgh"[c] + (8 - r); const light = (r + c) % 2 === 0; const isTarget = targets.includes(sq);
         return (<button key={sq} aria-label={`${sq}${cell ? `, ${cell.color === "w" ? "white" : "black"} ${PNAME[cell.type]}` : ", empty"}${isTarget ? ", available move" : ""}`} aria-pressed={sel === sq} onClick={() => onSquare(sq)} style={{ border: 0, padding: 0, position: "relative", background: sel === sq ? T.violet : light ? "#ded3ef" : "#6f5d99", display: "flex", alignItems: "center", justifyContent: "center", cursor: over ? "default" : "pointer", userSelect: "none" }}>
           {cell && <span style={{ fontSize: "min(7vw, 30px)", lineHeight: 1, color: cell.color === "w" ? "#fff" : "#160e26", textShadow: cell.color === "w" ? "0 1px 2px rgba(0,0,0,0.55)" : "none" }}>{GLYPH[cell.color + cell.type]}</span>}
@@ -81,7 +83,7 @@ function TicTacToe({ say, friendName, onWin }) {
     else { setStatus("Your move ❌"); if (threat || Math.random() < 0.5) say("mid-game in tic-tac-toe, your turn", "Your move, friend. 👀"); } };
   const reset = () => { setB(Array(9).fill(null)); setOver(false); setStatus("You're ❌ — tap a square."); say("starting a fresh game of tic-tac-toe", "Round two! 🎯"); };
   return (<>
-    <div style={{ width: "min(78vw, 300px)", aspectRatio: "1", display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>
+    <div style={{ width: "min(78vw, 360px)", aspectRatio: "1", display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>
       {b.map((v, i) => (<button key={i} aria-label={`Row ${Math.floor(i / 3) + 1}, column ${i % 3 + 1}: ${v || "empty"}`} disabled={over || !!v} onClick={() => tap(i)} style={{ background: T.panel2, border: `1px solid ${T.line}`, borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "min(14vw, 54px)", cursor: over || v ? "default" : "pointer", color: v === "X" ? T.pink : T.violet, fontWeight: 800 }}>{v}</button>))}
     </div>
     <div style={{ color: over ? "#4ade80" : T.sub, fontSize: 12.5, fontWeight: 600, marginTop: 12, minHeight: 16 }}>{status}</div>
@@ -151,7 +153,7 @@ function Checkers({ say, friendName, onWin }) {
     if (p && p.s === "r") { const { moves, jumps } = ckPieceMoves(b, r, c); if (!moves.length && !jumps.length) return; setSel([r, c]); setOpts([...jumps, ...moves]); } };
   const reset = () => { setB(ckInit()); setSel(null); setOpts([]); setOver(false); chainRef.current = false; setStatus("You're red — tap a piece."); say("starting a fresh game of checkers", "Rematch! 🔴"); };
   return (<>
-    <div style={{ width: "min(88vw, 360px)", aspectRatio: "1", display: "grid", gridTemplateColumns: "repeat(8,1fr)", borderRadius: 12, overflow: "hidden", border: `1px solid ${T.line}`, boxShadow: "0 18px 50px rgba(0,0,0,0.5)" }}>
+    <div style={{ width: "min(88vw, 440px)", aspectRatio: "1", display: "grid", gridTemplateColumns: "repeat(8,1fr)", borderRadius: 12, overflow: "hidden", border: `1px solid ${T.line}`, boxShadow: "0 18px 50px rgba(0,0,0,0.5)" }}>
       {b.map((row, r) => row.map((cell, c) => { const light = (r + c) % 2 === 0; const isSel = eq(sel, [r, c]); const isOpt = opts.some((m) => eq(m.to, [r, c]));
         return (<div key={`${r}-${c}`} onClick={() => tap(r, c)} style={{ position: "relative", background: isSel ? T.violet : light ? "#ded3ef" : "#6f5d99", display: "flex", alignItems: "center", justifyContent: "center", cursor: over ? "default" : "pointer" }}>
           {cell && <div style={{ width: "72%", height: "72%", borderRadius: "50%", background: cell.s === "r" ? "radial-gradient(circle at 35% 30%, #ff8aa3, #d63d5f)" : "radial-gradient(circle at 35% 30%, #4a4458, #15101f)", border: "2px solid rgba(255,255,255,0.25)", display: "flex", alignItems: "center", justifyContent: "center", color: "#ffd95e", fontSize: "min(4.5vw,20px)" }}>{cell.k ? "♛" : ""}</div>}
@@ -470,24 +472,16 @@ export default function GameBoard({ game, agent, onClose, friends, onGameEnd }) 
   useEffect(() => { say(`you and your friend are starting a friendly game of ${TITLES[game] || game} — kick it off with a fun challenge`, "Let's play! 🎮"); /* eslint-disable-next-line */ }, []);
   const Game = game === "chess" ? ChessGame : game === "c4" ? Connect4 : game === "checkers" ? Checkers : game === "ludo" ? Ludo : game === "racing" ? Race : game === "uno" ? Uno : TicTacToe;
   return (
-    <Dialog title={TITLES[game] || "Game room"} onClose={onClose}>
-      <p style={{ color: T.sub, fontSize: 13, margin: "10px 0 16px" }}>Playing with {name} · {agent?.isTwin ? "AI twin" : "AI friend"}</p>
-      <details style={{ color: T.sub, fontSize: 13, lineHeight: 1.7, marginBottom: 18 }}><summary style={{ cursor: "pointer" }}>How to play</summary><p>{({ chess: "You play White. Select a piece, then a highlighted square. Protect your king and checkmate your opponent.", ttt: "You are X. Place three in a row, column, or diagonal before your opponent.", c4: "Choose a column to drop a piece. Connect four horizontally, vertically, or diagonally.", checkers: "Select a piece and a highlighted move. Jump over opponents to capture them.", ludo: "Roll the die and choose a piece to move around the board toward home.", racing: "Roll the dice to move your racer. Reach the finish before the other players.", uno: "Play a card that matches the color or value. Choose a color for wild cards, or draw when you cannot play." })[game]}</p></details>
-      <div style={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "center", overflowX: "auto" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 11, width: "100%", marginBottom: 16 }}>
-          <div style={{ width: 46, height: 46, borderRadius: "50%", padding: 2, background: T.grad, flexShrink: 0 }}>
-            <div style={{ width: "100%", height: "100%", borderRadius: "50%", overflow: "hidden", background: "#161226", display: "flex", justifyContent: "center" }}>
-              <div style={{ marginTop: 2 }}><TonyCharacter size={66} look={agent?.look || {}} float="none" animated={false} pose="down" expr="😄" /></div>
-            </div>
-          </div>
-          <div style={{ flex: 1, background: T.panel2, border: `1px solid ${T.line}`, borderRadius: 16, borderTopLeftRadius: 4, padding: "11px 15px" }}>
-            <div style={{ color: T.violet, fontSize: 10.5, fontWeight: 800, letterSpacing: 0.4, marginBottom: 2 }}>{name.toUpperCase()}</div>
-            <div style={{ color: T.text, fontSize: 14.5, lineHeight: 1.4, fontWeight: 500 }}>{banter}</div>
-          </div>
-        </div>
-        <Game say={say} friendName={name} players={friends} onWin={notifyEnd} />
+    <Dialog title={TITLES[game] || "Game room"} onClose={onClose} wide>
+      <div className={w.room}>
+        <div className={w.boardStage}><Game say={say} friendName={name} players={friends} onWin={notifyEnd} /></div>
+        <aside className={w.roomInfo} aria-label="Game information">
+          <div className={w.opponent}><div style={{ width: 42, height: 42, overflow: "hidden", borderRadius: 12, background: "#34463a", display: "flex", justifyContent: "center" }}><TonyCharacter size={64} look={agent?.look || {}} float="none" animated={false} pose="down" /></div><div><strong>{name}</strong><small>{agent?.isTwin ? "AI twin" : "AI opponent"}</small></div></div>
+          <h3>How to play</h3><p>{GAME_GUIDE[game]?.rules}</p>
+          <h3>From {name}</h3><p className={w.roomNote} role="status">{banter}</p>
+          <p>Use the controls below the board to start a new round. Closing this room ends the current game.</p>
+        </aside>
       </div>
     </Dialog>
   );
 }
-
