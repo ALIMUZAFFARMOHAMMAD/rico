@@ -53,11 +53,13 @@ function ChessGame({ say, friendName, onWin }) {
   const reset = () => { gameRef.current = new Chess(); setSel(null); setTargets([]); setOver(false); setStatus("New game — your move."); say("starting a fresh game of chess", "Rematch! Bring it. ♟️"); force(); };
   const board = gameRef.current.board();
   return (<>
-    <div style={{ width: "min(88vw, 440px)", aspectRatio: "1", display: "grid", gridTemplateColumns: "repeat(8,1fr)", borderRadius: 12, overflow: "hidden", border: `1px solid ${T.line}`, boxShadow: "0 18px 50px rgba(0,0,0,0.5)" }}>
+    <div className={w.chessBoard} role="group" aria-label="Chess board">
       {board.map((row, r) => row.map((cell, c) => { const sq = "abcdefgh"[c] + (8 - r); const light = (r + c) % 2 === 0; const isTarget = targets.includes(sq);
-        return (<button key={sq} aria-label={`${sq}${cell ? `, ${cell.color === "w" ? "white" : "black"} ${PNAME[cell.type]}` : ", empty"}${isTarget ? ", available move" : ""}`} aria-pressed={sel === sq} onClick={() => onSquare(sq)} style={{ border: 0, padding: 0, position: "relative", background: sel === sq ? T.violet : light ? "#ded3ef" : "#6f5d99", display: "flex", alignItems: "center", justifyContent: "center", cursor: over ? "default" : "pointer", userSelect: "none" }}>
-          {cell && <span style={{ fontSize: "min(7vw, 30px)", lineHeight: 1, color: cell.color === "w" ? "#fff" : "#160e26", textShadow: cell.color === "w" ? "0 1px 2px rgba(0,0,0,0.55)" : "none" }}>{GLYPH[cell.color + cell.type]}</span>}
-          {isTarget && <span style={{ position: "absolute", width: cell ? "82%" : "30%", height: cell ? "82%" : "30%", borderRadius: "50%", border: cell ? `3px solid ${T.pink}` : "none", background: cell ? "transparent" : `${T.violet}cc` }} />}
+        return (<button key={sq} className={w.chessSquare} data-light={light} data-selected={sel === sq} aria-label={`${sq}${cell ? `, ${cell.color === "w" ? "white" : "black"} ${PNAME[cell.type]}` : ", empty"}${isTarget ? ", available move" : ""}`} aria-pressed={sel === sq} onClick={() => onSquare(sq)}>
+          {c === 0 && <span className={w.rankLabel} aria-hidden="true">{8 - r}</span>}
+          {r === 7 && <span className={w.fileLabel} aria-hidden="true">{"abcdefgh"[c]}</span>}
+          {cell && <span className={w.chessPiece} data-color={cell.color} aria-hidden="true">{GLYPH["b" + cell.type]}</span>}
+          {isTarget && <span className={w.moveTarget} data-capture={!!cell} aria-hidden="true" />}
         </button>); }))}
     </div>
     <div style={{ color: over ? "#4ade80" : T.sub, fontSize: 12.5, fontWeight: 600, marginTop: 10, minHeight: 16 }}>{status}</div>
