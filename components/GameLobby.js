@@ -16,7 +16,7 @@ export default function GameLobby({ games, friend, onStart, onClose, busy }) {
       <div className={s.libraryHeader}><p>A purposeful break.<br />Play a board game or explore a conversation with {friend.name}.</p><input className={s.search} value={query} onChange={event => setQuery(event.target.value)} placeholder="Find a game…" aria-label="Search games" /></div>
       <div className={s.libraryLayout}>
         <div><div className={s.categories} aria-label="Game categories">{["All games", "Board games", "Conversation games"].map(item => <button key={item} aria-pressed={filter === item} onClick={() => setFilter(item)}>{item}</button>)}</div>
-          <p className={s.muted}>{visible.length} games · Choose one to see details</p>
+          <p className={s.muted}>{visible.length} {visible.length === 1 ? "game" : "games"} · Choose one to see details</p>
           <div className={s.gameGrid}>{visible.map(game => <button key={game.key} className={s.gameCard} aria-pressed={selected?.key === game.key} aria-controls="game-details" onClick={() => { setSelection(game.key); if (window.matchMedia("(max-width: 720px)").matches) detail.current?.scrollIntoView({ behavior: "auto", block: "nearest" }); }}><span aria-hidden="true">{game.icon}</span><strong>{game.label}</strong><small>{GAME_GUIDE[game.key]?.category || "Conversation"} · {GAME_GUIDE[game.key]?.time || "At your pace"}</small></button>)}</div>
           {!visible.length && <div className={s.libraryEmpty}>No games match “{query}”. <button className={s.smallButton} onClick={() => { setQuery(""); setFilter("All games"); }}>Show all games</button></div>}
         </div>
