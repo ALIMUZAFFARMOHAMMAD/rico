@@ -19,7 +19,7 @@ You're playing a friendly game of ${gameName} with your friend right now. Stay 1
 Reply with EXACTLY ONE short line of playful, warm, funny trash-talk-but-lovingly banter reacting to this moment: ${situation}.
 Rules: max ~14 words. One emoji max. Never mean or hurtful — it's affectionate friend-banter. No quotation marks. ${language && language !== "en" ? `Reply in the user's language (code: ${language}).` : ""}`;
     const r = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
+      method: "POST", signal: AbortSignal.timeout(30000),
       headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
       body: JSON.stringify({
         model: "claude-haiku-4-5-20251001",
@@ -36,3 +36,5 @@ Rules: max ~14 words. One emoji max. Never mean or hurtful — it's affectionate
     return res.status(200).json({ line: "" });
   }
 }
+
+

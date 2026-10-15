@@ -19,7 +19,7 @@ const clamp = (n, lo = 0, hi = 100) => Math.max(lo, Math.min(hi, n));
 
 async function claude(apiKey, model, system, userContent, maxTokens) {
   const r = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
+    method: "POST", signal: AbortSignal.timeout(30000),
     headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
     body: JSON.stringify({ model, max_tokens: maxTokens, system, messages: [{ role: "user", content: userContent }] }),
   });
@@ -76,10 +76,12 @@ export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
   if (rateLimited(req)) return res.status(429).json({ error: "Too many requests, slow down." });
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return res.status(500).json({ error: "No API key" });
 
   const { mode, userId, subject, students, durationWeeks, resources, teacher, language, messages, week, doubt, image } = req.body || {};
-  if (userId && !ownsUser(req, userId)) return res.status(403).json({ error: "forbidden" });
+  if (!ownsUser(req, userId)) return res.status(403).json({ error: "Sign in to access your classroom." });
+  if (!configured()) return res.status(503).json({ error: "Classroom storage is temporarily unavailable." });
+  if (subject != null && typeof subject !== "string") return res.status(400).json({ error: "Choose a valid subject." });
+  if (students != null && !Array.isArray(students)) return res.status(400).json({ error: "Choose valid students." });
   const lang = LANGS[language] ? language : "en";
   const subjSlug = slug(subject);
   const key = userId && configured() ? courseKey(userId, subjSlug) : null;
@@ -117,6 +119,7 @@ export default async function handler(req, res) {
     }
 
     // load course for the remaining modes
+    if (!apiKey) return res.status(503).json({ error: "AI classroom activities are temporarily unavailable. Your courses are saved." });
     const row = key ? await getRow(key) : null;
     const c = row ? loadCourse(row) : { ...loadCourse(null), subject, students: ids, studentStats: Object.fromEntries(ids.map(id => [id, { mastery: 0, graduated: false }])) };
     const members = nmeOf(c.students.length ? c.students : ids);
@@ -252,3 +255,5 @@ Return ONLY strict JSON: {"questions":["q1","q2","q3","q4"],"results":[{"agentId
     return res.status(500).json({ error: "Tutor failed" });
   }
 }
+
+

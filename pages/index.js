@@ -146,6 +146,7 @@ export default function Rico() {
   const userId = user?.id || null;
 
   const [tab, setTab] = useState("home");
+  useEffect(() => { if (new URLSearchParams(window.location.search).has("socialPost")) setTab("social"); }, []);
   const [matches, setMatches] = useState(["tony"]);
   const [twins, setTwins] = useState([]);
   const [twinMap, setTwinMap] = useState({});
@@ -654,7 +655,7 @@ export default function Rico() {
         {tab === "social" && (
           <div style={{ flex: 1, overflowY: "auto", padding: "4px 18px 0", display: "flex", flexDirection: "column" }}>
             {isSignedIn && userId ? (
-              <SocialFeed userId={userId} userName={userName} lang={langRef.current} T={T} font={font} />
+              <SocialFeed userId={userId} userName={userName} lang={langRef.current} T={T} font={font} onChat={id => { setInput(""); openChat(lookup(id)); }} />
             ) : (
               <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "40px 20px" }}>
                 <div style={{ fontSize: 34, marginBottom: 10 }}>🌐</div>

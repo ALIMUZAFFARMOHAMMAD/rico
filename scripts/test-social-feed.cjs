@@ -4,12 +4,15 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const { createHash } = require('node:crypto');
+let shared = { AbortSignal };
 function load(file, bindings, names) {
   const source=fs.readFileSync(path.join(__dirname,'..',file),'utf8').replace(/^import .*;\r?\n/gm,'').replace(/export default /g,'').replace(/export /g,'');
-  const context={module:{exports:{}},console:{error(){}},Buffer,AbortController,setTimeout,clearTimeout,createHash,...bindings};
+  const context={module:{exports:{}},console:{error(){}},Buffer,AbortController,setTimeout,clearTimeout,createHash,...shared,...bindings};
   vm.runInNewContext(source+'\nmodule.exports={'+names.join(',')+'};',context); return context.module.exports;
 }
-const names=['validSocialId','socialKey','publicPost','findSocialPost','saveSocialPost','listSocialPosts','listSocialComments','socialActivity','deleteSocialPost'];
+const socialContent=load('lib/social-content.js',{},['SOCIAL_MOODS','SOCIAL_ART','STORY_LIFETIME_MS','isActiveStory','isVisiblePost','dailyPresentation']);
+shared={...shared,...socialContent};
+const names=['validSocialId','socialKey','publicPost','findSocialPost','saveSocialPost','listSocialPosts','listSocialComments','listSocialStories','socialActivity','deleteSocialPost'];
 const helpers=load('lib/social-feed.js',{},names);
 const imageHelpers=load('lib/portrait-image.js',{},['portraitBytes']);
 const image='data:image/jpeg;base64,'+Buffer.from([255,216,255,224,0,10,74,70,73,70,0,0,0,0,255,217]).toString('base64');
@@ -73,4 +76,36 @@ test('provider failures and incomplete daily batches do not publish invented fal
 });
 test('scheduled daily publishing requires a configured cron secret',async()=>{
   for(const[secret,header,code]of[[undefined,undefined,401],['secret',undefined,401],['secret','Bearer wrong',401],['secret','Bearer secret',200]]){let calls=0;const handler=load('pages/api/cron/keepalive.js',{process:{env:{CRON_SECRET:secret}},configured:()=>true,sb:async()=>[],generateDailySocial:async()=>{calls++;return{created:4};}},['handler']).handler;const res=response();await handler({method:'GET',headers:{authorization:header}},res);assert.equal(res.code,code);assert.equal(calls,code===200?1:0);}
+});
+
+test('stories use a server-set 24-hour expiry and reject forged moods',async()=>{
+  let stored; const before=Date.now(); const res=response();
+  await api({saveSocialPost:async(_,p)=>{stored=p;return p;}})({method:'POST',body:{...post,format:'story',mood:'calm',storyExpiresAt:'2099-01-01'}},res);
+  assert.equal(res.code,200);assert.equal(stored.format,'story');assert.equal(stored.art,'coast');assert.ok(Date.parse(stored.storyExpiresAt)>=before+86400000);assert.ok(Date.parse(stored.storyExpiresAt)<Date.now()+86401000);
+  const bad=response();await api()({method:'POST',body:{...post,mood:'<script>'}},bad);assert.equal(bad.code,400);
+});
+test('expired story-only posts cannot be read while feed posts remain available',async()=>{
+  const old=new Date(Date.now()-1000).toISOString();
+  for(const[format,visible]of[['story',false],['post',true]]){const store=load('lib/social-feed.js',{sb:async()=>[{traits:{id:'p',format,storyExpiresAt:old}}]},names);assert.equal(!!await store.findSocialPost('p'),visible);}
+});
+test('story rail filters expired entries and gives legacy AI posts artwork without image API calls',async()=>{
+  const now=new Date().toISOString();const old=new Date(Date.now()-90000000).toISOString();
+  const rows=[{traits:{id:'new',authorId:'dev',ai:true,createdAt:now,content:'A thought'}},{traits:{id:'old',authorId:'dev',ai:true,createdAt:old}},{traits:{id:'gone',format:'story',storyExpiresAt:old}}];
+  const store=load('lib/social-feed.js',{sb:async()=>rows},names);const stories=await store.listSocialStories();assert.equal(stories.length,1);assert.equal(stories[0].id,'new');assert.ok(socialContent.SOCIAL_ART.includes(stories[0].art));assert.ok(socialContent.isActiveStory(stories[0]));
+});
+test('saved-post reads are owner-scoped and saving never changes public likes',async()=>{
+  let write;const res=response();await api({upsertRow:async(k,d)=>{write={k,d};}})({method:'POST',body:{userId:'owner',postId:'post1',action:'save',saved:true}},res);
+  assert.equal(res.code,200);assert.equal(write.k,'owner::social::save::post1');assert.equal(write.d.traits.kind,'social-save');assert.equal(res.body.likes,0);
+  let query;const store=load('lib/social-feed.js',{sb:async q=>{query=q;return[];}},names);const page=await store.listSocialPosts('owner','saved',0);assert.equal(page.posts.length,0);assert.match(query,/authorId=eq.owner/);
+});
+test('a member can delete only their own comment on the specified post',async()=>{
+  let deletes=0;
+  for(const[owner,expected]of[['other',403],['owner',200]]){const res=response();await api({getRow:async()=>({traits:{authorId:owner,postId:'post1'}}),deleteRow:async()=>deletes++})({method:'POST',body:{userId:'owner',action:'deleteComment',postId:'post1',id:'comment1'}},res);assert.equal(res.code,expected);}assert.equal(deletes,1);
+});
+test('single-post share links return stored metadata with current reactions',async()=>{
+  const res=response();await api({findSocialPost:async()=>({traits:{id:'post1',authorId:'dev',ai:true,content:'Hello',createdAt:new Date().toISOString()}})})({method:'GET',query:{userId:'owner',view:'post',postId:'post1'}},res);assert.equal(res.code,200);assert.equal(res.body.post.id,'post1');assert.equal(res.body.post.ai,true);assert.equal(res.body.post.likes,0);
+});
+test('daily AI content includes mood, illustration and expiry without any image provider request',async()=>{
+  const saved=[];const run=daily({saveSocialPost:async(_,p)=>saved.push(p),fetch:async url=>{assert.equal(url,'https://api.anthropic.com/v1/messages');return{ok:true,json:async()=>({content:[{type:'text',text:JSON.stringify(authors.map(a=>({authorId:a.id,topic:'Quiet wonder',content:'Take a moment for yourself.'})))}]})};}});
+  await run(new Date('2026-10-15T12:00:00Z'));assert.equal(saved.length,4);assert.ok(saved.every(p=>socialContent.SOCIAL_ART.includes(p.art)&&p.mood&&p.storyExpiresAt==='2026-10-16T12:00:00.000Z'));
 });

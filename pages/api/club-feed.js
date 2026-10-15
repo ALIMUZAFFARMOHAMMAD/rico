@@ -17,6 +17,7 @@ import { CLUBS, AGENTS, AGENT_LIST } from "../../lib/agents";
 import { languagePrompt, LANGS } from "../../lib/i18n";
 import { configured, getRow, upsertRow } from "../../lib/db";
 import { rateLimited } from "../../lib/ratelimit";
+import { ownsUser } from "../../lib/auth";
 
 const FAST = "claude-haiku-4-5-20251001";
 const FRESH_WINDOW_MS = 6 * 60 * 60 * 1000; // 6h — shorter than check-in's 18h, feed should feel alive
@@ -27,7 +28,7 @@ const uid = () => randomUUID();
 
 async function claude(apiKey, system, userContent, maxTokens) {
   const r = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
+    method: "POST", signal: AbortSignal.timeout(30000),
     headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
     body: JSON.stringify({ model: FAST, max_tokens: maxTokens, system, messages: [{ role: "user", content: userContent }] }),
   });
@@ -256,6 +257,7 @@ export default async function handler(req, res) {
 
   if (req.method === "POST") {
     const { action, clubId, userId, userName, text, itemId, parentId, emoji, lang } = req.body || {};
+    if (!ownsUser(req, userId)) return res.status(403).json({ error: "Sign in to your own account to post." });
     const resolved = resolveSpace(clubId);
     if (!resolved) return res.status(404).json({ error: "No such club" });
     const { space, reactorPool, responderPool } = resolved;
@@ -267,6 +269,7 @@ export default async function handler(req, res) {
       let items = (row && row.messages) || [];
 
       if (action === "comment") {
+        if (parentId && !items.some(it => it.id === parentId)) return res.status(404).json({ error: "This post was removed. Refresh the feed." });
         const clean = String(text || "").trim().slice(0, 500);
         if (!clean) return res.status(400).json({ error: "Empty comment" });
         // parentId set = replying inside an existing post's thread; unset = a brand-new top-level post.
@@ -291,7 +294,8 @@ export default async function handler(req, res) {
       }
 
       if (action === "react") {
-        if (!itemId || !emoji) return res.status(400).json({ error: "Missing itemId/emoji" });
+        if (!itemId || !["💜", "😂", "🔥", "👀"].includes(emoji)) return res.status(400).json({ error: "Choose a valid reaction." });
+        if (!items.some(it => it.id === itemId)) return res.status(404).json({ error: "This post was removed. Refresh the feed." });
         const reactorId = `user:${userId || "anon"}`;
         items = items.map((it) => {
           if (it.id !== itemId) return it;
@@ -322,3 +326,5 @@ export default async function handler(req, res) {
 
   return res.status(405).end();
 }
+
+

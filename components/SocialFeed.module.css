@@ -84,3 +84,72 @@
 @keyframes pulse { to { opacity: .35; } }
 @media (max-width: 420px) { .feed { padding-top: 16px; } .composer { padding: 14px; } .composerTop p { font-size: 10px; } .prompts button { font-size: 9px; } .dailyNote { width: 100%; padding-left: 8px; } .audience { font-size: 9px; } .publish { padding: 9px 13px; } .postHeader { padding: 14px; } .aiContent { padding: 22px 18px; } .generated { font-size: 8px; } .actions { gap: 14px; padding: 12px 14px; } }
 @media (prefers-reduced-motion: reduce) { .card, .skeleton div { animation: none; } }
+/* Social 2: story rail, illustrated media, and compact creation tools. */
+.heading { margin-bottom: 18px; }
+.heading h2 { margin: 4px 0 0; font-size: 31px; letter-spacing: -1px; }
+.eyebrow { font-size: 9px; letter-spacing: 1.8px; }
+.headerActions { display: flex; align-items: center; gap: 9px; }
+.newPost { display: flex; align-items: center; gap: 6px; border: 0; border-radius: 12px; padding: 10px 14px; min-height: 40px; background: #e3d0ff; color: #2b2038; font-size: 12px; font-weight: 800; }
+.storySection { border-bottom: 1px solid var(--social-line, #ffffff17); margin-bottom: 18px; }
+.storyStrip { display: flex; gap: 15px; overflow-x: auto; scrollbar-width: none; padding: 4px 1px 18px; align-items: flex-start; }
+.storyStrip::-webkit-scrollbar { display: none; }
+.storyCircle { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 0 0 76px; min-width: 0; color: inherit; background: none; border: 0; padding: 0; }
+.storyCircle strong { font-size: 11px; font-weight: 600; max-width: 82px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.storyCircle small { font-size: 9px; color: var(--social-sub, #a9a2b5); }
+.storyRing { width: 72px; height: 72px; border-radius: 50%; padding: 3px; background: conic-gradient(#bc83ed, #ed8d9b, #e8bd82, #bc83ed); }
+.seenRing { background: #675e73; }
+.storyThumb { position: relative; display: block; width: 100%; height: 100%; border: 3px solid #191522; border-radius: 50%; background: #322a40; }
+.storyThumb > svg, .storyThumb > img { width: 100%; height: 100%; border-radius: 50%; display: block; object-fit: cover; }
+.storyThumb i { position: absolute; right: -4px; bottom: -1px; font-style: normal; font-size: 15px; background: #272132; border-radius: 50%; width: 23px; height: 23px; display: grid; place-items: center; border: 1px solid #ffffff22; }
+.addStory { height: 72px; width: 72px; display: grid; place-items: center; border-radius: 50%; border: 1px dashed #b4a0c8; background: #d3afff0b; font-size: 29px; font-weight: 300; color: #d9b9ff; }
+.storyLoading { align-self: center; font-size: 12px; color: var(--social-sub, #b7b0c8); min-width: 180px; padding: 12px; line-height: 1.5; }
+.filters { width: 100%; justify-content: space-around; border-radius: 14px; padding: 4px; }
+.filters button { flex: 1; padding: 9px 10px; border-radius: 10px; }
+.postMedia { position: relative; width: 100%; aspect-ratio: 1/1; overflow: hidden; background: #19131f; }
+.postMedia > img, .postMedia > svg { display: block; width: 100%; height: 100%; object-fit: contain; }
+.mediaBadge { position: absolute; right: 12px; bottom: 12px; background: #201b2ccc; color: #f3ebff; border: 1px solid #ffffff25; padding: 5px 8px; border-radius: 6px; font-size: 9px; }
+.authorButton { border: 0; padding: 0; background: none; color: inherit; font-weight: 800; font-size: 13px; text-align: left; }
+.actions { gap: 18px; padding-bottom: 10px; }
+.actions button { font-size: 10px; min-height: 35px; }
+.actions .saveButton { margin-left: auto; }
+.saved { color: #e6c9ff !important; }
+.saved svg { fill: #bd8be24a; }
+.content { padding-top: 0; }
+.content p { font-size: 13px; }
+.content p > strong { font-size: 12px; }
+.content .aiFootnote { margin-top: 8px; font-size: 9px; }
+.composeModes { display: flex; gap: 8px; margin-bottom: 20px; }
+.composeModes button { border: 1px solid #ffffff24; background: none; color: #c7bdd4; border-radius: 12px; padding: 9px 15px; font-size: 12px; }
+.composeModes button[aria-pressed=true] { background: #d6bdf2; border-color: #d6bdf2; color: #292030; }
+.moodPicker { display: flex; flex-wrap: wrap; gap: 7px; margin: 12px 0; }
+.moodPicker button { border: 1px solid #ffffff20; background: #ffffff05; color: #cdc4d9; padding: 7px 10px; border-radius: 22px; font-size: 11px; }
+.moodPicker button[aria-pressed=true] { background: #c69ded30; border-color: #c69ded; color: #f3e5ff; }
+.moodPreview { height: 80px; display: flex; align-items: center; gap: 15px; overflow: hidden; margin: 14px 0; border: 1px solid #ffffff15; border-radius: 12px; background: #ffffff04; }
+.moodPreview svg { height: 80px; width: 80px; flex-shrink: 0; }
+.moodPreview span { font-size: 11px; color: #cbbfda; padding-right: 12px; }
+.storyCheck { display: flex; align-items: center; gap: 8px; margin: 16px 0; color: #c7bbd6; font-size: 11px; }
+.storyCheck input { accent-color: #d3b5ff; height: 16px; width: 16px; }
+.authorPanel { display: flex; align-items: flex-start; gap: 12px; padding: 18px; border: 1px solid var(--social-line, #ffffff20); border-radius: 16px; margin-bottom: 20px; }
+.authorPanel > div { flex: 1; }
+.authorPanel strong { font-size: 14px; }
+.authorPanel p { font-size: 12px; color: var(--social-sub, #b7b0c8); line-height: 1.6; margin: 7px 0; }
+.authorPanel > div > button { background: #d7c4f3; border: 0; color: #31213d; padding: 8px 12px; border-radius: 9px; font-size: 11px; font-weight: 700; }
+.storyViewer { isolation: isolate; position: relative; height: min(64dvh, 620px); width: auto; max-width: 100%; aspect-ratio: 9/16; overflow: hidden; border-radius: 15px; margin: 18px auto 10px; background: #1b1525; color: #fff; }
+.storyVisual { position: absolute; inset: 0; z-index: -2; }
+.storyVisual > img, .storyVisual > svg { width: 100%; height: 100%; display: block; object-fit: cover; }
+.storyViewer::after { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(#15101e80, transparent 30%, #15101e10 45%, #15101eef 100%); }
+.storyProgress { display: flex; gap: 4px; position: absolute; top: 9px; left: 10px; right: 10px; }
+.storyProgress > span { height: 3px; flex: 1; background: #ffffff55; border-radius: 3px; overflow: hidden; }
+.storyProgress i { display: block; height: 100%; background: #fff; }
+.storyTop { display: flex; align-items: center; justify-content: space-between; padding: 25px 16px 12px; gap: 10px; }
+.storyTop strong { font-size: 13px; display: block; margin-bottom: 5px; }
+.storyTop .aiBadge { background: #231c36aa; color: #f6ecff; font-size: 8px; }
+.storyTop button { border: 1px solid #ffffff44; border-radius: 50%; width: 32px; height: 32px; flex-shrink: 0; background: #221b3290; color: white; }
+.storyCaption { position: absolute; left: 20px; right: 20px; bottom: 22px; max-height: 55%; overflow-y: auto; }
+.storyCaption > span { display: inline-block; background: #ffffffdd; color: #2b2435; border-radius: 15px; padding: 5px 10px; font-size: 11px; font-weight: 700; }
+.storyCaption p { font-size: clamp(13px, 2.7vw, 17px); line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; margin: 12px 0; }
+.storyCaption small { font-size: 8px; color: #e7d9ed; }
+.storyControls { display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap; color: #c3b3d3; font-size: 11px; }
+.storyControls button { border: 1px solid #675373; border-radius: 9px; padding: 8px 13px; color: #ead9f8; background: #ffffff07; cursor: pointer; }
+.storyControls button:disabled { opacity: .4; }
+@media (max-width: 420px) { .heading h2 { font-size: 28px; } .eyebrow { font-size: 8px; letter-spacing: 1.2px; } .headerActions { gap: 7px; } .newPost { font-size: 11px; padding: 9px 11px; } .storyStrip { gap: 10px; } .storyCircle { flex-basis: 70px; } .storyRing, .addStory { width: 66px; height: 66px; } .filters button { padding: 9px 6px; font-size: 10px; } .actions { gap: 16px; } .actions button { font-size: 10px; } .composer { padding: 12px; } .storyCaption { left: 15px; right: 15px; bottom: 18px; } }
