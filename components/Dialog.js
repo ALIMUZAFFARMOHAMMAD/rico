@@ -12,7 +12,7 @@ export default function Dialog({ title, onClose, busy = false, wide = false, chi
     const handleKey = (event) => {
       if (event.key === "Escape" && !busy) close.current();
       if (event.key !== "Tab") return;
-      const controls = [...panel.querySelectorAll('button:not(:disabled), a[href], input:not(:disabled), textarea:not(:disabled), select:not(:disabled), summary, audio[controls], [tabindex="0"]')];
+      const controls = [...panel.querySelectorAll('button:not(:disabled), a[href], input:not(:disabled), textarea:not(:disabled), select:not(:disabled), summary, audio[controls], [tabindex="0"]')].filter(element => !element.matches(":disabled") && element.getClientRects().length > 0);
       const first = controls[0], last = controls[controls.length - 1];
       if (!first) { event.preventDefault(); panel.focus(); }
       else if (event.shiftKey && (document.activeElement === first || document.activeElement === panel)) { event.preventDefault(); last.focus(); }

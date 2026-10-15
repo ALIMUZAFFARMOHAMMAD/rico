@@ -26,7 +26,7 @@ import { captureSource, getSource } from "../lib/source";
 import { CONSENT_VERSION } from "../lib/consent";
 import Onboarding from "../components/Onboarding";
 
-import { resizeImage } from "../lib/resizeImage";
+import TwinLookEditor from "../components/TwinLookEditor";
 
 const T = {
   bg: "#0f0e17",
@@ -261,48 +261,8 @@ export default function Rico() {
   const [twinError, setTwinError] = useState("");
   const [showVoiceRec, setShowVoiceRec] = useState(false);
   const [twinReady, setTwinReady] = useState(null); // {ready, progress, have, need}
-  const [avatarBusy, setAvatarBusy] = useState(false);
-  const [avatarErr, setAvatarErr] = useState("");
-  const photoInputRef = useRef(null);
-  async function onPhotoPicked(e) {
-    const file = e.target.files?.[0]; e.target.value = "";
-    if (!file) return;
-    setAvatarBusy(true); setAvatarErr("");
-    const heic = /heic|heif/i.test(file.type) || /\.(heic|heif)$/i.test(file.name || "");
-    try {
-      // iPhone HEIC/HEIF can't be decoded by <img> — convert to JPEG in-browser first.
-      let src = file;
-      if (heic) {
-        try {
-          const heic2any = (await import("heic2any")).default;
-          const conv = heic2any({ blob: file, toType: "image/jpeg", quality: 0.9 });
-          const out = await Promise.race([conv, new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 20000))]);
-          src = Array.isArray(out) ? out[0] : out;
-        } catch (err) {
-          setAvatarErr("Couldn't convert that iPhone photo — try a JPG or a screenshot.");
-          return;
-        }
-      }
-      let dataUrl;
-      try { dataUrl = await resizeImage(src); }
-      catch (err) {
-        setAvatarErr(err?.message === "timeout"
-          ? "That photo couldn't be read — try a JPG/PNG or a screenshot."
-          : "Couldn't read that image — try a clear JPG or PNG selfie.");
-        return;
-      }
-      // Guard the upload too, so a stalled request can never spin forever.
-      const ctrl = new AbortController();
-      const killer = setTimeout(() => ctrl.abort(), 45000);
-      try {
-        const r = await fetch("/api/avatar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, image: dataUrl, mime: "image/jpeg" }), signal: ctrl.signal });
-        const d = await r.json();
-        if (d.look) { await refreshMyTwin(); } else setAvatarErr(d.error || "Couldn't read that photo — try a clearer one.");
-      } catch (err) {
-        setAvatarErr(err?.name === "AbortError" ? "That took too long — check your connection and try again." : "Upload failed — try again.");
-      } finally { clearTimeout(killer); }
-    } finally { setAvatarBusy(false); }
-  }
+  const [showLookEditor, setShowLookEditor] = useState(false);
+  const [lookSaved, setLookSaved] = useState(false);
   const refreshMyTwin = useCallback(async () => {
     if (!userId) return;
     try { const mt = await fetch(`/api/twin?id=twin__${userId}`).then(r => r.json()); if (mt.twin) setMyTwin(mt.twin); } catch (e) {}
@@ -764,13 +724,12 @@ export default function Rico() {
                   <span>🎙 Twin's voice</span>
                   <span style={{ color: myTwin.voiceCloned ? "#4ade80" : T.sub, fontSize: 12.5, fontWeight: 700 }}>{myTwin.voiceCloned ? "Your real voice ✓" : "Clone my voice →"}</span>
                 </button>
-                <input ref={photoInputRef} type="file" accept="image/*" onChange={onPhotoPicked} style={{ display: "none" }} />
-                <button onClick={() => photoInputRef.current?.click()} disabled={avatarBusy} style={{ width: "100%", marginTop: 8, display: "flex", alignItems: "center", justifyContent: "space-between", background: T.panel2, border: `1px solid ${T.line}`, color: T.text, fontWeight: 600, fontSize: 13, padding: "11px 14px", borderRadius: 14, cursor: "pointer", fontFamily: font }}>
+                <button onClick={() => { setLookSaved(false); setShowLookEditor(true); }} style={{ width: "100%", marginTop: 8, display: "flex", alignItems: "center", justifyContent: "space-between", background: T.panel2, border: `1px solid ${T.line}`, color: T.text, fontWeight: 600, fontSize: 13, padding: "11px 14px", borderRadius: 14, cursor: "pointer", fontFamily: font }}>
                   <span>📸 Twin's look</span>
-                  <span style={{ color: T.sub, fontSize: 12.5, fontWeight: 700 }}>{avatarBusy ? "Reading your photo…" : "Make it from my photo →"}</span>
+                  <span style={{ color: T.sub, fontSize: 12.5, fontWeight: 700 }}>Make it from my photo →</span>
                 </button>
-                {avatarErr && <div style={{ color: T.pink, fontSize: 11.5, fontWeight: 600, marginTop: 6 }}>{avatarErr}</div>}
-                <div style={{ color: T.sub, fontSize: 10.5, marginTop: 6, lineHeight: 1.45 }}>Your photo is read once to design a cartoon avatar that looks like you — it's never stored.</div>
+                {lookSaved && <div role="status" style={{ color: "#4ade80", fontSize: 12, marginTop: 8 }}>Your twin’s new look is saved ✓</div>}
+                <div style={{ color: T.sub, fontSize: 10.5, marginTop: 6, lineHeight: 1.45 }}>Preview a cartoon inspired by your photo, adjust its colours, and save it to your twin.</div>
                 <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
                   <button onClick={createTwin} disabled={twinBusy} style={{ flex: 1, background: T.panel2, border: `1px solid ${T.line}`, color: T.text, fontWeight: 600, fontSize: 12.5, padding: "9px 0", borderRadius: 100, cursor: "pointer", fontFamily: font }}>{twinBusy ? "Re-learning you…" : "Refresh twin"}</button>
                   <button onClick={async () => { await fetch("/api/twin", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId }) }); setMyTwin(null); }} style={{ background: "transparent", border: `1px solid ${T.line}`, color: T.sub, fontWeight: 600, fontSize: 12.5, padding: "9px 16px", borderRadius: 100, cursor: "pointer", fontFamily: font }}>Retire</button>
@@ -1056,6 +1015,11 @@ export default function Rico() {
         </AnimatePresence>
 
         {/* twin voice recorder */}
+        {showLookEditor && myTwin && <TwinLookEditor key={userId} userId={userId} twin={myTwin} onClose={() => setShowLookEditor(false)} onSaved={look => {
+          setMyTwin(previous => ({ ...previous, look, avatar: null }));
+          setTwinMap(previous => ({ ...previous, [myTwin.id]: { ...myTwin, look, avatar: null } }));
+          setLookSaved(true);
+        }} />}
         {showVoiceRec && myTwin && (
           <TwinVoiceRecorder userId={userId} userName={userName} cloned={!!myTwin.voiceCloned} onClose={() => setShowVoiceRec(false)} onDone={refreshMyTwin} />
         )}

@@ -74,8 +74,12 @@ export default async function handler(req, res) {
       try { twin = JSON.parse(d.content[0].text.replace(/```json|```/g, "").trim()); } catch (e) { return res.status(502).json({ error: "Distillation failed — try again" }); }
       if (!twin?.persona || !twin?.name) return res.status(502).json({ error: "Distillation failed — try again" });
 
-      twin.look = twinLook(userId);
-      twin.voice = twinVoice(userId);
+      // Re-learning the persona must preserve the owner's appearance and voice.
+      const previous = (await getRow(twinKey(userId)))?.traits;
+      twin.look = previous?.look || twinLook(userId);
+      twin.voice = previous?.voice || twinVoice(userId);
+      twin.voiceCloned = !!previous?.voiceCloned;
+      twin.avatar = previous?.avatar || null;
       twin.ownerName = userName;
       twin.createdAt = new Date().toISOString();
       await saveTwin(userId, twin);
@@ -100,3 +104,4 @@ export default async function handler(req, res) {
 
   return res.status(405).end();
 }
+
