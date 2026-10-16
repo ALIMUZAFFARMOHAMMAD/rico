@@ -1,3 +1,4 @@
+import { getAuth } from "@clerk/nextjs/server";
 import { languagePrompt, LANGS } from "../../lib/i18n";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -70,7 +71,8 @@ export default async function handler(req,res){
   const{messages,mode,userName,userId,callMessages,language,agentId,build}=req.body;
   if(userId&&!ownsUser(req,userId))return res.status(403).json({error:"forbidden"});
   const lang=LANGS[language]?language:"en";
-  const agent=await resolveAgent(agentId);
+  const agent=await resolveAgent(agentId,getAuth(req).userId);
+  if(!agent)return res.status(404).json({error:"This twin is private or unavailable."});
   const memUserId=userId?(agent.id==="tony"?userId:`${userId}::agent::${agent.id}`):null;
   console.log(`Voice API - mode:${mode} userId:${userId?userId.substring(0,8)+"...":"NULL"}`);
   if(mode==="save_call"){
@@ -101,3 +103,4 @@ export default async function handler(req,res){
     return res.status(200).json({text:d.content[0].text,hasMemory:!!memory});
   }catch(e){return res.status(500).json({error:e.message});}
 }
+

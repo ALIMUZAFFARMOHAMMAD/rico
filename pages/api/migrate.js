@@ -76,7 +76,7 @@ export default async function handler(req, res) {
   if (rateLimited(req, { limit: 5 })) return res.status(429).json({ error: "slow down" });
 
   try {
-    const me = await clerkClient.users.getUser(userId);
+    const me = await (await clerkClient()).users.getUser(userId);
     let oldId = null;
     for (const email of verifiedEmails(me.emailAddresses, "emailAddress")) {
       oldId = await findDevUserId(email);
@@ -112,3 +112,4 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "Migration failed — your data is safe; try again." });
   }
 }
+

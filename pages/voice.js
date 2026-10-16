@@ -449,9 +449,9 @@ export default function VoicePage() {
             ))}
             <div style={{ width: 178, height: 178, borderRadius: "50%", padding: 3, background: isLive ? T.grad : T.panel2 }}>
               <div style={{ width: "100%", height: "100%", borderRadius: "50%", background: `radial-gradient(120% 120% at 50% 0%, ${agentObj.look?.hoodie || "#ffe566"}40 0%, #161226 75%)`, overflow: "hidden", display: "flex", justifyContent: "center", border: `1px solid ${T.line}` }}>
-                <div style={{ marginTop: 8 }}>
+                {agentObj.avatar ? <img src={agentObj.avatar} alt={`${agentObj.name}'s AI portrait`} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div style={{ marginTop: 8 }}>
                   <TonyCharacter size={285} look={agentObj.look || {}} float="none" animated={false} pose="down" expr="😊" />
-                </div>
+                </div>}
               </div>
             </div>
           </div>
@@ -569,3 +569,4 @@ export default function VoicePage() {
     `}</style>
   </>);
 }
+

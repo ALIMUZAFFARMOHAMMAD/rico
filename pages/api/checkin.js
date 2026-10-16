@@ -60,7 +60,8 @@ export default async function handler(req, res) {
     if (!convos.length) return res.status(200).json({ ok: false });
 
     const { r: row, k } = convos[0];
-    const agent = await resolveAgent(k.agentId);
+    const agent = await resolveAgent(k.agentId, userId);
+    if (!agent) return res.status(200).json({ ok: false });
 
     // Lapse signal: days since the user last actually had a conversation (not just opened
     // the app — track.js overwrites the open-stamp on load). Drives "Rico missed you".
@@ -124,3 +125,4 @@ ${recent}`;
     return res.status(200).json({ ok: false });
   }
 }
+

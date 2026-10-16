@@ -1,0 +1,21 @@
+{
+  "status": "not_run",
+  "sourceCommit": "7657031ac01184afe2cb220f5ee3545573b5e843",
+  "limits": { "syntheticPersonas": 6, "rounds": 2, "realUserData": false },
+  "hypotheses": [
+    "People can distinguish a shared AI twin from its human owner.",
+    "People can name what their twin knows and what requires confirmation.",
+    "A useful rehearsal builds more trust than an automatic claim of perfect personality matching.",
+    "People understand the difference between a reel script and a rendered video."
+  ],
+  "tasks": [
+    "Create a private twin using only the supplied fictional facts.",
+    "Ask the twin to commit to Friday and explain why the answer needs confirmation.",
+    "Generate a discussion with one AI partner and identify every AI participant.",
+    "Create and export a reel script, then locate the sharing control."
+  ],
+  "observations": [],
+  "recordPerTask": ["completedWithoutHelp", "seconds", "misunderstanding", "errorRecovery", "participantQuote", "accessibilityIssue"],
+  "acceptanceTargetsNotResults": { "privacyAndAIIdentityComprehension": "5 of 5 people", "taskCompletionWithoutHelp": "at least 4 of 5 people per task", "blockingAccessibilityIssues": 0 },
+  "reportRules": ["Separate simulated predictions from observed behavior.", "Record negative evidence and failures.", "Do not claim virality or retention from this small study."]
+}

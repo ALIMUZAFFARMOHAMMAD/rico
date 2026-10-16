@@ -1,3 +1,4 @@
+import { getAuth } from "@clerk/nextjs/server";
 // Tony's real voice — server-side ElevenLabs TTS proxy, streaming.
 // Keys never reach the client. Audio is piped chunk-by-chunk so the
 // client can start playback before generation finishes.
@@ -14,7 +15,8 @@ export default async function handler(req, res) {
   const apiKey = process.env.ELEVENLABS_API_KEY;
   const { text, agentId, language, warm } = req.body || {};
   // each agent (and each twin) has their own licensed voice; Tony uses the founder's clone
-  const agent = await resolveAgent(agentId);
+  const agent = await resolveAgent(agentId, getAuth(req).userId);
+  if (!agent) return res.status(404).json({ error: "This twin is private or unavailable." });
   const voiceId = agent.voice || process.env.ELEVENLABS_VOICE_ID;
   const self = isSelfVoice(voiceId) && selfVoiceOn();
   // the call page pings this on open so a self-hosted twin's GPU is awake by the first reply
@@ -81,3 +83,4 @@ export default async function handler(req, res) {
     res.end();
   }
 }
+

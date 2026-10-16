@@ -83,7 +83,7 @@ function FreshApiToken() {
 
 export default function App({ Component, pageProps }) {
   return (
-    <ClerkProvider {...pageProps} signInUrl="/sign-in" signUpUrl="/sign-up">
+    <ClerkProvider {...pageProps} signInUrl="/sign-in" signUpUrl="/sign-up" signInFallbackRedirectUrl="/" signUpFallbackRedirectUrl="/" afterSignOutUrl="/landing">
       <Head><link rel="icon" href="/favicon.svg" type="image/svg+xml" /><link rel="apple-touch-icon" href="/favicon.svg" /></Head>
       <NativeBridge />
       <FreshApiToken />
@@ -93,3 +93,4 @@ export default function App({ Component, pageProps }) {
     </ClerkProvider>
   )
 }
+

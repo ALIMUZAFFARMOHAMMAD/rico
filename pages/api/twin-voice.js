@@ -7,6 +7,7 @@ import { twinKey, twinVoice } from "../../lib/twins";
 import { ownsUser } from "../../lib/auth";
 import { rateLimited } from "../../lib/ratelimit";
 import { selfVoiceOn, selfVoice, selfVoiceId, removeTwinVoice } from "../../lib/selfvoice";
+import { randomUUID } from "crypto";
 
 export const config = { api: { bodyParser: { sizeLimit: "8mb" } } };
 
@@ -22,27 +23,30 @@ export default async function handler(req, res) {
     const { userId, userName, audio, mime, consent } = req.body || {};
     if (!userId) return res.status(400).json({ error: "Sign in first" });
     if (!ownsUser(req, userId)) return res.status(403).json({ error: "forbidden" });
-    if (!consent) return res.status(400).json({ error: "Please confirm consent to clone your voice." });
+    if (consent !== true) return res.status(400).json({ error: "Please confirm consent to clone your voice." });
     if (!audio) return res.status(400).json({ error: "No recording received." });
 
-    const row = await getRow(twinKey(userId));
-    if (!row?.traits?.persona) return res.status(400).json({ error: "Create your twin first, then add your voice." });
-
     try {
+      const row = await getRow(twinKey(userId));
+      if (!row?.traits?.persona) return res.status(400).json({ error: "Create your twin first, then add your voice." });
       const buf = Buffer.from(String(audio).split(",").pop(), "base64");
       if (buf.length < 24000) return res.status(400).json({ error: "That was too short — record about 30 seconds of clear speech." });
-
-      // replace any previous clone for this user (don't leak voice slots)
-      if (row.traits.voiceCloned && row.traits.voice) await removeTwinVoice(row.traits.voice);
+      if (buf.length > 6 * 1024 * 1024) return res.status(413).json({ error: "That recording is too large. Try a shorter sample." });
+      const saveVoice = async (voice) => {
+        try {
+          await upsertRow(twinKey(userId), { traits: { ...row.traits, voice, voiceCloned: true, voiceConsentAt: new Date().toISOString() } });
+        } catch (error) { await removeTwinVoice(voice); throw error; }
+        if (row.traits.voiceCloned && row.traits.voice && row.traits.voice !== voice) await removeTwinVoice(row.traits.voice);
+      };
 
       if (selfVoiceOn()) {
-        const id = selfVoiceId(userId);
+        const id = `${selfVoiceId(userId).slice(-40)}_${randomUUID().slice(0, 12)}`;
         const r = await selfVoice("/clone", { voice: id, audio_b64: audio }, 60000); // first call may wake a cold GPU
         if (!r.ok) {
           console.error("self clone error", r.status, (await r.text()).slice(0, 200));
           return res.status(502).json({ error: r.status === 400 ? "Couldn't read that recording — try ~30s of clear speech." : "Voice cloning is busy — try again in a minute." });
         }
-        await upsertRow(twinKey(userId), { traits: { ...row.traits, voice: `self:${id}`, voiceCloned: true } });
+        await saveVoice(`self:${id}`);
         return res.status(200).json({ ok: true, cloned: true });
       }
 
@@ -65,7 +69,8 @@ export default async function handler(req, res) {
         return res.status(502).json({ error: "Couldn't clone that — try a clearer ~30s recording." });
       }
       const d = await r.json();
-      await upsertRow(twinKey(userId), { traits: { ...row.traits, voice: d.voice_id, voiceCloned: true } });
+      if (!d.voice_id) throw new Error("Voice provider returned no voice");
+      await saveVoice(d.voice_id);
       return res.status(200).json({ ok: true, cloned: true });
     } catch (e) {
       console.error("twin-voice POST", e.message);
@@ -77,13 +82,16 @@ export default async function handler(req, res) {
     const { userId } = req.body || {};
     if (!userId) return res.status(400).json({ error: "No userId" });
     if (!ownsUser(req, userId)) return res.status(403).json({ error: "forbidden" });
-    const row = await getRow(twinKey(userId));
-    if (row?.traits?.voiceCloned && row.traits.voice) {
-      await removeTwinVoice(row.traits.voice);
-      await upsertRow(twinKey(userId), { traits: { ...row.traits, voice: twinVoice(userId), voiceCloned: false } });
-    }
-    return res.status(200).json({ ok: true });
+    try {
+      const row = await getRow(twinKey(userId));
+      if (row?.traits?.voiceCloned && row.traits.voice) {
+        await removeTwinVoice(row.traits.voice, { strict: true });
+        await upsertRow(twinKey(userId), { traits: { ...row.traits, voice: twinVoice(userId), voiceCloned: false } });
+      }
+      return res.status(200).json({ ok: true });
+    } catch (error) { return res.status(503).json({ error: "We couldn’t remove your voice right now. Please try again." }); }
   }
 
   return res.status(405).end();
 }
+

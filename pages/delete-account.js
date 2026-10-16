@@ -57,7 +57,7 @@ export default function DeleteAccount() {
           ) : (
             <>
               <p style={{ fontSize: 14, color: C.sub }}>Sign in to the account you want to delete.</p>
-              <SignInButton mode="modal" afterSignInUrl="/delete-account"><button style={{ ...btn, background: C.cta }}>Sign in</button></SignInButton>
+              <SignInButton mode="modal" forceRedirectUrl="/delete-account"><button style={{ ...btn, background: C.cta }}>Sign in</button></SignInButton>
             </>
           )}
         </div>
@@ -65,3 +65,4 @@ export default function DeleteAccount() {
     </div>
   );
 }
+

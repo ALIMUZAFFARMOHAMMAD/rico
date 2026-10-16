@@ -46,7 +46,8 @@ export default async function handler(req, res) {
 
     let context = "";
     for (const { r, k } of convos) {
-      const agent = await resolveAgent(k.agentId);
+      const agent = await resolveAgent(k.agentId, userId);
+      if (!agent) continue;
       const snippet = (r.messages || []).slice(agent ? -16 : -6)
         .map(m => `${m.role === "user" ? "Them" : agent.name}: ${String(m.content || "").slice(0, 180)}`)
         .join("\n");
@@ -111,3 +112,4 @@ CONVERSATIONS:${context}`;
     return res.status(200).json({ ok: false });
   }
 }
+

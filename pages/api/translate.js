@@ -8,7 +8,7 @@ const FAST = "claude-haiku-4-5-20251001";
 
 async function claude(apiKey, system, userText, maxTokens) {
   const r = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
+    method: "POST", signal: AbortSignal.timeout(25000),
     headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
     body: JSON.stringify({ model: FAST, max_tokens: maxTokens, system, messages: [{ role: "user", content: userText }] }),
   });
@@ -24,7 +24,10 @@ export default async function handler(req, res) {
   if (!apiKey) return res.status(500).json({ error: "No API key" });
 
   const { text, from, to } = req.body || {};
-  if (!text || !text.trim()) return res.status(200).json({ text: "" });
+  if (typeof text !== "string" || text.length > 1500) return res.status(400).json({ error: "Enter up to 1,500 characters to translate." });
+  if (!text.trim()) return res.status(200).json({ text: "" });
+  if (!LANGS[to] || (from !== "auto" && !LANGS[from])) return res.status(400).json({ error: "Choose supported source and destination languages." });
+  if (from === to) return res.status(200).json({ text: text.trim() });
   const toName = LANGS[to]?.name || to || "English";
 
   try {
@@ -34,7 +37,8 @@ Output ONLY strict JSON: {"lang":"<ISO 639-1 two-letter code of the source>","te
 Translate naturally and conversationally — spoken tone, no notes, no quotes, no extra words.`;
       const raw = await claude(apiKey, sys, text.slice(0, 1500), 400);
       let j; try { j = JSON.parse(raw.replace(/```json|```/g, "").trim()); } catch (e) { j = { lang: "", text: raw }; }
-      return res.status(200).json({ text: (j.text || "").trim(), detected: j.lang || "" });
+      if (typeof j.text !== "string" || !j.text.trim()) throw new Error("No translation returned");
+      return res.status(200).json({ text: j.text.trim(), detected: typeof j.lang === "string" ? j.lang : "" });
     }
     const fromName = LANGS[from]?.name || from || "English";
     const sys = `You are a professional real-time conversation interpreter translating ${fromName} to ${toName}.
@@ -47,3 +51,4 @@ Output ONLY the translation in ${toName} — no quotes, no notes, no explanation
     return res.status(500).json({ error: "Translation failed" });
   }
 }
+

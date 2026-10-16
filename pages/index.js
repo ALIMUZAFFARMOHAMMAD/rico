@@ -17,11 +17,16 @@ import ProactiveCheckin from "../components/ProactiveCheckin";
 import MemorySpotlight from "../components/MemorySpotlight";
 import WeeklyDigest from "../components/WeeklyDigest";
 import SocialFeed from "../components/SocialFeed";
+import DailyHome from "../components/DailyHome";
+import SocialInbox from "../components/SocialInbox";
+import GameLobby from "../components/GameLobby";
+import ChatWorkspace from "../components/ChatWorkspace";
+import { visibleMessages } from "../lib/conversation-view";
 import { captureSource, getSource } from "../lib/source";
 import { CONSENT_VERSION } from "../lib/consent";
 import Onboarding from "../components/Onboarding";
-import Intro from "../components/Intro";
-import { resizeImage } from "../lib/resizeImage";
+
+import TwinLookEditor from "../components/TwinLookEditor";
 
 const T = {
   bg: "#0f0e17",
@@ -107,7 +112,7 @@ function SwipeCard({ agent, onDecide, topCard, exitDir = "left" }) {
         <div style={{ flex: 1.35, background: `radial-gradient(120% 100% at 50% 0%, ${agent.look?.hoodie || "#ffe566"}40 0%, #161226 70%)`, display: "flex", alignItems: "flex-end", justifyContent: "center", position: "relative", overflow: "hidden" }}>
           <div aria-hidden="true" style={{ position: "absolute", width: 250, height: 250, top: 18, borderRadius: "50%", border: "2px dashed rgba(255,255,255,0.22)", animation: "rm-orbit 18s linear infinite" }}><div style={{ position: "absolute", width: 12, height: 12, borderRadius: "50%", background: "#fff", top: 20, left: 42 }} /></div>
           <div aria-hidden="true" style={{ position: "absolute", width: 330, height: 330, top: -22, borderRadius: "50%", border: "1px solid rgba(255,255,255,0.12)", animation: "rm-orbit-rev 30s linear infinite" }} />
-          <TonyCharacter size={235} look={agent.look || {}} float="none" animated={false} pose="down" expr="😊" emote={topCard ? em : "none"} />
+          {agent.avatar ? <img src={agent.avatar} alt={`${agent.name}'s AI portrait`} style={{ width: "100%", height: "100%", objectFit: "cover", position: "absolute", inset: 0 }} /> : <TonyCharacter size={235} look={agent.look || {}} float="none" animated={false} pose="down" expr="😊" emote={topCard ? em : "none"} />}
           <div style={{ position: "absolute", top: 14, left: 14, display: "flex", gap: 6 }}>
             <span style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(8px)", border: `1px solid ${T.line}`, color: T.text, fontSize: 11.5, fontWeight: 700, padding: "5px 11px", borderRadius: 100 }}>
               {agent.isTwin ? "TWIN · echo of a real person" : `AI FRIEND · ${agent.archetype}`}
@@ -140,15 +145,22 @@ export default function Rico() {
   const userName = user?.firstName || user?.fullName?.split(" ")[0] || "";
   const userId = user?.id || null;
 
-  const [tab, setTab] = useState("discover");
+  const [tab, setTab] = useState("home");
+  useEffect(() => { if (new URLSearchParams(window.location.search).has("socialPost")) setTab("social"); }, []);
   const [matches, setMatches] = useState(["tony"]);
   const [twins, setTwins] = useState([]);
   const [twinMap, setTwinMap] = useState({});
   const [splash, setSplash] = useState(null);
-  const [ready, setReady] = useState(false);
+
 
   // chat state
   const [chatAgent, setChatAgent] = useState(null);
+  const [chatError, setChatError] = useState("");
+  const [chatLoadError, setChatLoadError] = useState(false);
+  const [saveState, setSaveState] = useState("idle");
+  const chatTokenRef = useRef(0);
+  const pendingSavesRef = useRef({});
+  const matchStorageKey = 'rico_matches_' + userId;
   const [chatMem, setChatMem] = useState([]); // "<Name> remembers" chips: only real facts from this friend's chat
   const [messages, setMessages] = useState([]);
   const [, setHistory] = useState([]);
@@ -250,48 +262,8 @@ export default function Rico() {
   const [twinError, setTwinError] = useState("");
   const [showVoiceRec, setShowVoiceRec] = useState(false);
   const [twinReady, setTwinReady] = useState(null); // {ready, progress, have, need}
-  const [avatarBusy, setAvatarBusy] = useState(false);
-  const [avatarErr, setAvatarErr] = useState("");
-  const photoInputRef = useRef(null);
-  async function onPhotoPicked(e) {
-    const file = e.target.files?.[0]; e.target.value = "";
-    if (!file) return;
-    setAvatarBusy(true); setAvatarErr("");
-    const heic = /heic|heif/i.test(file.type) || /\.(heic|heif)$/i.test(file.name || "");
-    try {
-      // iPhone HEIC/HEIF can't be decoded by <img> — convert to JPEG in-browser first.
-      let src = file;
-      if (heic) {
-        try {
-          const heic2any = (await import("heic2any")).default;
-          const conv = heic2any({ blob: file, toType: "image/jpeg", quality: 0.9 });
-          const out = await Promise.race([conv, new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 20000))]);
-          src = Array.isArray(out) ? out[0] : out;
-        } catch (err) {
-          setAvatarErr("Couldn't convert that iPhone photo — try a JPG or a screenshot.");
-          return;
-        }
-      }
-      let dataUrl;
-      try { dataUrl = await resizeImage(src); }
-      catch (err) {
-        setAvatarErr(err?.message === "timeout"
-          ? "That photo couldn't be read — try a JPG/PNG or a screenshot."
-          : "Couldn't read that image — try a clear JPG or PNG selfie.");
-        return;
-      }
-      // Guard the upload too, so a stalled request can never spin forever.
-      const ctrl = new AbortController();
-      const killer = setTimeout(() => ctrl.abort(), 45000);
-      try {
-        const r = await fetch("/api/avatar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, image: dataUrl, mime: "image/jpeg" }), signal: ctrl.signal });
-        const d = await r.json();
-        if (d.look) { await refreshMyTwin(); } else setAvatarErr(d.error || "Couldn't read that photo — try a clearer one.");
-      } catch (err) {
-        setAvatarErr(err?.name === "AbortError" ? "That took too long — check your connection and try again." : "Upload failed — try again.");
-      } finally { clearTimeout(killer); }
-    } finally { setAvatarBusy(false); }
-  }
+  const [showLookEditor, setShowLookEditor] = useState(false);
+  const [lookSaved, setLookSaved] = useState(false);
   const refreshMyTwin = useCallback(async () => {
     if (!userId) return;
     try { const mt = await fetch(`/api/twin?id=twin__${userId}`).then(r => r.json()); if (mt.twin) setMyTwin(mt.twin); } catch (e) {}
@@ -319,34 +291,48 @@ export default function Rico() {
   // app at "/" is only for signed-in users.
   useEffect(() => { if (isLoaded && !isSignedIn) window.location.replace("/landing"); }, [isLoaded, isSignedIn]);
 
-  // matches + twins
   useEffect(() => {
-    if (!isLoaded) return;
+    chatTokenRef.current += 1;
+    pendingSavesRef.current = {};
+    setChatAgent(null); setMessages([]); setInput(""); setMatches(["tony"]); setMyTwin(null);
+    return () => { chatTokenRef.current += 1; };
+  }, [userId]);
+
+  // Show the app immediately; account data fills in independently in the background.
+  useEffect(() => {
+    if (!isLoaded || !userId) return;
+    let alive = true;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
     let local = ["tony"];
-    try { const m = JSON.parse(localStorage.getItem("hitony_matches") || '["tony"]'); if (Array.isArray(m)) local = [...new Set(["tony", ...m])]; } catch (e) {}
-    (async () => {
-      if (isSignedIn) {
-        try {
-          const r = await fetch(`/api/matches?userId=${userId}`);
-          const server = (await r.json()).matches || [];
-          local = [...new Set(["tony", ...server, ...local])];
-          const missing = local.filter(id => !server.includes(id));
-          if (missing.length) fetch("/api/matches", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, agentIds: missing }) }).catch(() => {});
-        } catch (e) {}
-      }
-      setMatches(local);
-      localStorage.setItem("hitony_matches", JSON.stringify(local));
-      try {
-        const tw = await fetch(`/api/twin${userId ? `?exclude=${userId}` : ""}`).then(r => r.json());
-        setTwins(tw.twins || []);
-        setTwinMap(Object.fromEntries((tw.twins || []).map(t => [t.id, t])));
-      } catch (e) {}
-      if (isSignedIn) {
-        try { const mt = await fetch(`/api/twin?id=twin__${userId}`).then(r => r.json()); if (mt.twin) setMyTwin(mt.twin); } catch (e) {}
-      }
-      setReady(true);
-    })();
-  }, [isLoaded, isSignedIn]);
+    try { const m = JSON.parse(localStorage.getItem(matchStorageKey) || '["tony"]'); if (Array.isArray(m)) local = [...new Set(["tony", ...m])]; } catch (e) {}
+    setMatches(local);
+    const read = async url => {
+      const response = await fetch(url, { signal: controller.signal });
+      if (!response.ok) throw new Error("Profile unavailable");
+      return response.json();
+    };
+    Promise.allSettled([
+      read('/api/matches?userId=' + encodeURIComponent(userId)).then(data => {
+        if (!alive) return;
+        const server = data.matches || [];
+        const merged = [...new Set(["tony", ...server, ...local])];
+        setMatches(merged);
+        try { localStorage.setItem(matchStorageKey, JSON.stringify(merged)); } catch (e) {}
+        const missing = merged.filter(id => !server.includes(id));
+        if (missing.length) fetch("/api/matches", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, agentIds: missing }), signal: controller.signal }).catch(() => {});
+      }),
+      read('/api/twin?exclude=' + encodeURIComponent(userId)).then(data => {
+        if (!alive) return;
+        setTwins(data.twins || []);
+        setTwinMap(Object.fromEntries((data.twins || []).map(t => [t.id, t])));
+      }),
+      read('/api/twin?id=twin__' + encodeURIComponent(userId)).then(data => {
+        if (alive && data.twin) setMyTwin(data.twin);
+      }),
+    ]);
+    return () => { alive = false; clearTimeout(timeout); controller.abort(); };
+  }, [isLoaded, userId, matchStorageKey]);
 
   // resolve any matched twin ids we don't know yet (cross-device)
   useEffect(() => {
@@ -364,8 +350,8 @@ export default function Rico() {
   const deck = [...AGENT_LIST.filter(a => !matches.includes(a.id)), ...twins.filter(t => !matches.includes(t.id))];
   const [passed, setPassed] = useState([]);
   const [lastDir, setLastDir] = useState("left");
-  const [chatEmote, setChatEmote] = useState("none");
-  const [introPlayed, setIntroPlayed] = useState(false);
+
+
   const [needsConsent, setNeedsConsent] = useState(false);
   const [needsTour, setNeedsTour] = useState(false);
   // After sign-in, require agreement to Terms/Privacy/AI consent once, then a feature tour once.
@@ -400,10 +386,10 @@ export default function Rico() {
     try { if (localStorage.getItem(flag)) return; } catch (e) {}
     fetch("/api/migrate", { method: "POST" }).then(r => r.ok ? r.json() : null).then(d => {
       if (!d) return;
-      try { localStorage.setItem(flag, "1"); if (d.moved > 0) localStorage.removeItem("hitony_matches"); } catch (e) {} // stale local ids would re-add twin__<old>
+      try { localStorage.setItem(flag, "1"); if (d.moved > 0) localStorage.removeItem(matchStorageKey); } catch (e) {} // stale local ids would re-add twin__<old>
       if (d.moved > 0) window.location.reload();
     }).catch(() => {});
-  }, [isSignedIn, userId]);
+  }, [isSignedIn, userId, matchStorageKey]);
 
   // retention tracking: stamp first/last-seen + active days once per session (+ signup source)
   useEffect(() => {
@@ -415,14 +401,6 @@ export default function Rico() {
     setNeedsTour(false);
     fetch("/api/track", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, event: "tour_done", variant: variant || "complete" }) }).catch(() => {});
   };
-  const reactTo = useCallback((expr) => {
-    const e = ["😄", "😆", "🎉", "😁"].includes(expr) ? "laugh"
-      : ["🤍", "❤️", "💙", "🥰"].includes(expr) ? "dance"
-      : ["💡", "🤝", "👍", "✨"].includes(expr) ? "nod"
-      : ["😳", "🙈", "😅"].includes(expr) ? "shy"
-      : "none";
-    if (e !== "none") { setChatEmote(e); setTimeout(() => setChatEmote("none"), 2800); }
-  }, []);
   const visibleDeck = deck.filter(a => !passed.includes(a.id));
   const card = visibleDeck[0];
   const cardNext = visibleDeck[1];
@@ -438,7 +416,7 @@ export default function Rico() {
     if (dir === "right") {
       const m = [...new Set([...matches, card.id])];
       setMatches(m);
-      localStorage.setItem("hitony_matches", JSON.stringify(m));
+      localStorage.setItem(matchStorageKey, JSON.stringify(m));
       if (isSignedIn) fetch("/api/matches", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, agentIds: [card.id] }) }).catch(() => {});
       setSplash(card);
     } else {
@@ -448,7 +426,7 @@ export default function Rico() {
 
   // ---------- chat ----------
   const callAPI = useCallback(async (body) => {
-    const res = await fetch("/api/tony", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ language: langRef.current, ...body }) });
+    const res = await fetch("/api/tony", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ language: langRef.current, ...body }), signal: AbortSignal.timeout(60000) });
     if (!res.ok) throw new Error("API " + res.status);
     return res.json();
   }, []);
@@ -460,75 +438,94 @@ export default function Rico() {
     return { data, text };
   };
 
-  const cacheLast = (agentId, text) => { try { localStorage.setItem(`orbit_last_${agentId}`, text.slice(0, 64)); } catch (e) {} };
+  const cacheLast = (agentId, text) => { try { localStorage.setItem(`orbit_last_${userId}_${agentId}`, text.slice(0, 64)); } catch (e) {} };
+
+  async function saveChat(payload, token) {
+    pendingSavesRef.current[payload.agent] = payload;
+    if (token === chatTokenRef.current) setSaveState("saving");
+    try {
+      const response = await fetch("/api/conversation", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload), signal: AbortSignal.timeout(15000) });
+      if (!response.ok) throw new Error();
+      if (pendingSavesRef.current[payload.agent] === payload) delete pendingSavesRef.current[payload.agent];
+      if (token === chatTokenRef.current) { setSaveState("saved"); setChatError(""); }
+    } catch (error) {
+      if (token === chatTokenRef.current) { setSaveState("error"); setChatError("Your reply is here, but it hasn’t saved yet. Keep this page open and retry."); }
+    }
+  }
 
   async function openChat(agent) {
+    const token = ++chatTokenRef.current;
     setChatAgent(agent); setChatMem([]); setMessages([]); setHistory([]); histRef.current = []; setMsgCount(0); setResults(null);
-    setIsTyping(true);
-    let mem = null;
-    if (isSignedIn) {
-      try { mem = await fetch(`/api/conversation?userId=${userId}&agent=${agent.id}`).then(r => r.json()); } catch (e) {}
-    }
+    setChatError(""); setChatLoadError(false); setSaveState("idle"); setIsTyping(true);
+    let mem = pendingSavesRef.current[agent.id];
     try {
-      if (mem && mem.messages && mem.messages.length > 0) {
-        setHistory(mem.messages); histRef.current = mem.messages;
-        setTraits(mem.traits || { O: 0, C: 0, E: 0, A: 0, N: 0 }); setRiasec(mem.riasec || ""); setMsgCount(mem.msgCount || 0);
-        const d = await callAPI({ messages: [...mem.messages, { role: "user", content: `[RETURNING USER: ${userName}. Welcome them back warmly, reference something from your past chats naturally. 1-3 sentences.]` }], mode: "chat", userName, userId, agentId: agent.id });
-        const { data, text } = parse(d.raw || d.text);
-        setMessages([{ role: "agent", text, id: Date.now() }]);
-        const fh = [...mem.messages, { role: "assistant", content: d.raw || d.text }];
-        setHistory(fh); histRef.current = fh;
-        cacheLast(agent.id, text);
-        if (data) { setTraits({ O: data.O, C: data.C, E: data.E, A: data.A, N: data.N }); if (data.riasec) setRiasec(data.riasec); }
-      } else {
-        const d = await callAPI({ messages: [], mode: "init", userName, userId, agentId: agent.id });
-        const { text } = parse(d.raw || d.text);
-        setMessages([{ role: "agent", text, id: Date.now() }]);
-        const fh = [{ role: "user", content: "[START]" }, { role: "assistant", content: d.raw || d.text }];
-        setHistory(fh); histRef.current = fh;
-        cacheLast(agent.id, text);
+      if (!mem && isSignedIn) {
+        const response = await fetch(`/api/conversation?userId=${encodeURIComponent(userId)}&agent=${encodeURIComponent(agent.id)}`, { signal: AbortSignal.timeout(15000) });
+        if (!response.ok) throw new Error("load");
+        mem = await response.json();
       }
-    } catch (e) {
-      setMessages([{ role: "agent", text: `Hey! I'm ${agent.name} — so glad we matched. What's on your mind?`, id: Date.now() }]);
-    }
-    setIsTyping(false);
+      if (token !== chatTokenRef.current) return;
+      if (mem?.messages?.length) {
+        setHistory(mem.messages); histRef.current = mem.messages;
+        setMessages(visibleMessages(mem.messages));
+        setTraits(Object.fromEntries(["O", "C", "E", "A", "N"].map(key => [key, mem.traits?.[key] || 0])));
+        setRiasec(mem.riasec || ""); setMsgCount(mem.msgCount || 0);
+        setSaveState(pendingSavesRef.current[agent.id] ? "error" : "saved");
+        if (pendingSavesRef.current[agent.id]) setChatError("This conversation has unsaved messages. Retry to keep them on your account.");
+      } else {
+        setTraits({ O: 0, C: 0, E: 0, A: 0, N: 0 }); setRiasec("");
+        const response = await callAPI({ messages: [], mode: "init", userName, userId, agentId: agent.id });
+        if (token !== chatTokenRef.current) return;
+        const raw = response.raw || response.text;
+        if (typeof raw !== "string" || !raw.trim()) throw new Error("reply");
+        setMessages([{ role: "agent", text: parse(raw).text, id: Date.now() }]);
+        const history = [{ role: "user", content: "[START]" }, { role: "assistant", content: raw }];
+        setHistory(history); histRef.current = history;
+      }
+    } catch (error) {
+      if (token === chatTokenRef.current) { setChatLoadError(true); setChatError("We couldn’t open this conversation. Retry before sending so your saved history stays together."); }
+    } finally { if (token === chatTokenRef.current) setIsTyping(false); }
   }
 
   async function send(textArg) {
     const msg = (typeof textArg === "string" ? textArg : input).trim();
-    if (!msg || isTyping || !chatAgent) return;
-    if (getStoredPref() === "auto") { const d = detectLang(msg); if (d && d !== langRef.current) { langRef.current = d; storeDetectedLang(d); } }
-    setInput("");
-    setMessages(p => [...p, { role: "user", text: msg, id: Date.now() }]);
-    const nh = [...histRef.current, { role: "user", content: msg }];
-    setHistory(nh); histRef.current = nh;
+    if (!msg || isTyping || !chatAgent || chatLoadError || (saveState === "error" || saveState === "saving")) return;
+    const token = chatTokenRef.current;
+    const agent = chatAgent;
+    const previousHistory = histRef.current;
+    const previousMessages = messages;
+    if (getStoredPref() === "auto") { const detected = detectLang(msg); if (detected && detected !== langRef.current) { langRef.current = detected; storeDetectedLang(detected); } }
+    setInput(""); setChatError("");
+    setMessages(previous => [...previous, { role: "user", text: msg, id: Date.now() }]);
+    const nextHistory = [...previousHistory, { role: "user", content: msg }];
     setIsTyping(true);
     try {
-      const d = await callAPI({ messages: nh, mode: "chat", userName, userId, agentId: chatAgent.id });
-      const { data, text } = parse(d.raw || d.text);
-      setMessages(p => [...p, { role: "agent", text, id: Date.now() }]);
-      if (data?.expr) reactTo(data.expr);
-      cacheLast(chatAgent.id, text);
-      const fh = [...nh, { role: "assistant", content: d.raw || d.text }];
-      setHistory(fh); histRef.current = fh;
-      const nt = data ? { O: data.O, C: data.C, E: data.E, A: data.A, N: data.N } : traits;
-      if (data) { setTraits(nt); if (data.riasec) setRiasec(data.riasec); }
-      const nc = msgCount + 2; setMsgCount(nc);
-      if (isSignedIn) fetch("/api/conversation", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, agent: chatAgent.id, messages: fh, traits: nt, riasec: data?.riasec || riasec, msgCount: nc }) }).catch(() => {});
-      // Activation (North Star leading indicator): first real conversation = 6+ messages. Fire once.
-      if (isSignedIn && userId && nc >= 6) {
+      const response = await callAPI({ messages: nextHistory, mode: "chat", userName, userId, agentId: agent.id });
+      if (token !== chatTokenRef.current) return;
+      const raw = response.raw || response.text;
+      if (typeof raw !== "string" || !raw.trim()) throw new Error();
+      const { data, text } = parse(raw);
+      setMessages(previous => [...previous, { role: "agent", text, id: Date.now() + 1 }]);
+
+      cacheLast(agent.id, text);
+      const fullHistory = [...nextHistory, { role: "assistant", content: raw }];
+      setHistory(fullHistory); histRef.current = fullHistory;
+      const scores = Object.fromEntries(["O", "C", "E", "A", "N"].map(key => [key, Number.isFinite(data?.[key]) ? Math.max(0, Math.min(100, data[key])) : traits[key] || 0]));
+      setTraits(scores); if (data?.riasec) setRiasec(data.riasec);
+      const count = msgCount + 2; setMsgCount(count);
+      if (isSignedIn) await saveChat({ userId, agent: agent.id, messages: fullHistory, traits: scores, riasec: data?.riasec || riasec, msgCount: count }, token);
+      if (isSignedIn && count >= 6) {
         try {
-          const ak = `rico_act_${userId}`;
-          if (!localStorage.getItem(ak)) {
-            localStorage.setItem(ak, "1");
+          const key = `rico_act_${userId}`;
+          if (!localStorage.getItem(key)) {
+            localStorage.setItem(key, "1");
             fetch("/api/track", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, event: "activation" }) }).catch(() => {});
           }
-        } catch (e) {}
+        } catch (error) {}
       }
-    } catch (e) {
-      setMessages(p => [...p, { role: "agent", text: "Something went quiet on my end — say that again?", id: Date.now() }]);
-    }
-    setIsTyping(false);
+    } catch (error) {
+      if (token === chatTokenRef.current) { setMessages(previousMessages); setInput(msg); setChatError("Your message couldn’t be sent. It’s back in the box below—try again when you’re ready."); }
+    } finally { if (token === chatTokenRef.current) setIsTyping(false); }
   }
 
   async function revealResults() {
@@ -557,7 +554,7 @@ export default function Rico() {
     setTwinBusy(false);
   }
 
-  const tier = msgCount >= 40 ? "Close friend" : msgCount >= 10 ? "Friend" : "New friend";
+
 
   if (!isLoaded) return (
     <div style={{ height: "100vh", background: T.bg, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: font }}>
@@ -575,37 +572,52 @@ export default function Rico() {
     </div>
   );
 
-  // Brand intro plays first thing after sign-in (also covers data loading).
-  if (isSignedIn && !introPlayed) return (<><Head><title>ricomates</title></Head><Intro onDone={() => setIntroPlayed(true)} /></>);
-
-  if (!ready) return (
-    <div style={{ height: "100vh", background: T.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4, fontFamily: font }}>
-      <Head><title>ricomates</title></Head>
-      <TonyCharacter size={150} look={{ hoodie: "#8b5cf6", hoodieD: "#7146d1" }} float="none" animated={false} emote="shuffle" />
-      <div style={{ color: T.sub, fontSize: 12.5, fontWeight: 500 }}>Rico is shuffling the deck for you…</div>
-    </div>
-  );
-
   return (<>
     <Head>
       <title>ricomates</title>
-      <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
+      <meta name="viewport" content="width=device-width,initial-scale=1" />
       <meta name="theme-color" content="#0f0e17" />    </Head>
     <div style={{ minHeight: "100vh", background: T.bg, fontFamily: font, display: "flex", justifyContent: "center" }}>
       <Aurora />
       {needsConsent && isSignedIn && <ConsentGate userId={userId} onAccept={() => setNeedsConsent(false)} />}
       {!needsConsent && needsTour && isSignedIn && <Onboarding onDone={finishTour} />}
       {/* phone canvas */}
-      <div style={{ width: "100%", maxWidth: 430, height: "100vh", position: "relative", zIndex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div className="rm-app-shell" data-home={tab === "home" && !chatAgent ? "true" : "false"} style={{ width: "100%", maxWidth: chatAgent ? 1360 : ["home", "chats"].includes(tab) ? 1120 : 640, height: "100dvh", position: "relative", zIndex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
 
         {/* top bar */}
         <div style={{ padding: "16px 20px 10px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <Logo />
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            {isSignedIn ? <UserButton afterSignOutUrl="/" appearance={{ elements: { avatarBox: { width: 30, height: 30 } } }} />
+            {isSignedIn ? <UserButton appearance={{ elements: { avatarBox: { width: 30, height: 30 } } }} />
               : <SignInButton mode="modal"><button style={{ background: T.grad, border: "none", color: "white", fontWeight: 700, fontSize: 12.5, padding: "7px 16px", borderRadius: 100, cursor: "pointer", fontFamily: font }}>Sign in</button></SignInButton>}
           </div>
         </div>
+
+        {/* ===== TODAY ===== */}
+        {tab === "home" && (
+          <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
+            <DailyHome
+              userId={userId}
+              userName={userName}
+              friends={matches.map(lookup).filter(Boolean)}
+              onChat={(id, draft = "") => {
+                const agent = lookup(id);
+                if (!agent) return;
+                setInput(draft);
+                if (!matches.includes(id)) {
+                  const next = [...new Set([...matches, id])];
+                  setMatches(next);
+                  try { localStorage.setItem(matchStorageKey, JSON.stringify(next)); } catch (error) {}
+                  fetch("/api/matches", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, agentIds: [id] }) }).catch(() => {});
+                }
+                openChat(agent);
+              }}
+              onDiscover={() => setTab(allMet ? "chats" : "discover")}
+              onChats={() => setTab("chats")}
+              onPlay={() => { setInput(""); openChat(lookup("tony")); setShowGames(true); }}
+            />
+          </div>
+        )}
 
         {/* ===== DISCOVER ===== */}
         {tab === "discover" && (
@@ -633,63 +645,17 @@ export default function Rico() {
         )}
 
         {/* ===== CHATS ===== */}
-        {tab === "chats" && (
-          <div style={{ flex: 1, overflowY: "auto", padding: "4px 18px 80px" }}>
-            {/* Flagship #1 stays first on Chats: "Rico texts you first" only works if it's seen first. */}
-            {isSignedIn && userId && (
-              <ProactiveCheckin
-                userId={userId}
-                lang={langRef.current}
-                T={T}
-                font={font}
-                onOpen={(id) => { const a = lookup(id); if (a) openChat(a); }}
-              />
-            )}
-            <div style={{ display: "flex", gap: 9, margin: "6px 0 14px" }}>
-              <a href="/groups" style={{ flex: 1, display: "flex", alignItems: "center", gap: 9, textDecoration: "none", background: `linear-gradient(140deg,${T.violet}22,${T.pink}14)`, border: `1px solid ${T.line}`, borderRadius: 16, padding: "12px 13px" }}>
-                <span aria-hidden="true" style={{ width: 38, height: 38, borderRadius: 12, background: "rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "center", color: "#c4b5fd", flexShrink: 0 }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="8" r="3.5" /><circle cx="17" cy="9.5" r="2.5" /><path d="M3 19c.8-3.2 3.2-5 6-5s5.2 1.8 6 5M15 14.6c2.6 0 4.6 1.5 5.2 4.4" /></svg></span>
-                <span><span style={{ display: "block", color: T.text, fontWeight: 700, fontSize: 13 }}>Group chat</span><span style={{ color: T.sub, fontSize: 10.5 }}>Friends in one room</span></span>
-              </a>
-              <a href="/classroom" style={{ flex: 1, display: "flex", alignItems: "center", gap: 9, textDecoration: "none", background: `linear-gradient(140deg,${T.pink}1c,${T.violet}22)`, border: `1px solid ${T.line}`, borderRadius: 16, padding: "12px 13px" }}>
-                <span aria-hidden="true" style={{ width: 38, height: 38, borderRadius: 12, background: "rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "center", color: "#ff7b96", flexShrink: 0 }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m2 9 10-5 10 5-10 5z" /><path d="M6 11v5c3 2.5 9 2.5 12 0v-5M22 9v6" /></svg></span>
-                <span><span style={{ display: "block", color: T.text, fontWeight: 700, fontSize: 13 }}>AI Tutor</span><span style={{ color: T.sub, fontSize: 10.5 }}>Teach a friend</span></span>
-              </a>
-            </div>
-            <a href="/translate" style={{ display: "flex", alignItems: "center", gap: 9, textDecoration: "none", background: `linear-gradient(140deg,${T.teal || "#2dd4bf"}1e,${T.violet}1e)`, border: `1px solid ${T.line}`, borderRadius: 16, padding: "12px 13px", marginBottom: 14 }}>
-              <span aria-hidden="true" style={{ width: 38, height: 38, borderRadius: 12, background: "rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "center", color: "#5eead4", flexShrink: 0 }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c2.8 3 2.8 15 0 18M12 3c-2.8 3-2.8 15 0 18" /></svg></span>
-              <span style={{ flex: 1 }}><span style={{ display: "block", color: T.text, fontWeight: 700, fontSize: 13 }}>Live Translate</span><span style={{ color: T.sub, fontSize: 10.5 }}>Real-time interpreter — talk to anyone in another language</span></span>
-              <span style={{ color: T.sub, fontSize: 16 }}>→</span>
-            </a>
-            <a href="/notebook" style={{ display: "flex", alignItems: "center", gap: 9, textDecoration: "none", background: `linear-gradient(140deg,${T.pink}18,${T.violet}1e)`, border: `1px solid ${T.line}`, borderRadius: 16, padding: "12px 13px", marginBottom: 14 }}>
-              <span aria-hidden="true" style={{ width: 38, height: 38, borderRadius: 12, background: "rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fbbf24", flexShrink: 0 }}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z" /><path d="M5 17a3 3 0 0 1 3-3h11M9 8h6" /></svg></span>
-              <span style={{ flex: 1 }}><span style={{ display: "block", color: T.text, fontWeight: 700, fontSize: 13 }}>Rough Notebook</span><span style={{ color: T.sub, fontSize: 10.5 }}>Snap your handwritten notes — Rico remembers them</span></span>
-              <span style={{ color: T.sub, fontSize: 16 }}>→</span>
-            </a>
-            <div style={{ color: T.sub, fontSize: 12, fontWeight: 600, letterSpacing: 1.2, textTransform: "uppercase", margin: "6px 2px 12px" }}>Your people</div>
-            {matches.map((id, i) => {
-              const a = lookup(id);
-              let last = ""; try { last = localStorage.getItem(`orbit_last_${id}`) || ""; } catch (e) {}
-              return (
-                <motion.div key={id} role="button" tabIndex={0} aria-label={`Chat with ${a.name}`} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openChat(a); } }} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 8) * 0.05, type: "spring", stiffness: 320, damping: 28 }} whileTap={{ scale: 0.97 }} onClick={() => openChat(a)} style={{ display: "flex", alignItems: "center", gap: 13, padding: "11px 12px", borderRadius: 18, background: T.panel, border: `1px solid ${T.line}`, marginBottom: 10, cursor: "pointer", backdropFilter: "blur(10px)" }}>
-                  <Avatar agent={a} size={50} ring />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ color: T.text, fontWeight: 700, fontSize: 15, display: "flex", alignItems: "center", gap: 6 }}>
-                      {a.name} {a.isTwin && <span style={{ fontSize: 10, fontWeight: 700, color: T.violet, background: `${T.violet}22`, padding: "2px 7px", borderRadius: 100 }}>TWIN</span>}
-                    </div>
-                    <div style={{ color: T.sub, fontSize: 12.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{last || a.bio}</div>
-                  </div>
-                  <a href={`/voice?agent=${id}`} onClick={e => e.stopPropagation()} style={{ width: 40, height: 40, borderRadius: "50%", background: T.panel2, border: `1px solid ${T.line}`, display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none", fontSize: 16 }}>📞</a>
-                </motion.div>
-              );
-            })}
-          </div>
-        )}
+        {tab === "chats" && <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
+          <SocialInbox key={chatAgent ? "chat-open" : "inbox"} userId={userId} friends={matches.map(lookup).filter(Boolean)} onChat={agent => { setInput(""); openChat(agent); }} onDiscover={() => setTab(allMet ? "social" : "discover")} onProfile={() => setTab("me")} onPlay={() => { setInput(""); openChat(lookup("tony")); setShowGames(true); }}>
+            <ProactiveCheckin userId={userId} lang={langRef.current} T={T} font={font} onOpen={id => openChat(lookup(id))} />
+          </SocialInbox>
+        </div>}
 
         {/* ===== SOCIAL — unified cross-club feed ===== */}
         {tab === "social" && (
           <div style={{ flex: 1, overflowY: "auto", padding: "4px 18px 0", display: "flex", flexDirection: "column" }}>
             {isSignedIn && userId ? (
-              <SocialFeed userId={userId} userName={userName} lang={langRef.current} T={T} font={font} />
+              <SocialFeed userId={userId} userName={userName} lang={langRef.current} T={T} font={font} onChat={id => { setInput(""); openChat(lookup(id)); }} />
             ) : (
               <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "40px 20px" }}>
                 <div style={{ fontSize: 34, marginBottom: 10 }}>🌐</div>
@@ -747,11 +713,13 @@ export default function Rico() {
             {/* TWIN */}
             <div style={{ borderRadius: 22, padding: 18, background: `linear-gradient(140deg,${T.violet}26,${T.pink}1a)`, border: `1px solid ${T.line}`, marginBottom: 14 }}>
               <div style={{ color: T.text, fontWeight: 800, fontSize: 16 }}>🪞 Your AI Twin</div>
+              <a href="/twin-studio" style={{ display: "block", marginTop: 12, padding: "16px", borderRadius: 14, background: "linear-gradient(120deg,#d8fd8e,#bee9df)", color: "#17271e", fontWeight: 800, textDecoration: "none" }}>✳ Twin Studio <span style={{ float: "right" }}>Shape · rehearse · create →</span></a>
+              <a href="/meetings" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12, padding: "12px 14px", borderRadius: 14, background: T.panel2, border: `1px solid ${T.line}`, color: T.text, fontSize: 13, fontWeight: 700, textDecoration: "none" }}><span>✦ Meeting companion</span><span style={{ color: T.sub, fontSize: 12 }}>Prepare · notes · follow-ups →</span></a>
               {myTwin ? (<>
                 <div style={{ display: "flex", gap: 12, alignItems: "center", marginTop: 12 }}>
                   <Avatar agent={myTwin} size={48} ring />
                   <div>
-                    <div style={{ color: T.text, fontWeight: 700, fontSize: 14 }}>{myTwin.name} <span style={{ color: "#4ade80", fontSize: 11, fontWeight: 700 }}>· live in the deck</span></div>
+                    <div style={{ color: T.text, fontWeight: 700, fontSize: 14 }}>{myTwin.name} <span style={{ color: "#4ade80", fontSize: 11, fontWeight: 700 }}>· {myTwin.discoverable === false ? "private AI twin" : "shared AI twin"}</span></div>
                     <div style={{ color: T.sub, fontSize: 12 }}>{myTwin.bio || myTwin.tagline}</div>
                   </div>
                 </div>
@@ -759,13 +727,12 @@ export default function Rico() {
                   <span>🎙 Twin's voice</span>
                   <span style={{ color: myTwin.voiceCloned ? "#4ade80" : T.sub, fontSize: 12.5, fontWeight: 700 }}>{myTwin.voiceCloned ? "Your real voice ✓" : "Clone my voice →"}</span>
                 </button>
-                <input ref={photoInputRef} type="file" accept="image/*" onChange={onPhotoPicked} style={{ display: "none" }} />
-                <button onClick={() => photoInputRef.current?.click()} disabled={avatarBusy} style={{ width: "100%", marginTop: 8, display: "flex", alignItems: "center", justifyContent: "space-between", background: T.panel2, border: `1px solid ${T.line}`, color: T.text, fontWeight: 600, fontSize: 13, padding: "11px 14px", borderRadius: 14, cursor: "pointer", fontFamily: font }}>
+                <button onClick={() => { setLookSaved(false); setShowLookEditor(true); }} style={{ width: "100%", marginTop: 8, display: "flex", alignItems: "center", justifyContent: "space-between", background: T.panel2, border: `1px solid ${T.line}`, color: T.text, fontWeight: 600, fontSize: 13, padding: "11px 14px", borderRadius: 14, cursor: "pointer", fontFamily: font }}>
                   <span>📸 Twin's look</span>
-                  <span style={{ color: T.sub, fontSize: 12.5, fontWeight: 700 }}>{avatarBusy ? "Reading your photo…" : "Make it from my photo →"}</span>
+                  <span style={{ color: T.sub, fontSize: 12.5, fontWeight: 700 }}>Make it from my photo →</span>
                 </button>
-                {avatarErr && <div style={{ color: T.pink, fontSize: 11.5, fontWeight: 600, marginTop: 6 }}>{avatarErr}</div>}
-                <div style={{ color: T.sub, fontSize: 10.5, marginTop: 6, lineHeight: 1.45 }}>Your photo is read once to design a cartoon avatar that looks like you — it's never stored.</div>
+                {lookSaved && <div role="status" style={{ color: "#4ade80", fontSize: 12, marginTop: 8 }}>Your twin’s new look is saved ✓</div>}
+                <div style={{ color: T.sub, fontSize: 10.5, marginTop: 6, lineHeight: 1.45 }}>Create a realistic AI portrait from your photo. Preview it before saving it to your twin.</div>
                 <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
                   <button onClick={createTwin} disabled={twinBusy} style={{ flex: 1, background: T.panel2, border: `1px solid ${T.line}`, color: T.text, fontWeight: 600, fontSize: 12.5, padding: "9px 0", borderRadius: 100, cursor: "pointer", fontFamily: font }}>{twinBusy ? "Re-learning you…" : "Refresh twin"}</button>
                   <button onClick={async () => { await fetch("/api/twin", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId }) }); setMyTwin(null); }} style={{ background: "transparent", border: `1px solid ${T.line}`, color: T.sub, fontWeight: 600, fontSize: 12.5, padding: "9px 16px", borderRadius: 100, cursor: "pointer", fontFamily: font }}>Retire</button>
@@ -814,6 +781,7 @@ export default function Rico() {
               ["🎓", "AI Tutor — teach a friend", <a key="t" href="/classroom" style={{ color: T.sub, textDecoration: "none", fontSize: 13.5 }}>Open →</a>],
               ["🌐", "Live Translate — talk across languages", <a key="lt" href="/translate" style={{ color: T.sub, textDecoration: "none", fontSize: 13.5 }}>Open →</a>],
               ["🧠", "Memory vault", <a key="m" href="/memory" style={{ color: T.sub, textDecoration: "none", fontSize: 13.5 }}>Open →</a>],
+              ["✦", "Meeting companion", <a key="meet" href="/meetings" style={{ color: T.sub, textDecoration: "none", fontSize: 13.5 }}>Open →</a>],
               ["📖", "How Rico works", <button key="hr" onClick={() => setNeedsTour(true)} style={{ background: "transparent", border: "none", color: T.sub, fontSize: 13.5, fontWeight: 600, cursor: "pointer", fontFamily: font }}>Take the tour →</button>],
               ["📄", "Terms & Privacy", <span key="tp" style={{ fontSize: 13.5 }}><a href="/terms" style={{ color: T.sub, textDecoration: "none" }}>Terms</a> <span style={{ color: T.line }}>·</span> <a href="/privacy" style={{ color: T.sub, textDecoration: "none" }}>Privacy</a></span>],
               ["🗑️", "Delete account", <a key="da" href="/delete-account" style={{ color: "#f87171", textDecoration: "none", fontSize: 13.5 }}>Delete →</a>],
@@ -829,9 +797,9 @@ export default function Rico() {
         )}
 
         {/* tab bar */}
-        <div style={{ display: "flex", borderTop: `1px solid ${T.line}`, background: "rgba(15,14,23,0.82)", backdropFilter: "blur(16px)", padding: "8px 10px 12px", position: "relative", zIndex: 5 }}>
-          {[["discover", "✨", "Discover"], ["chats", "💬", "Chats"], ["social", "🌐", "Social"], ["me", "🧭", "You"]].filter(([k]) => !(k === "discover" && allMet)).map(([k, icon, label]) => (
-            <button key={k} onClick={() => setTab(k)} style={{ flex: 1, background: "transparent", border: "none", cursor: "pointer", fontFamily: font, position: "relative", padding: "6px 0" }}>
+        <div style={{ display: "flex", borderTop: `1px solid ${T.line}`, background: "rgba(15,14,23,0.82)", backdropFilter: "blur(16px)", padding: "8px 10px max(12px, env(safe-area-inset-bottom))", position: "relative", zIndex: 5, flexShrink: 0 }}>
+          {[["home", "☀", "Today"], ["discover", "✨", "Discover"], ["chats", "💬", "Chats"], ["social", "🌐", "Social"], ["me", "🧭", "You"]].filter(([k]) => !(k === "discover" && allMet)).map(([k, icon, label]) => (
+            <button key={k} aria-current={tab === k ? "page" : undefined} onClick={() => setTab(k)} style={{ flex: 1, background: "transparent", border: "none", cursor: "pointer", fontFamily: font, position: "relative", padding: "6px 0" }}>
               {tab === k && <motion.div layoutId="tab-pill" style={{ position: "absolute", inset: "0 18%", borderRadius: 100, background: T.panel2 }} transition={{ type: "spring", stiffness: 380, damping: 32 }} />}
               <div style={{ position: "relative", fontSize: 16 }}>{icon}</div>
               <div style={{ position: "relative", fontSize: 10.5, fontWeight: 700, color: tab === k ? T.text : T.sub, marginTop: 2 }}>{label}</div>
@@ -863,78 +831,17 @@ export default function Rico() {
           )}
         </AnimatePresence>
 
-        {/* ===== CHAT SCREEN ===== */}
-        <AnimatePresence>
-          {chatAgent && (
-            <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ type: "spring", stiffness: 320, damping: 32 }} style={{ position: "absolute", inset: 0, zIndex: 20, background: T.bg, display: "flex", flexDirection: "column" }}>
-              <Aurora />
-              <div style={{ position: "relative", zIndex: 2, display: "flex", flexDirection: "column", height: "100%" }}>
-                {/* chat header */}
-                <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", borderBottom: `1px solid ${T.line}`, background: "rgba(15,14,23,0.7)", backdropFilter: "blur(14px)" }}>
-                  <button onClick={() => setChatAgent(null)} style={{ background: "transparent", border: "none", color: T.text, fontSize: 20, cursor: "pointer", padding: 4 }}>←</button>
-                  <Avatar agent={chatAgent} size={40} ring emote={chatEmote} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ color: T.text, fontWeight: 700, fontSize: 15 }}>{chatAgent.name}</div>
-                    <div style={{ color: T.sub, fontSize: 11.5 }}>{isTyping ? "typing…" : tier}</div>
-                  </div>
-                  {msgCount >= 6 && <button onClick={revealResults} disabled={loadingResults} title="Personality reveal" style={{ background: T.panel2, border: `1px solid ${T.line}`, color: T.text, borderRadius: 100, padding: "7px 12px", fontSize: 13, cursor: "pointer" }}>{loadingResults ? "…" : "✨"}</button>}
-                  <a href={`/voice?agent=${chatAgent.id}`} style={{ width: 40, height: 40, borderRadius: "50%", background: T.grad, display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none", fontSize: 16 }}>📞</a>
-                </div>
-                {chatMem.length > 0 && (
-                  <div style={{ padding: "10px 16px 8px", borderBottom: `1px solid ${T.line}`, background: "rgba(15,14,23,0.55)" }}>
-                    <div style={{ color: "#c4b5fd", fontSize: 11, fontWeight: 700, letterSpacing: 0.5, marginBottom: 6 }}>{chatAgent.name.toUpperCase()} REMEMBERS</div>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                      {chatMem.map((m, i) => <span key={m} style={{ padding: "5px 10px", borderRadius: 100, background: "#1d1a30", border: "1px solid rgba(167,139,250,0.3)", color: "#e4e0f5", fontSize: 12.5, animation: `rm-chip .5s ease-out ${i * 0.1}s both` }}>{m}</span>)}
-                    </div>
-                  </div>
-                )}
-                {/* messages */}
-                <div ref={panelRef} style={{ flex: 1, overflowY: "auto", padding: "16px 16px 70px", display: "flex", flexDirection: "column", gap: 10 }}>
-                  {messages.map(m => (
-                    <motion.div key={m.id} initial={{ opacity: 0, y: 10, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ type: "spring", stiffness: 380, damping: 28 }}
-                      style={{ alignSelf: m.role === "user" ? "flex-end" : "flex-start", maxWidth: "80%", position: "relative" }}
-                      onDoubleClick={() => m.role === "agent" && setReportMsg(m)}>
-                      <div style={{
-                        padding: "11px 15px", fontSize: 14.5, lineHeight: 1.55, color: m.role === "user" ? "white" : T.text,
-                        background: m.role === "user" ? T.grad : T.panel2,
-                        border: m.role === "user" ? "none" : `1px solid ${T.line}`,
-                        borderRadius: m.role === "user" ? "20px 20px 5px 20px" : "20px 20px 20px 5px",
-                        backdropFilter: "blur(8px)",
-                      }} dangerouslySetInnerHTML={{ __html: m.text.replace(/</g, "&lt;").replace(/\*(.*?)\*/g, "<em>$1</em>") }} />
-                    </motion.div>
-                  ))}
-                  {isTyping && (
-                    <div style={{ alignSelf: "flex-start", background: T.panel2, border: `1px solid ${T.line}`, borderRadius: "20px 20px 20px 5px", padding: "13px 16px", display: "flex", gap: 4 }}>
-                      {[0, 1, 2].map(i => <motion.div key={i} animate={{ y: [0, -4, 0] }} transition={{ repeat: Infinity, duration: 0.9, delay: i * 0.15 }} style={{ width: 6, height: 6, borderRadius: "50%", background: T.sub }} />)}
-                    </div>
-                  )}
-                </div>
-                {/* career tools — discover résumé / ATS / tailor without hunting */}
-                {chatAgent.id === "tony" && (
-                  <div style={{ display: "flex", gap: 7, padding: "0 14px 4px", overflowX: "auto", alignItems: "center" }}>
-                    <span style={{ color: T.sub, fontSize: 11, fontWeight: 800, flexShrink: 0 }}>🧰 Career tools:</span>
-                    {!hasResume
-                      ? <button onClick={() => { setResumeMsg(""); setShowResume(true); }} style={{ background: T.panel2, border: `1px solid ${T.line}`, color: T.text, fontWeight: 700, fontSize: 11.5, padding: "6px 11px", borderRadius: 100, cursor: "pointer", fontFamily: font, flexShrink: 0, whiteSpace: "nowrap" }}>📄 Share résumé → ATS &amp; tailoring</button>
-                      : <>
-                          <button onClick={() => { setAtsErr(""); setShowAts(true); }} style={{ background: T.panel2, border: `1px solid ${T.line}`, color: T.text, fontWeight: 700, fontSize: 11.5, padding: "6px 11px", borderRadius: 100, cursor: "pointer", fontFamily: font, flexShrink: 0, whiteSpace: "nowrap" }}>🎯 ATS score</button>
-                          <button onClick={() => { setTailorErr(""); setShowTailor(true); }} style={{ background: T.panel2, border: `1px solid ${T.line}`, color: T.text, fontWeight: 700, fontSize: 11.5, padding: "6px 11px", borderRadius: 100, cursor: "pointer", fontFamily: font, flexShrink: 0, whiteSpace: "nowrap" }}>✍️ Tailor to a job</button>
-                          <button onClick={() => { setResumeMsg(""); setShowResume(true); }} style={{ background: T.panel2, border: `1px solid ${T.line}`, color: T.sub, fontWeight: 700, fontSize: 11.5, padding: "6px 11px", borderRadius: 100, cursor: "pointer", fontFamily: font, flexShrink: 0, whiteSpace: "nowrap" }}>📄 Update</button>
-                        </>}
-                  </div>
-                )}
-                {/* input */}
-                <div style={{ padding: "10px 14px 14px", display: "flex", gap: 9, alignItems: "center", background: "rgba(15,14,23,0.8)", backdropFilter: "blur(14px)", borderTop: `1px solid ${T.line}` }}>
-                  {chatAgent.id === "tony" && <button onClick={() => { setResumeMsg(""); setShowResume(true); }} disabled={isTyping} aria-label="Share your résumé" title="Share your résumé with Tony" style={{ width: 46, height: 46, borderRadius: "50%", background: T.panel2, border: `1px solid ${T.line}`, color: T.text, fontSize: 17, cursor: "pointer", flexShrink: 0 }}>📄</button>}
-                  <button onClick={() => setShowGames(true)} disabled={isTyping} aria-label="Play a game" title="Play a game" style={{ width: 46, height: 46, borderRadius: "50%", background: T.panel2, border: `1px solid ${T.line}`, color: T.text, fontSize: 18, cursor: "pointer", flexShrink: 0 }}>🎮</button>
-                  <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter") send(); }}
-                    placeholder={`Message ${chatAgent.name}…`}
-                    style={{ flex: 1, background: T.panel2, border: `1px solid ${T.line}`, borderRadius: 100, padding: "13px 18px", color: T.text, fontSize: 14, outline: "none", fontFamily: font }} />
-                  <motion.button whileTap={{ scale: 0.85 }} onClick={() => send()} disabled={isTyping} style={{ width: 46, height: 46, borderRadius: "50%", background: T.grad, border: "none", color: "white", fontSize: 17, cursor: "pointer", flexShrink: 0 }}>↑</motion.button>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {chatAgent && <ChatWorkspace
+          friend={chatAgent} friends={matches.map(lookup)} messages={messages} input={input}
+          onInput={setInput} onSend={() => send()} onSelect={agent => { setInput(""); openChat(agent); }}
+          onBack={() => { chatTokenRef.current += 1; setChatAgent(null); setIsTyping(false); }}
+          onGames={() => setShowGames(true)} onResume={() => { setResumeMsg(""); setShowResume(true); }}
+          onAts={() => { setAtsErr(""); setShowAts(true); }} onTailor={() => { setTailorErr(""); setShowTailor(true); }}
+          hasResume={hasResume} onReveal={revealResults} canReveal={msgCount >= 6} revealing={loadingResults}
+          onReport={setReportMsg} memories={chatMem} busy={isTyping} loadError={chatLoadError}
+          error={chatError} saveState={saveState} panelRef={panelRef}
+          onRetry={() => chatLoadError ? openChat(chatAgent) : pendingSavesRef.current[chatAgent.id] ? saveChat(pendingSavesRef.current[chatAgent.id], chatTokenRef.current) : setChatError("")}
+        />}
 
         {/* report sheet */}
         <AnimatePresence>
@@ -971,24 +878,7 @@ export default function Rico() {
           )}
         </AnimatePresence>
 
-        {/* games picker */}
-        <AnimatePresence>
-          {showGames && chatAgent && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowGames(false)} style={{ position: "absolute", inset: 0, zIndex: 45, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "flex-end" }}>
-              <motion.div initial={{ y: 360 }} animate={{ y: 0 }} exit={{ y: 400 }} transition={{ type: "spring", stiffness: 300, damping: 30 }} onClick={e => e.stopPropagation()} style={{ width: "100%", background: "#1a1626", borderRadius: "24px 24px 0 0", padding: "20px 18px 26px", border: `1px solid ${T.line}` }}>
-                <div style={{ color: T.text, fontWeight: 800, fontSize: 16, marginBottom: 2 }}>🎮 Play a game with {chatAgent.name}</div>
-                <div style={{ color: T.sub, fontSize: 12.5, marginBottom: 14 }}>Pick one — or just ask {chatAgent.name} for any game you like.</div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 9 }}>
-                  {GAMES.map(g => (
-                    <button key={g.key} onClick={() => startGame(g)} style={{ display: "flex", alignItems: "center", gap: 9, textAlign: "left", background: T.panel2, border: `1px solid ${T.line}`, color: T.text, fontWeight: 600, fontSize: 13, padding: "12px 13px", borderRadius: 14, cursor: "pointer", fontFamily: font }}>
-                      <span style={{ fontSize: 18, flexShrink: 0 }}>{g.icon}</span><span style={{ flex: 1 }}>{g.label}</span>{g.board && <span style={{ fontSize: 8.5, color: T.violet, fontWeight: 700, border: `1px solid ${T.line}`, borderRadius: 5, padding: "2px 4px" }}>BOARD</span>}
-                    </button>
-                  ))}
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {showGames && chatAgent && <GameLobby games={GAMES} friend={chatAgent} busy={isTyping || chatLoadError || saveState === "error" || saveState === "saving"} onStart={startGame} onClose={() => setShowGames(false)} />}
 
         {/* résumé sheet (Tony only) */}
         <AnimatePresence>
@@ -1129,6 +1019,13 @@ export default function Rico() {
         </AnimatePresence>
 
         {/* twin voice recorder */}
+        {showLookEditor && myTwin && <TwinLookEditor key={userId} userId={userId} twin={myTwin} onClose={() => setShowLookEditor(false)} onSaved={avatar => {
+          setMyTwin(previous => ({ ...previous, avatar }));
+          setTwinMap(previous => ({ ...previous, [myTwin.id]: { ...myTwin, avatar } }));
+          setTwins(previous => previous.map(twin => twin.id === myTwin.id ? { ...twin, avatar } : twin));
+          setChatAgent(previous => previous?.id === myTwin.id ? { ...previous, avatar } : previous);
+          setLookSaved(true);
+        }} />}
         {showVoiceRec && myTwin && (
           <TwinVoiceRecorder userId={userId} userName={userName} cloned={!!myTwin.voiceCloned} onClose={() => setShowVoiceRec(false)} onDone={refreshMyTwin} />
         )}
@@ -1144,3 +1041,4 @@ export default function Rico() {
     `}</style>
   </>);
 }
+

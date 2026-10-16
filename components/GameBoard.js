@@ -3,6 +3,9 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Chess } from "chess.js";
 import TonyCharacter from "./TonyCharacter";
+import Dialog from "./Dialog";
+import { GAME_GUIDE } from "../lib/game-guide";
+import w from "./Workspace.module.css";
 
 const T = { bg: "#0f0e17", panel: "rgba(255,255,255,0.06)", panel2: "rgba(255,255,255,0.09)", line: "rgba(255,255,255,0.1)", text: "#f5f3ff", sub: "#a9a5c0", grad: "#d6365e", pink: "#ff5e7e", violet: "#8b5cf6" };
 const font = "'DM Sans',system-ui,-apple-system,sans-serif";
@@ -50,12 +53,14 @@ function ChessGame({ say, friendName, onWin }) {
   const reset = () => { gameRef.current = new Chess(); setSel(null); setTargets([]); setOver(false); setStatus("New game — your move."); say("starting a fresh game of chess", "Rematch! Bring it. ♟️"); force(); };
   const board = gameRef.current.board();
   return (<>
-    <div style={{ width: "min(88vw, 360px)", aspectRatio: "1", display: "grid", gridTemplateColumns: "repeat(8,1fr)", borderRadius: 12, overflow: "hidden", border: `1px solid ${T.line}`, boxShadow: "0 18px 50px rgba(0,0,0,0.5)" }}>
+    <div className={w.chessBoard} role="group" aria-label="Chess board">
       {board.map((row, r) => row.map((cell, c) => { const sq = "abcdefgh"[c] + (8 - r); const light = (r + c) % 2 === 0; const isTarget = targets.includes(sq);
-        return (<div key={sq} onClick={() => onSquare(sq)} style={{ position: "relative", background: sel === sq ? T.violet : light ? "#ded3ef" : "#6f5d99", display: "flex", alignItems: "center", justifyContent: "center", cursor: over ? "default" : "pointer", userSelect: "none" }}>
-          {cell && <span style={{ fontSize: "min(7vw, 30px)", lineHeight: 1, color: cell.color === "w" ? "#fff" : "#160e26", textShadow: cell.color === "w" ? "0 1px 2px rgba(0,0,0,0.55)" : "none" }}>{GLYPH[cell.color + cell.type]}</span>}
-          {isTarget && <span style={{ position: "absolute", width: cell ? "82%" : "30%", height: cell ? "82%" : "30%", borderRadius: "50%", border: cell ? `3px solid ${T.pink}` : "none", background: cell ? "transparent" : `${T.violet}cc` }} />}
-        </div>); }))}
+        return (<button key={sq} className={w.chessSquare} data-light={light} data-selected={sel === sq} aria-label={`${sq}${cell ? `, ${cell.color === "w" ? "white" : "black"} ${PNAME[cell.type]}` : ", empty"}${isTarget ? ", available move" : ""}`} aria-pressed={sel === sq} onClick={() => onSquare(sq)}>
+          {c === 0 && <span className={w.rankLabel} aria-hidden="true">{8 - r}</span>}
+          {r === 7 && <span className={w.fileLabel} aria-hidden="true">{"abcdefgh"[c]}</span>}
+          {cell && <span className={w.chessPiece} data-color={cell.color} aria-hidden="true">{GLYPH["b" + cell.type]}</span>}
+          {isTarget && <span className={w.moveTarget} data-capture={!!cell} aria-hidden="true" />}
+        </button>); }))}
     </div>
     <div style={{ color: over ? "#4ade80" : T.sub, fontSize: 12.5, fontWeight: 600, marginTop: 10, minHeight: 16 }}>{status}</div>
     <button onClick={reset} style={btn}>New game</button>
@@ -80,8 +85,8 @@ function TicTacToe({ say, friendName, onWin }) {
     else { setStatus("Your move ❌"); if (threat || Math.random() < 0.5) say("mid-game in tic-tac-toe, your turn", "Your move, friend. 👀"); } };
   const reset = () => { setB(Array(9).fill(null)); setOver(false); setStatus("You're ❌ — tap a square."); say("starting a fresh game of tic-tac-toe", "Round two! 🎯"); };
   return (<>
-    <div style={{ width: "min(78vw, 300px)", aspectRatio: "1", display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>
-      {b.map((v, i) => (<div key={i} onClick={() => tap(i)} style={{ background: T.panel2, border: `1px solid ${T.line}`, borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "min(14vw, 54px)", cursor: over || v ? "default" : "pointer", color: v === "X" ? T.pink : T.violet, fontWeight: 800 }}>{v}</div>))}
+    <div style={{ width: "min(78vw, 360px)", aspectRatio: "1", display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>
+      {b.map((v, i) => (<button key={i} aria-label={`Row ${Math.floor(i / 3) + 1}, column ${i % 3 + 1}: ${v || "empty"}`} disabled={over || !!v} onClick={() => tap(i)} style={{ background: T.panel2, border: `1px solid ${T.line}`, borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "min(14vw, 54px)", cursor: over || v ? "default" : "pointer", color: v === "X" ? T.pink : T.violet, fontWeight: 800 }}>{v}</button>))}
     </div>
     <div style={{ color: over ? "#4ade80" : T.sub, fontSize: 12.5, fontWeight: 600, marginTop: 12, minHeight: 16 }}>{status}</div>
     <button onClick={reset} style={btn}>New game</button>
@@ -150,7 +155,7 @@ function Checkers({ say, friendName, onWin }) {
     if (p && p.s === "r") { const { moves, jumps } = ckPieceMoves(b, r, c); if (!moves.length && !jumps.length) return; setSel([r, c]); setOpts([...jumps, ...moves]); } };
   const reset = () => { setB(ckInit()); setSel(null); setOpts([]); setOver(false); chainRef.current = false; setStatus("You're red — tap a piece."); say("starting a fresh game of checkers", "Rematch! 🔴"); };
   return (<>
-    <div style={{ width: "min(88vw, 360px)", aspectRatio: "1", display: "grid", gridTemplateColumns: "repeat(8,1fr)", borderRadius: 12, overflow: "hidden", border: `1px solid ${T.line}`, boxShadow: "0 18px 50px rgba(0,0,0,0.5)" }}>
+    <div style={{ width: "min(88vw, 440px)", aspectRatio: "1", display: "grid", gridTemplateColumns: "repeat(8,1fr)", borderRadius: 12, overflow: "hidden", border: `1px solid ${T.line}`, boxShadow: "0 18px 50px rgba(0,0,0,0.5)" }}>
       {b.map((row, r) => row.map((cell, c) => { const light = (r + c) % 2 === 0; const isSel = eq(sel, [r, c]); const isOpt = opts.some((m) => eq(m.to, [r, c]));
         return (<div key={`${r}-${c}`} onClick={() => tap(r, c)} style={{ position: "relative", background: isSel ? T.violet : light ? "#ded3ef" : "#6f5d99", display: "flex", alignItems: "center", justifyContent: "center", cursor: over ? "default" : "pointer" }}>
           {cell && <div style={{ width: "72%", height: "72%", borderRadius: "50%", background: cell.s === "r" ? "radial-gradient(circle at 35% 30%, #ff8aa3, #d63d5f)" : "radial-gradient(circle at 35% 30%, #4a4458, #15101f)", border: "2px solid rgba(255,255,255,0.25)", display: "flex", alignItems: "center", justifyContent: "center", color: "#ffd95e", fontSize: "min(4.5vw,20px)" }}>{cell.k ? "♛" : ""}</div>}
@@ -443,12 +448,12 @@ function Uno({ say, friendName, players, onWin }) {
     </div>}
     <div style={{ fontSize: 9.5, color: T.sub, fontWeight: 700, marginBottom: 5 }}>YOUR HAND</div>
     <div style={{ display: "flex", gap: 5, flexWrap: "wrap", justifyContent: "center", maxWidth: "min(92vw,430px)", paddingTop: 6 }}>
-      {st.hands[0].map((card, i) => { const pl = !st.over && st.turn === 0 && !pick && uPlayable(card, st.color, top.v);
+      {st.hands[0].map((card, i) => { const pl = !st.over && st.turn === 0 && pick === null && uPlayable(card, st.color, top.v);
         return cardEl(card, i, () => onCard(i), pl); })}
     </div>
     <div style={{ color: st.over ? "#4ade80" : T.sub, fontSize: 13, fontWeight: 700, marginTop: 12, minHeight: 18 }}>{msg}</div>
     <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
-      {!st.over && st.turn === 0 && !pick && <button onClick={drawCard} style={{ ...btn, marginTop: 0 }}>Draw a card</button>}
+      {!st.over && st.turn === 0 && pick === null && <button onClick={drawCard} style={{ ...btn, marginTop: 0 }}>Draw a card</button>}
       {st.over && <button onClick={reset} style={{ ...btn, marginTop: 0 }}>New game</button>}
     </div>
     {!st.over && <button onClick={reset} style={{ ...btn, fontSize: 11, padding: "6px 14px", opacity: 0.6 }}>Restart</button>}
@@ -469,25 +474,16 @@ export default function GameBoard({ game, agent, onClose, friends, onGameEnd }) 
   useEffect(() => { say(`you and your friend are starting a friendly game of ${TITLES[game] || game} — kick it off with a fun challenge`, "Let's play! 🎮"); /* eslint-disable-next-line */ }, []);
   const Game = game === "chess" ? ChessGame : game === "c4" ? Connect4 : game === "checkers" ? Checkers : game === "ludo" ? Ludo : game === "racing" ? Race : game === "uno" ? Uno : TicTacToe;
   return (
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 120, background: "rgba(8,7,14,0.93)", backdropFilter: "blur(8px)", display: "flex", justifyContent: "center", alignItems: "center", fontFamily: font, overflowY: "auto" }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 430, padding: "18px", display: "flex", flexDirection: "column", alignItems: "center" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", marginBottom: 12 }}>
-          <div style={{ color: T.text, fontWeight: 800, fontSize: 17 }}>{TITLES[game] || "Game"} <span style={{ color: T.sub, fontWeight: 600, fontSize: 13 }}>vs {name}</span></div>
-          <button onClick={onClose} style={{ background: T.panel2, border: `1px solid ${T.line}`, color: T.text, width: 34, height: 34, borderRadius: "50%", cursor: "pointer", fontSize: 16 }}>✕</button>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 11, width: "100%", marginBottom: 16 }}>
-          <div style={{ width: 46, height: 46, borderRadius: "50%", padding: 2, background: T.grad, flexShrink: 0 }}>
-            <div style={{ width: "100%", height: "100%", borderRadius: "50%", overflow: "hidden", background: "#161226", display: "flex", justifyContent: "center" }}>
-              <div style={{ marginTop: 2 }}><TonyCharacter size={66} look={agent?.look || {}} float="none" animated={false} pose="down" expr="😄" /></div>
-            </div>
-          </div>
-          <div style={{ flex: 1, background: T.panel2, border: `1px solid ${T.line}`, borderRadius: 16, borderTopLeftRadius: 4, padding: "11px 15px" }}>
-            <div style={{ color: T.violet, fontSize: 10.5, fontWeight: 800, letterSpacing: 0.4, marginBottom: 2 }}>{name.toUpperCase()}</div>
-            <div style={{ color: T.text, fontSize: 14.5, lineHeight: 1.4, fontWeight: 500 }}>{banter}</div>
-          </div>
-        </div>
-        <Game say={say} friendName={name} players={friends} onWin={notifyEnd} />
+    <Dialog title={TITLES[game] || "Game room"} onClose={onClose} wide>
+      <div className={w.room}>
+        <div className={w.boardStage}><Game say={say} friendName={name} players={friends} onWin={notifyEnd} /></div>
+        <aside className={w.roomInfo} aria-label="Game information">
+          <div className={w.opponent}><div style={{ width: 42, height: 42, overflow: "hidden", borderRadius: 12, background: "#34463a", display: "flex", justifyContent: "center" }}>{agent?.avatar ? <img src={agent.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <TonyCharacter size={64} look={agent?.look || {}} float="none" animated={false} pose="down" />}</div><div><strong>{name}</strong><small>{agent?.isTwin ? "AI twin" : "AI opponent"}</small></div></div>
+          <h3>How to play</h3><p>{GAME_GUIDE[game]?.rules}</p>
+          <h3>From {name}</h3><p className={w.roomNote} role="status">{banter}</p>
+          <p>Use the controls below the board to start a new round. Closing this room ends the current game.</p>
+        </aside>
       </div>
-    </div>
+    </Dialog>
   );
 }
