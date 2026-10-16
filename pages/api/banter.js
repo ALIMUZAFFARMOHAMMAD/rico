@@ -1,3 +1,4 @@
+import { getAuth } from "@clerk/nextjs/server";
 // In-character game banter — one short, funny, warm line reacting to a game moment,
 // in the voice of whichever character (or twin) you're playing. Uses fast Haiku.
 import { resolveAgent } from "../../lib/twins";
@@ -10,7 +11,8 @@ export default async function handler(req, res) {
   if (!apiKey) return res.status(200).json({ line: "" });
   const { agentId, game, situation, language } = req.body || {};
   try {
-    const agent = await resolveAgent(agentId);
+    const agent = await resolveAgent(agentId, getAuth(req).userId);
+  if (!agent) return res.status(404).json({ error: "This twin is private or unavailable." });
     const persona = (agent.persona || `You are ${agent.name}, ${agent.archetype || "a friendly companion"}.`).slice(0, 900);
     const gameName = game === "chess" ? "chess" : game === "ttt" ? "tic-tac-toe" : (game || "a game");
     const system = `${persona}

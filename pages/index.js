@@ -713,12 +713,13 @@ export default function Rico() {
             {/* TWIN */}
             <div style={{ borderRadius: 22, padding: 18, background: `linear-gradient(140deg,${T.violet}26,${T.pink}1a)`, border: `1px solid ${T.line}`, marginBottom: 14 }}>
               <div style={{ color: T.text, fontWeight: 800, fontSize: 16 }}>🪞 Your AI Twin</div>
+              <a href="/twin-studio" style={{ display: "block", marginTop: 12, padding: "16px", borderRadius: 14, background: "linear-gradient(120deg,#d8fd8e,#bee9df)", color: "#17271e", fontWeight: 800, textDecoration: "none" }}>✳ Twin Studio <span style={{ float: "right" }}>Shape · rehearse · create →</span></a>
               <a href="/meetings" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12, padding: "12px 14px", borderRadius: 14, background: T.panel2, border: `1px solid ${T.line}`, color: T.text, fontSize: 13, fontWeight: 700, textDecoration: "none" }}><span>✦ Meeting companion</span><span style={{ color: T.sub, fontSize: 12 }}>Prepare · notes · follow-ups →</span></a>
               {myTwin ? (<>
                 <div style={{ display: "flex", gap: 12, alignItems: "center", marginTop: 12 }}>
                   <Avatar agent={myTwin} size={48} ring />
                   <div>
-                    <div style={{ color: T.text, fontWeight: 700, fontSize: 14 }}>{myTwin.name} <span style={{ color: "#4ade80", fontSize: 11, fontWeight: 700 }}>· live in the deck</span></div>
+                    <div style={{ color: T.text, fontWeight: 700, fontSize: 14 }}>{myTwin.name} <span style={{ color: "#4ade80", fontSize: 11, fontWeight: 700 }}>· {myTwin.discoverable === false ? "private AI twin" : "shared AI twin"}</span></div>
                     <div style={{ color: T.sub, fontSize: 12 }}>{myTwin.bio || myTwin.tagline}</div>
                   </div>
                 </div>

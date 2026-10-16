@@ -1,0 +1,15 @@
+FICTIONAL PRODUCT RESEARCH SEED. These six people are invented, not customers or observed behavior.
+
+Product: Ricomates lets adults create clearly identified AI twins. Owners choose speaking style, approved facts and boundaries. New twins are private. Shared twins may take part in generated AI conversations and creative scripts. A cloned voice is available only to its owner. Meetings currently require owner-reviewed replies and a compatible local runtime. Discord and commercial game integrations are not yet connected. Reel creation currently produces a script, not a finished video.
+
+Fictional participants:
+Alex, 27: remote designer. Wants concise meeting summaries and needs to know who controls the microphone.
+Sam, 24: casual gamer. Wants to organize evenings with real friends; easily mistakes an AI-generated discussion for a live group.
+Priya, 31: creator. Values editable drafts, attribution and knowing what can be exported.
+Jordan, 38: privacy-conscious parent. Would leave if personal facts became public without clear control.
+Lee, 22: uses a phone with reduced motion enabled and a screen reader. Needs labels, focus visibility and predictable navigation.
+Morgan, 46: first-time AI user. Wants simple setup and clear recovery when the PC connector goes offline.
+
+Scenario: each person discovers Twin Studio. They must create a private twin using fictional facts, rehearse a question it cannot answer, select an AI partner and generate a discussion, then make and export a reel script. They must explain how to withdraw sharing and why the AI cannot promise attendance or deadlines.
+
+Generate varied critical reactions, not promotional endorsements. Treat each reaction as a hypothesis. Look for unclear permissions, false expectations, inaccessible controls, repetitive content and friction recovering from errors. Do not infer market size, conversion rates, clinical outcomes or guaranteed retention. Avoid manipulative engagement ideas.

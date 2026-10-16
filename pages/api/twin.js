@@ -5,6 +5,7 @@ import { listTwins, saveTwin, twinLook, twinVoice, twinKey } from "../../lib/twi
 import { ownsUser } from "../../lib/auth";
 import { rateLimited } from "../../lib/ratelimit";
 import { removeTwinVoice } from "../../lib/selfvoice";
+import { getAuth } from "@clerk/nextjs/server";
 
 const DISTILL = `You turn a user's chat history and personality scores into an AI "twin" persona for a friendship app. The twin should feel like the user's energy, not a parody. Output ONLY valid JSON, no markdown:
 {"name":"<their first name>","tagline":"<a warm, dating-app-style one-line bio, 8-16 words, third person, that captures their vibe and makes someone want to talk to them>","interests":["a","b","c"],"persona":"You are <Name> — an AI twin of a real person on the Rico app. <2-4 sentences: their communication style (language mix, energy, humor), what they care about, how they treat friends. Written as second-person instructions: 'You speak...', 'You love...'> You are warm, respectful, and a platonic friend only. You are not a career advisor; if asked about careers, point them to Tony."}`;
@@ -30,6 +31,7 @@ async function gatherSignal(userId) {
 }
 
 export default async function handler(req, res) {
+  res.setHeader("Cache-Control", "no-store");
   if (!configured()) return res.status(500).json({ error: "Not configured" });
   if (rateLimited(req)) return res.status(429).json({ error: "Too many requests, slow down." });
 
@@ -39,10 +41,10 @@ export default async function handler(req, res) {
       const s = await gatherSignal(req.query.readiness);
       return res.status(200).json({ ready: s.ready, progress: s.progress, have: s.substantive.length + s.voiceNotes.length, need: s.need, hasTraits: s.hasTraits });
     }
-    if (req.query.id && req.query.id.startsWith("twin__")) {
+    if (typeof req.query.id === "string" && req.query.id.startsWith("twin__")) {
       const { resolveAgent } = await import("../../lib/twins");
-      const a = await resolveAgent(req.query.id);
-      return res.status(200).json({ twin: a.isTwin ? { id: a.id, name: a.name, bio: a.bio, interests: a.interests, look: a.look, avatar: a.avatar || null, isTwin: true, voiceCloned: !!a.voiceCloned } : null });
+      const a = await resolveAgent(req.query.id, getAuth(req).userId);
+      return res.status(200).json({ twin: a?.isTwin ? { id: a.id, name: a.name, bio: a.bio, interests: a.interests, look: a.look, avatar: a.avatar || null, isTwin: true, voiceCloned: !!a.voiceCloned, discoverable: a.discoverable } : null });
     }
     const twins = await listTwins(req.query.exclude || null);
     return res.status(200).json({ twins });
@@ -76,6 +78,8 @@ export default async function handler(req, res) {
 
       // Re-learning the persona must preserve the owner's appearance and voice.
       const previous = (await getRow(twinKey(userId)))?.traits;
+      if (previous?.identity) { twin.identity = previous.identity; twin.persona = previous.persona; twin.name = previous.name; }
+      twin.discoverable = previous ? previous.discoverable !== false : false;
       twin.look = previous?.look || twinLook(userId);
       twin.voice = previous?.voice || twinVoice(userId);
       twin.voiceCloned = !!previous?.voiceCloned;

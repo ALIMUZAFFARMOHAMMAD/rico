@@ -7,8 +7,8 @@ const source = fs.readFileSync(path.join(__dirname, '../middleware.js'), 'utf8')
   .replace(/^import .*;\r?\n/gm, '')
   .replace('export default ', 'const middleware = ')
   .replace('export const config', 'const config');
-function middleware(userId) {
-  const context = { process: { env: { CLERK_SECRET_KEY: 'test-only' } }, module: { exports: {} },
+function middleware(userId, configured = true) {
+  const context = { process: { env: configured ? { CLERK_SECRET_KEY: 'test-only' } : {} }, module: { exports: {} },
     clerkMiddleware: handler => req => handler(async () => ({ userId }), req),
     NextResponse: { next: () => ({ status: 200 }), json: (body, init) => ({ body, ...init }) },
   };
@@ -16,9 +16,14 @@ function middleware(userId) {
   return pathname => context.module.exports({ nextUrl: { pathname } });
 }
 test('signed-out paid APIs return 401 without redirecting to HTML', async () => {
-  for (const route of ['tony', 'voice', 'tts', 'stt', 'resume', 'twin-voice', 'group', 'portrait']) {
+  for (const route of ['tony', 'voice', 'tts', 'stt', 'resume', 'twin-voice', 'group', 'portrait', 'twin-studio']) {
     assert.equal((await middleware(null)('/api/' + route)).status, 401);
   }
+});
+test('missing Clerk configuration fails closed for paid APIs while public pages render', async () => {
+  assert.equal((await middleware(null, false)('/api/tony')).status, 503);
+  assert.equal((await middleware(null, false)('/api/twin-studio')).status, 503);
+  assert.equal((await middleware(null, false)('/landing')).status, 200);
 });
 test('signed-in paid API requests continue to ownership checks', async () => {
   assert.equal((await middleware('user_test')('/api/tony')).status, 200);
