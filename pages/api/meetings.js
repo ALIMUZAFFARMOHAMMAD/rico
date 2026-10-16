@@ -7,6 +7,7 @@ import { MEETING_PLATFORMS, validMeetingId, meetingUrl, MAX_TRANSCRIPT, transcri
 import { getMeeting, listMeetings, saveMeeting, saveMeetingEvent, meetingDetail, claimMeeting, meetingKey, deleteMeetingData, meetingEvents, digest } from "../../lib/meeting-store";
 import { deviceKey, deviceOnline, pairDevice, compareUpdate } from "../../lib/meeting-device";
 import { generateMeetingNotes, draftMeetingReply } from "../../lib/meeting-ai";
+import { validateMeetingSpeech } from "../../lib/meeting-voice";
 
 export const config = { maxDuration: 60, api: { bodyParser: { sizeLimit: "1mb" } } };
 export default async function handler(req, res) {
@@ -25,7 +26,7 @@ export default async function handler(req, res) {
       }
       const twin = (await getRow(twinKey(userId)))?.traits;
       const device = (await getRow(deviceKey(userId)))?.traits;
-      return res.status(200).json({ meetings: await listMeetings(userId), device: { paired: !!device && !device.revoked, online: deviceOnline(device), lastSeen: device?.lastSeen, expiresAt: device?.expiresAt }, capabilities: { notes: !!process.env.ANTHROPIC_API_KEY, liveReplies: false }, twin: twin?.persona ? { name: twin.name } : null });
+      return res.status(200).json({ meetings: await listMeetings(userId), device: { paired: !!device && !device.revoked, online: deviceOnline(device), lastSeen: device?.lastSeen, expiresAt: device?.expiresAt, voiceVersion: device?.voiceVersion || 0 }, capabilities: { notes: !!process.env.ANTHROPIC_API_KEY, liveReplies: deviceOnline(device) && device?.voiceVersion === 1 && !!twin?.voiceCloned }, twin: twin?.persona ? { name: twin.name, voiceCloned: !!twin.voiceCloned } : null });
     }
     const body = req.body || {};
     const { action, id } = body;
@@ -71,7 +72,7 @@ export default async function handler(req, res) {
       if (!twin?.persona) return res.status(409).json({ error: "Create your AI twin from the You tab first." });
       return res.status(200).json({ draft: await draftMeetingReply(meeting, twin, body.question) });
     }
-    if (!["import", "notes", "join", "leave", "delete"].includes(action)) return res.status(400).json({ error: "Unknown meeting action." });
+    if (!["import", "notes", "join", "leave", "delete", "speak", "stop_speaking"].includes(action)) return res.status(400).json({ error: "Unknown meeting action." });
     if (!await claimMeeting(meeting, action)) return res.status(409).json({ error: "A meeting operation is already in progress. Refresh in a moment." });
     let queued = false;
     try {
@@ -87,16 +88,33 @@ export default async function handler(req, res) {
         if (meeting.important) { try { await generateMeetingNotes(meeting); } catch { /* Detail exposes a retryable notes error. */ } }
       }
       if (action === "notes") await generateMeetingNotes(meeting);
-      if (["join", "leave", "delete"].includes(action)) {
+      if (["join", "leave", "delete", "speak", "stop_speaking"].includes(action)) {
         if (action === "delete" && body.confirm !== true) return res.status(400).json({ error: "Confirm deletion." });
         if (action === "delete" && !meeting.deviceHash) { await deleteMeetingData(meeting); return res.status(200).json({ deleted: true }); }
         if (action === "delete" && body.confirmLocalDeleted === true && terminalMeeting(meeting.state)) { await deleteMeetingData(meeting); return res.status(200).json({ deleted: true }); }
         const device = (await getRow(deviceKey(userId)))?.traits;
         if (!deviceOnline(device)) return res.status(409).json({ error: "Start the paired PC worker and local Vexa first. Your PC must stay awake and connected." });
         if (meeting.deviceHash && meeting.deviceHash !== device.tokenHash) return res.status(409).json({ error: "This meeting belongs to a previous PC connection. Manage its bot in local Vexa." });
+        if (["speak", "stop_speaking"].includes(action)) {
+          if (!meeting.voiceEnabled || meeting.platform !== "meet" || meeting.state !== "active" || device.voiceVersion !== 1) return res.status(409).json({ error: "Start a new Google Meet session with cloned speech enabled and the PC voice extension installed." });
+          if (action === "speak") {
+            if (body.consent !== true) return res.status(400).json({ error: "Confirm participants know this is your AI twin using your cloned voice." });
+            const twin = (await getRow(twinKey(userId)))?.traits;
+            if (!twin?.voiceCloned) return res.status(409).json({ error: "Your own cloned voice is required." });
+            if (Date.now() - Date.parse(meeting.lastSpeechAt || "1970-01-01") < 45000) return res.status(409).json({ error: "Wait for the previous reply to finish, or request Stop speaking." });
+            meeting.speechText = validateMeetingSpeech(body.text);
+            meeting.lastSpeechAt = new Date().toISOString();
+            meeting.speechDelivery = "pending";
+          }
+        }
         if (action === "join") {
           if (!["zoom", "teams", "meet"].includes(meeting.platform) || meeting.state !== "draft" || meeting.deviceHash) return res.status(409).json({ error: "Create a new Zoom, Teams or Meet session to join." });
           if (body.consent !== true) return res.status(400).json({ error: "Confirm participants know an AI twin will transcribe this meeting." });
+          if (body.voiceEnabled === true) {
+            const twin = (await getRow(twinKey(userId)))?.traits;
+            if (meeting.platform !== "meet" || device.voiceVersion !== 1 || !twin?.voiceCloned || body.voiceConsent !== true) return res.status(409).json({ error: "Google Meet, your cloned voice, an upgraded PC worker, and permission for AI speech are required." });
+            meeting.voiceEnabled = true;
+          }
           if ((await meetingEvents(meeting)).length) return res.status(409).json({ error: "Create a fresh meeting for live transcription." });
         } else if (!meeting.providerId) return res.status(409).json({ error: "The bot has not been confirmed. Check local Vexa; do not start a second bot." });
         if (action === "delete" && !terminalMeeting((await meetingDetail(meeting)).meeting.status)) return res.status(409).json({ error: "Leave the meeting and wait for it to finish before deleting its data." });

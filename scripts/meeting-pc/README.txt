@@ -67,9 +67,9 @@ https://github.com/Vexa-ai/vexa/tree/v0.12.28
 No real meeting has been joined as part of creating this setup package.
 
 LIMITATIONS AND COSTS
-Joining + transcription + AI notes are wired. Speaking and sending messages into
-meetings are NOT supported by the v0.12 Vexa API. Ricomates offers private reply
-drafts to copy yourself. WhatsApp/phone use transcript imports, not group-call bots.
+Joining + transcription + AI notes work with standard Vexa. Optional Google Meet
+cloned speech requires the Ricomates voice extension (meeting-voice/README.txt)
+and approval for each reply. WhatsApp/phone use transcript imports.
 CPU speech runs locally without a paid speech API. AI notes/drafts use the app's
 configured Anthropic API and its existing credit balance. Vexa and the PC retain
 local transcript data; Ricomates also stores synced text privately in the cloud.

@@ -21,6 +21,39 @@ const deviceModule = overrides => load('lib/meeting-device.js', { ...core, diges
 function api(overrides = {}) { return load('pages/api/meetings.js', {...core, ...deviceModule(), getAuth:()=>({userId:owner}), configured:()=>true,rateLimited:()=>false, getRow:async()=>null,upsertRow:async()=>{},twinKey:o=>'twin::'+o, getMeeting:async()=>({...baseMeeting}),listMeetings:async()=>[],saveMeeting:async()=>{},saveMeetingEvent:async()=>{},meetingDetail:async m=>({meeting:m,events:[]}),claimMeeting:async()=>true,meetingKey,digest:hash,deleteMeetingData:async()=>{},meetingEvents:async()=>[],generateMeetingNotes:async()=>{},draftMeetingReply:async()=>'',...overrides},['handler']).handler; }
 async function call(handler, body, method='POST', query={}) {const res=response();await handler({method,body,query,headers:{}},res);return res;}
 const ok = body => ({ok:true,status:200,json:async()=>body});
+const voiceModule = overrides => load('lib/meeting-voice.js', {selfVoiceOn:()=>true,isSelfVoice:v=>v.startsWith('self:'),selfVoice:async()=>new Response(Buffer.from('ID3-test-audio')),...overrides}, ['validateMeetingSpeech','clonedMeetingAudio']);
+
+test('meeting speech requires the saved clone and never falls back to another voice',async()=>{
+  let calls=0; const voice=voiceModule({selfVoice:async()=>{calls++;return{ok:false};}});
+  await assert.rejects(()=>voice.clonedMeetingAudio({voice:'self:test',voiceCloned:false},'Hello'));
+  assert.equal(calls,0);
+  await assert.rejects(()=>voice.clonedMeetingAudio({voice:'self:test',voiceCloned:true},'Hello'),/No substitute/);
+  assert.equal(calls,1); assert.throws(()=>voice.validateMeetingSpeech('x'.repeat(241)));
+});
+test('cloned speech identifies itself as AI and accepts only bounded owner-approved text',async()=>{
+  let text;const voice=voiceModule({selfVoice:async(route,body)=>{text=body.text;return new Response(Buffer.from('ID3audio'));}});
+  const result=await voice.clonedMeetingAudio({name:'Alex',voice:'self:test',voiceCloned:true},'Please clarify the deadline.');
+  assert.match(text,/Alex's AI twin/);assert.equal(result.format,'mp3');assert.equal(Buffer.from(result.audio_base64,'base64').toString(),'ID3audio');
+});
+test('voice join is refused when the runtime extension or clone is missing',async()=>{
+  const handler=api({getRow:async key=>key.startsWith('twin::')?{traits:{voiceCloned:true}}:{traits:{ready:true,voiceVersion:0,expiresAt:new Date(Date.now()+60000).toISOString(),lastSeen:new Date().toISOString(),tokenHash:'hash'}}});
+  const result=await call(handler,{action:'join',id,consent:true,voiceEnabled:true,voiceConsent:true});assert.equal(result.code,409);
+});
+test('speech job validates exact session and is never replayed after delivery uncertainty',async()=>{
+  let sends=0, synths=0;
+  const job={id,jobId:'voice-job',lease:'lease',type:'speak',platform:'meet',nativeId:'abc-defg-hij',providerId:7,voiceEnabled:true};
+  const worker=createWorker(config,{fetch:async(url,opts)=>{
+    if(url.endsWith('/api/meeting-worker')){synths++;return ok({format:'mp3',audio_base64:Buffer.from('ID3audio').toString('base64')});}
+    if(url.endsWith('/meetings/7'))return ok({id:7,platform:'google_meet',native_meeting_id:'abc-defg-hij',status:'active'});
+    if(url.endsWith('/speak')){sends++;throw new Error('timeout after delivery');}
+    throw new Error('unexpected route');
+  }});
+  await worker.execute(job);await worker.execute(job);assert.equal(sends,1);assert.equal(synths,1);assert.equal(worker.state.jobs['voice-job'].result.ok,false);
+});
+test('speech cannot be sent to another occurrence of the same meeting',async()=>{
+  let synths=0;const worker=createWorker(config,{fetch:async(url)=>{if(url.endsWith('/meetings/7'))return ok({id:8,platform:'google_meet',native_meeting_id:'abc-defg-hij',status:'active'});synths++;throw new Error('unexpected');}});
+  await worker.execute({id,jobId:'wrong-session',lease:'lease',type:'speak',platform:'meet',nativeId:'abc-defg-hij',providerId:7,voiceEnabled:true});assert.equal(synths,0);assert.equal(worker.state.jobs['wrong-session'].result.ok,false);
+});
 
 test('meeting URLs reject lookalike domains, private URLs, credentials and wrong platforms',()=>{
   for(const url of ['http://meet.google.com/abc-defg-hij','https://meet.google.com.evil.test/abc-defg-hij','https://127.0.0.1/a','https://u:p@meet.google.com/abc-defg-hij','https://meet.google.com:444/abc-defg-hij']) {assert.throws(()=>core.meetingUrl(url,'meet'));assert.throws(()=>validateMeetingLink(url,'meet'));}
@@ -103,9 +136,36 @@ test('simulated Vexa cycle joins, syncs confirmed text and acknowledges once',as
   }});
   await worker.tick();await worker.tick();await worker.tick();assert.equal(joins,1);assert.equal(snapshots.length,1);assert.equal(snapshots[0].segments.length,1);
 });
-test('meeting API cannot send chat or voice through unsupported Vexa endpoints',async()=>{assert.equal((await call(api(),{action:'send',id,text:'hello',approved:true})).code,400);});
+test('meeting API rejects unsupported chat sending',async()=>{assert.equal((await call(api(),{action:'send',id,text:'hello',approved:true})).code,400);});
 test('local session identity must include record ID, platform and native ID',()=>{assert.throws(()=>identity({id:12,platform:'zoom',native_meeting_id:'123'},{providerId:12,platform:'meet',nativeId:'abc-defg-hij'}));});
 function workerApi(overrides={}) {return load('pages/api/meeting-worker.js',{...core,...deviceModule(),configured:()=>true,authenticateDevice:async()=>({owner,tokenHash:'hash'}),compareUpdate:async()=>true,getMeeting:async()=>({...baseMeeting,deviceHash:'hash',jobId:'job1',jobLease:'lease1',jobState:'running',jobType:'join',operation:'worker'}),listMeetings:async()=>[],meetingKey,deleteMeetingData:async()=>{},claimMeeting:async()=>true,saveMeeting:async()=>{},getRow:async()=>null,upsertRow:async()=>{},waitUntil:()=>{},generateMeetingNotes:async()=>{},...overrides},['handler']).handler;}
+
+test('cloned audio is synthesized once per exact lease and restores the result state before delivery',async()=>{
+  let current={...baseMeeting,deviceHash:'hash',jobId:'speech1',jobLease:'lease1',jobState:'running',jobType:'speak',state:'active',voiceEnabled:true,speechText:'Hello'};
+  let synths=0;
+  const handler=workerApi({twinKey:()=> 'twin',getRow:async()=>({traits:{voiceCloned:true}}),getMeeting:async()=>current,compareUpdate:async(k,f,e,next)=>{if(current[f]!==e)return false;current=next;return true;},clonedMeetingAudio:async()=>{synths++;assert.equal(current.jobState,'synthesizing');return {format:'mp3',audio_base64:'SUQz'};}});
+  const body={action:'voice',id,jobId:'speech1',lease:'lease1'};
+  assert.equal((await call(handler,{...body,lease:'wrong'})).code,409);
+  assert.equal((await call(handler,body)).code,200);
+  assert.equal(current.jobState,'running');
+  assert.equal((await call(handler,body)).code,409);assert.equal(synths,1);
+});
+
+test('revoking the PC during synthesis prevents returning cloned audio',async()=>{
+  let current={...baseMeeting,deviceHash:'hash',jobId:'speech1',jobLease:'lease1',jobState:'running',jobType:'speak',state:'active',voiceEnabled:true,speechText:'Hello'};
+  let revoked=false;
+  const handler=workerApi({twinKey:()=> 'twin',authenticateDevice:async()=>revoked?null:{owner,tokenHash:'hash'},getRow:async()=>({traits:{voiceCloned:true}}),getMeeting:async()=>current,compareUpdate:async(k,f,e,next)=>{current=next;return true;},clonedMeetingAudio:async()=>{revoked=true;return {audio_base64:'privateaudio'};}});
+  const result=await call(handler,{action:'voice',id,jobId:'speech1',lease:'lease1'});
+  assert.equal(result.code,401);assert.equal(result.body,undefined);assert.equal(current.jobState,'running');
+});
+
+test('voice service rejects oversized streams and detects WAV without relabeling it MP3',async()=>{
+  const oversized=voiceModule({selfVoice:async()=>new Response(Buffer.alloc(1024*1024+1))});
+  await assert.rejects(()=>oversized.clonedMeetingAudio({voiceCloned:true,voice:'self:test'},'Hello'),/audio limit/);
+  const wav=Buffer.alloc(44);wav.write('RIFF');wav.write('WAVE',8);
+  const voice=voiceModule({selfVoice:async()=>new Response(wav)});
+  assert.equal((await voice.clonedMeetingAudio({voiceCloned:true,voice:'self:test'},'Hello')).format,'wav');
+});
 test('worker endpoint rejects missing pairing, another PC and forged leases',async()=>{
   assert.equal((await call(workerApi({authenticateDevice:async()=>null}),{action:'poll',ready:true})).code,401);
   assert.equal((await call(workerApi({getMeeting:async()=>({...baseMeeting,deviceHash:'other'})}),{action:'result',id,jobId:'job1',lease:'lease1',ok:true})).code,404);

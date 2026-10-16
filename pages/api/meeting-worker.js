@@ -5,6 +5,8 @@ import { authenticateDevice, compareUpdate, deviceKey, validateSnapshot } from "
 import { getMeeting, listMeetings, meetingKey, deleteMeetingData, claimMeeting, saveMeeting } from "../../lib/meeting-store";
 import { validMeetingId, terminalMeeting } from "../../lib/meeting-core";
 import { generateMeetingNotes } from "../../lib/meeting-ai";
+import { clonedMeetingAudio } from "../../lib/meeting-voice";
+import { twinKey } from "../../lib/twins";
 
 export const config = { maxDuration: 60, api: { bodyParser: { sizeLimit: "2mb" } } };
 export default async function handler(req, res) {
@@ -17,19 +19,37 @@ export default async function handler(req, res) {
     const body = req.body || {};
     if (body.action === "poll") {
       const ready = body.ready === true;
-      if (!await compareUpdate(deviceKey(device.owner), "tokenHash", device.tokenHash, { ...device, ready, lastSeen: new Date().toISOString() })) return res.status(401).end();
+      if (!await compareUpdate(deviceKey(device.owner), "tokenHash", device.tokenHash, { ...device, ready, voiceVersion: body.voiceVersion === 1 ? 1 : 0, lastSeen: new Date().toISOString() })) return res.status(401).end();
       const meetings = (await listMeetings(device.owner)).filter(m => m.deviceHash === device.tokenHash);
       const jobs = [];
       if (ready) for (const meeting of meetings.filter(m => m.jobState === "pending")) {
         const jobLease = randomUUID();
         const claimed = { ...meeting, jobState: "running", jobLease };
-        if (await compareUpdate(meetingKey(device.owner, meeting.id), "jobState", "pending", claimed)) jobs.push({ id: meeting.id, jobId: meeting.jobId, lease: jobLease, type: meeting.jobType, platform: meeting.platform, url: meeting.url, twinName: meeting.twinName, providerId: meeting.providerId, nativeId: meeting.nativeId });
+        if (await compareUpdate(meetingKey(device.owner, meeting.id), "jobState", "pending", claimed)) jobs.push({ id: meeting.id, jobId: meeting.jobId, lease: jobLease, type: meeting.jobType, platform: meeting.platform, url: meeting.url, twinName: meeting.twinName, providerId: meeting.providerId, nativeId: meeting.nativeId, voiceEnabled: meeting.voiceEnabled === true });
       }
       return res.status(200).json({ jobs, meetings: meetings.filter(m => m.providerId && (!terminalMeeting(m.state) || Date.now() - Date.parse(m.finishedAt || "") < 120000)).map(m => ({ id: m.id, platform: m.platform, providerId: m.providerId, nativeId: m.nativeId })) });
     }
     if (!validMeetingId(body.id)) return res.status(400).json({ error: "Invalid meeting." });
     const meeting = await getMeeting(device.owner, body.id);
     if (!meeting || meeting.deviceHash !== device.tokenHash) return res.status(404).json({ error: "Meeting not found for this PC." });
+    if (body.action === "voice") {
+      if (meeting.jobType !== "speak" || meeting.jobState !== "running" || meeting.jobId !== body.jobId || meeting.jobLease !== body.lease || !meeting.voiceEnabled || meeting.platform !== "meet" || meeting.state !== "active") return res.status(409).json({ error: "This speech request is no longer active." });
+      // Claim synthesis once. A retry must never spend credits or speak twice.
+      if (meeting.voiceSynthesisJob === body.jobId) return res.status(409).json({ error: "Speech synthesis was already requested." });
+      if (!await compareUpdate(meetingKey(device.owner, meeting.id), "jobState", "running", { ...meeting, jobState: "synthesizing", voiceSynthesisJob: body.jobId })) return res.status(409).end();
+      try {
+        const twin = (await getRow(twinKey(device.owner)))?.traits;
+        const audio = await clonedMeetingAudio(twin, meeting.speechText);
+        if (!await authenticateDevice(req.headers.authorization)) return res.status(401).end();
+        const current = await getMeeting(device.owner, meeting.id);
+        if (!current || current.deviceHash !== device.tokenHash || !current.voiceEnabled || current.jobId !== body.jobId || current.jobLease !== body.lease || current.state !== "active") return res.status(409).end();
+        if (!await compareUpdate(meetingKey(device.owner, meeting.id), "jobState", "synthesizing", { ...current, jobState: "running" })) return res.status(409).end();
+        return res.status(200).json(audio);
+      } finally {
+        const current = await getMeeting(device.owner, meeting.id);
+        if (current?.jobId === body.jobId && current.jobState === "synthesizing") await compareUpdate(meetingKey(device.owner, meeting.id), "jobState", "synthesizing", { ...current, jobState: "running" });
+      }
+    }
     if (body.action === "result") {
       if (body.jobId !== meeting.jobId || body.lease !== meeting.jobLease) return res.status(409).json({ error: "Stale job lease." });
       if (meeting.jobState === "done" || meeting.jobState === "error") {
@@ -45,6 +65,11 @@ export default async function handler(req, res) {
         if (!Number.isSafeInteger(body.providerId) || body.providerId < 1 || typeof body.nativeId !== "string" || !body.nativeId || body.nativeId.length > 255 || /[?#&=/\s]/.test(body.nativeId)) return res.status(400).json({ error: "Invalid local meeting identity." });
         next = { ...next, providerId: body.providerId, nativeId: body.nativeId, state: "requested" };
       } else if (meeting.jobType === "leave") next.state = "stopping";
+      if (["speak", "stop_speaking"].includes(meeting.jobType)) {
+        next.speechDelivery = body.ok === true ? (meeting.jobType === "speak" ? "submitted" : "stop_requested") : "unconfirmed";
+        if (body.ok === true && meeting.jobType === "speak") next.lastSpeechAt = new Date().toISOString();
+        delete next.speechText;
+      }
       if (body.ok === true && meeting.jobType === "purge") next.operation = "worker";
       if (!await compareUpdate(meetingKey(device.owner, meeting.id), "jobState", "running", next)) return res.status(409).json({ error: "Job already changed." });
       if (body.ok === true && meeting.jobType === "purge") await deleteMeetingData(next);

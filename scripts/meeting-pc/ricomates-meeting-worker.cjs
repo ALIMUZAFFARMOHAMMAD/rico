@@ -49,12 +49,27 @@ function createWorker(config, dependencies = {}) {
       let result = { ...state.jobs[job.jobId].result, ok: true };
       if (job.type === 'join') {
         validateMeetingLink(job.url, job.platform);
-        const bot = await local('/bots', 'POST', { platform: platform(job.platform), meeting_url: job.url, bot_name: `${String(job.twinName || 'Ricomates').slice(0, 30)} · AI notes`, recording_enabled: false, transcribe_enabled: true, automatic_leave: { waiting_room_timeout: 600000, everyone_left_timeout: 60000 } });
+        const bot = await local('/bots', 'POST', { platform: platform(job.platform), meeting_url: job.url, bot_name: `${String(job.twinName || 'Ricomates').slice(0, 30)} · AI ${job.voiceEnabled ? 'twin' : 'notes'}`, voice_agent_enabled: job.voiceEnabled === true, recording_enabled: false, transcribe_enabled: true, automatic_leave: { waiting_room_timeout: 600000, everyone_left_timeout: 60000 } });
         if (!Number.isSafeInteger(bot?.id) || bot.id < 1 || bot.platform !== platform(job.platform) || typeof bot.native_meeting_id !== 'string' || !bot.native_meeting_id || /[?#&=/\s]/.test(bot.native_meeting_id)) throw new Error('Invalid bot response; check local Vexa.');
         const m = { id: job.id, platform: job.platform, providerId: bot.id, nativeId: bot.native_meeting_id };
         state.active[job.id] = m;
         result = { ...result, providerId: bot.id, nativeId: bot.native_meeting_id };
       } else if (job.type === 'leave') await stop(job);
+      else if (job.type === 'speak' || job.type === 'stop_speaking') {
+        if (job.platform !== 'meet' || job.voiceEnabled !== true) throw new Error('Voice is not enabled for this meeting.');
+        const current = identity(await local('/meetings/' + job.providerId), job);
+        if (current.status !== 'active') throw new Error('The meeting is not active.');
+        const route = `/bots/${platform(job.platform)}/${encodeURIComponent(job.nativeId)}/speak`;
+        if (job.type === 'stop_speaking') await local(route + '?meeting_id=' + job.providerId, 'DELETE');
+        else {
+          const audio = await cloud({ action: 'voice', id: job.id, jobId: job.jobId, lease: job.lease });
+          if (!['mp3', 'wav'].includes(audio?.format) || typeof audio.audio_base64 !== 'string' || audio.audio_base64.length > 1400000) throw new Error('Invalid cloned audio.');
+          // The meeting may have ended while the voice provider was working.
+          const fresh = identity(await local('/meetings/' + job.providerId), job);
+          if (fresh.status !== 'active') throw new Error('Meeting ended before playback.');
+          await local(route, 'POST', { ...audio, meeting_id: job.providerId });
+        }
+      }
       else if (job.type === 'purge') {
         const current = identity(await local('/meetings/' + job.providerId), job);
         if (!terminal(current.status)) throw new Error('Finish the meeting before deleting its data.');
@@ -80,7 +95,11 @@ function createWorker(config, dependencies = {}) {
     await flush();
     let ready = false;
     try { const me = await local('/auth/me'); ready = Array.isArray(me?.scopes) && me.scopes.includes('bot') && me.scopes.includes('tx'); } catch { /* Report offline without claiming jobs. */ }
-    const data = await cloud({ action: 'poll', ready });
+    let voiceVersion = 0;
+    if (ready) {
+      try { const capabilities = await local('/bots/ricomates/voice-capabilities'); if (capabilities?.version === 1 && capabilities.platforms?.includes('google_meet')) voiceVersion = 1; } catch { /* Old Vexa still supports notes. */ }
+    }
+    const data = await cloud({ action: 'poll', ready, voiceVersion });
     if (!ready) return { ready: false };
     for (const job of data.jobs || []) { await execute(job); await flush(); }
     for (const m of data.meetings || []) {
