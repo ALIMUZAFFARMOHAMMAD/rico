@@ -69,7 +69,7 @@ No real meeting has been joined as part of creating this setup package.
 LIMITATIONS AND COSTS
 Joining + transcription + AI notes work with standard Vexa. Optional Google Meet
 cloned speech requires the Ricomates voice extension (meeting-voice/README.txt)
-and approval for each reply. WhatsApp/phone use transcript imports.
+and either reviewed speech or opt-in automatic replies. WhatsApp/phone use transcript imports.
 CPU speech runs locally without a paid speech API. AI notes/drafts use the app's
 configured Anthropic API and its existing credit balance. Vexa and the PC retain
 local transcript data; Ricomates also stores synced text privately in the cloud.
@@ -100,3 +100,17 @@ to leave tracked calls; if offline, stop bots in the local dashboard yourself.
 Account deletion removes cloud data and revokes pairing but cannot delete data
 on an offline PC. Remove local records in Vexa and private config/state files.
 Docker volume removal permanently destroys Vexa data; this package never does it.
+
+AUTOMATIC MEETING REPLIES
+Update both the app and Windows worker; the existing voice images need no rebuild.
+Join Google Meet with cloned speech, then choose Enable automatic replies in the
+meeting workspace. Review your twin profile/briefing and confirm participant
+consent once per session. Address the twin by its chosen call name (default Rico).
+The connector waits for six seconds of stable, completed transcription. Replies
+use the configured Anthropic service and your saved voice clone. Every utterance
+identifies the AI twin. Answers are limited to 240 characters, 45 seconds apart,
+and 40 replies or one hour per enabled session. Pause & stop speaking remains
+available while generation runs. Allow a few seconds for the PC to stop audio.
+Generation/delivery failures pause replies; uncertain speech is never replayed.
+Changing your profile requires enabling again. Do not rely on the twin for
+commitments or facts you have not provided. English/Google Meet only.

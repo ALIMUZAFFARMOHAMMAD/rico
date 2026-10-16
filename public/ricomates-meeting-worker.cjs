@@ -24,10 +24,16 @@ function identity(record, m) {
   if (record?.id !== m.providerId || record.platform !== platform(m.platform) || record.native_meeting_id !== m.nativeId) throw new Error('Local meeting identity changed; refusing to act on another session.');
   return record;
 }
+function speechFingerprint(segments) {
+  const canonical = segments.filter(s => s.completed === true).sort((a,b) => a.start - b.start).map(s => [s.segment_id, (s.speaker || 'Speaker').slice(0,120), s.text, s.start]);
+  return crypto.createHash('sha256').update(JSON.stringify(canonical)).digest('hex');
+}
 function createWorker(config, dependencies = {}) {
   const request = dependencies.fetch || fetch;
   const state = dependencies.state || { jobs: {}, active: {}, hashes: {} };
   const persist = dependencies.persist || (() => {});
+  const now = dependencies.now || Date.now;
+  const speechTasks = new Map(), autoTasks = new Map(), activity = new Map(), autoSessions = new Map();
   async function json(url, method, headers, body) {
     const r = await request(url, { method, headers: { ...headers, 'Content-Type': 'application/json' }, ...(body === undefined ? {} : { body: JSON.stringify(body) }), signal: AbortSignal.timeout(45000), redirect: 'error' });
     if (!r.ok) { const e = new Error(`Request failed (${r.status}).`); e.status = r.status; throw e; }
@@ -36,6 +42,7 @@ function createWorker(config, dependencies = {}) {
   }
   const local = (route, method = 'GET', body) => json(config.vexaUrl + route, method, { 'X-API-Key': config.vexaApiKey }, body);
   const cloud = body => json(config.appUrl + '/api/meeting-worker', 'POST', { Authorization: 'Bearer ' + config.pairToken }, body);
+  const autoCloud = body => json(config.appUrl + '/api/meeting-auto', 'POST', { Authorization: 'Bearer ' + config.pairToken }, body);
   async function stop(m) {
     const current = identity(await local('/meetings/' + m.providerId), m);
     if (!terminal(current.status)) await local(`/bots/${platform(m.platform)}/${encodeURIComponent(m.nativeId)}`, 'DELETE');
@@ -67,6 +74,12 @@ function createWorker(config, dependencies = {}) {
           // The meeting may have ended while the voice provider was working.
           const fresh = identity(await local('/meetings/' + job.providerId), job);
           if (fresh.status !== 'active') throw new Error('Meeting ended before playback.');
+          if (job.automatic) {
+            const transcript = identity(await local('/transcripts/by-id/' + job.providerId), job);
+            if (!Array.isArray(transcript.segments) || transcript.segments.some(s => s.completed !== true) || speechFingerprint(transcript.segments) !== job.autoFingerprint) throw new Error('Conversation changed before playback.');
+            const permission = await autoCloud({ action: 'authorize', id: job.id, jobId: job.jobId, lease: job.lease });
+            if (permission?.allowed !== true || autoSessions.get(job.id)?.stopId) throw new Error('Automatic replies paused.');
+          }
           await local(route, 'POST', { ...audio, meeting_id: job.providerId });
         }
       }
@@ -83,6 +96,7 @@ function createWorker(config, dependencies = {}) {
   async function flush() {
     for (const [id, entry] of Object.entries(state.jobs)) {
       if (entry.acknowledged) continue;
+      if (speechTasks.has(id)) continue;
       try { await cloud(entry.result); }
       catch (e) { if (![404, 409].includes(e.status)) throw e; }
       entry.acknowledged = true;
@@ -99,9 +113,27 @@ function createWorker(config, dependencies = {}) {
     if (ready) {
       try { const capabilities = await local('/bots/ricomates/voice-capabilities'); if (capabilities?.version === 1 && capabilities.platforms?.includes('google_meet')) voiceVersion = 1; } catch { /* Old Vexa still supports notes. */ }
     }
-    const data = await cloud({ action: 'poll', ready, voiceVersion });
+    const data = await cloud({ action: 'poll', ready, voiceVersion, autoVersion: 1 });
     if (!ready) return { ready: false };
-    for (const job of data.jobs || []) { await execute(job); await flush(); }
+    for (const m of data.meetings || []) {
+      autoSessions.set(m.id, m.auto);
+      if (m.auto?.stopId && m.platform === 'meet') {
+        try {
+          const current = identity(await local('/meetings/' + m.providerId), m);
+          if (current.status === 'active') await local(`/bots/google_meet/${encodeURIComponent(m.nativeId)}/speak?meeting_id=${m.providerId}`, 'DELETE');
+          // Repeat stop until an in-flight send has settled, then acknowledge.
+          if (![...speechTasks.keys()].some(id => state.jobs[id]?.job?.id === m.id)) await autoCloud({ action: 'stopped', id: m.id, stopId: m.auto.stopId });
+        } catch { /* Retry the stop on the next heartbeat. */ }
+      }
+    }
+    for (const job of data.jobs || []) {
+      if (job.type === 'speak') {
+        if (!speechTasks.has(job.jobId)) {
+          const task = execute(job).catch(() => {}).finally(() => speechTasks.delete(job.jobId));
+          speechTasks.set(job.jobId, task);
+        }
+      } else { await execute(job); await flush(); }
+    }
     for (const m of data.meetings || []) {
       state.active[m.id] = m; persist(state);
       try {
@@ -111,6 +143,16 @@ function createWorker(config, dependencies = {}) {
         const snapshot = { action: 'snapshot', id: m.id, providerId: m.providerId, nativeId: m.nativeId, platform: platform(m.platform), status: record.status, segments };
         const hash = crypto.createHash('sha256').update(JSON.stringify(snapshot)).digest('hex');
         if (hash !== state.hashes[m.id]) { await cloud(snapshot); state.hashes[m.id] = hash; }
+        const heardHash = crypto.createHash('sha256').update(JSON.stringify(record.segments.map(s => [s.segment_id, s.text, s.completed]))).digest('hex');
+        const previous = activity.get(m.id);
+        if (!previous || previous.hash !== heardHash || previous.generation !== m.auto?.generation) activity.set(m.id, { hash: heardHash, since: now(), generation: m.auto?.generation, observedChange: !!previous && previous.hash !== heardHash });
+        const quiet = activity.get(m.id);
+        if (m.auto?.enabled && record.status === 'active' && quiet.observedChange && now() - quiet.since >= 6000 && !record.segments.some(s => s.completed !== true) && !autoTasks.has(m.id)) {
+          const fingerprint = speechFingerprint(segments);
+          // Generation must not block heartbeats, pause requests or transcription.
+          const task = autoCloud({ action: 'turn', id: m.id, fingerprint, quietSince: quiet.since }).then(() => { quiet.observedChange = false; }).catch(() => { quiet.observedChange = false; }).finally(() => autoTasks.delete(m.id));
+          autoTasks.set(m.id, task);
+        }
         if (terminal(record.status)) delete state.active[m.id];
         persist(state);
       } catch (e) {
@@ -121,7 +163,7 @@ function createWorker(config, dependencies = {}) {
     return { ready: true };
   }
   async function stopAll() { for (const m of Object.values(state.active)) { try { await stop(m); } catch { /* Owner may need to stop an unreachable bot in Vexa. */ } } }
-  return { tick, execute, flush, stopAll, state };
+  return { tick, execute, flush, stopAll, state, drain: () => Promise.all([...speechTasks.values(), ...autoTasks.values()]) };
 }
 async function main() {
   const configPath = path.resolve(process.argv[2] || 'ricomates-pc.json');
@@ -146,7 +188,7 @@ async function main() {
       if (e.status === 401) { console.error('Pairing expired or disconnected. Leaving tracked meetings.'); running = false; }
       else console.warn('Connection interrupted. Retrying updates; joins will not be repeated.');
     }
-    if (running) await new Promise(resolve => setTimeout(resolve, 10000));
+    if (running) await new Promise(resolve => setTimeout(resolve, 3000));
   }
   await worker.stopAll();
 }

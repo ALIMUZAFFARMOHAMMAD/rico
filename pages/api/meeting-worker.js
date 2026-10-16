@@ -7,6 +7,7 @@ import { validMeetingId, terminalMeeting } from "../../lib/meeting-core";
 import { generateMeetingNotes } from "../../lib/meeting-ai";
 import { clonedMeetingAudio } from "../../lib/meeting-voice";
 import { twinKey } from "../../lib/twins";
+import { getAuto, autoActive, automaticSpeechAllowed, updateAuto } from "../../lib/meeting-auto";
 
 export const config = { maxDuration: 60, api: { bodyParser: { sizeLimit: "2mb" } } };
 export default async function handler(req, res) {
@@ -19,20 +20,26 @@ export default async function handler(req, res) {
     const body = req.body || {};
     if (body.action === "poll") {
       const ready = body.ready === true;
-      if (!await compareUpdate(deviceKey(device.owner), "tokenHash", device.tokenHash, { ...device, ready, voiceVersion: body.voiceVersion === 1 ? 1 : 0, lastSeen: new Date().toISOString() })) return res.status(401).end();
+      if (!await compareUpdate(deviceKey(device.owner), "tokenHash", device.tokenHash, { ...device, ready, voiceVersion: body.voiceVersion === 1 ? 1 : 0, autoVersion: body.autoVersion === 1 ? 1 : 0, lastSeen: new Date().toISOString() })) return res.status(401).end();
       const meetings = (await listMeetings(device.owner)).filter(m => m.deviceHash === device.tokenHash);
       const jobs = [];
       if (ready) for (const meeting of meetings.filter(m => m.jobState === "pending")) {
         const jobLease = randomUUID();
         const claimed = { ...meeting, jobState: "running", jobLease };
-        if (await compareUpdate(meetingKey(device.owner, meeting.id), "jobState", "pending", claimed)) jobs.push({ id: meeting.id, jobId: meeting.jobId, lease: jobLease, type: meeting.jobType, platform: meeting.platform, url: meeting.url, twinName: meeting.twinName, providerId: meeting.providerId, nativeId: meeting.nativeId, voiceEnabled: meeting.voiceEnabled === true });
+        if (await compareUpdate(meetingKey(device.owner, meeting.id), "jobState", "pending", claimed)) jobs.push({ id: meeting.id, jobId: meeting.jobId, lease: jobLease, type: meeting.jobType, platform: meeting.platform, url: meeting.url, twinName: meeting.twinName, providerId: meeting.providerId, nativeId: meeting.nativeId, voiceEnabled: meeting.voiceEnabled === true, automatic: !!meeting.autoGeneration, autoFingerprint: meeting.autoFingerprint });
       }
-      return res.status(200).json({ jobs, meetings: meetings.filter(m => m.providerId && (!terminalMeeting(m.state) || Date.now() - Date.parse(m.finishedAt || "") < 120000)).map(m => ({ id: m.id, platform: m.platform, providerId: m.providerId, nativeId: m.nativeId })) });
+      const tracked = meetings.filter(m => m.providerId && (!terminalMeeting(m.state) || Date.now() - Date.parse(m.finishedAt || "") < 120000));
+      const sessions = await Promise.all(tracked.map(async m => {
+        const a = body.autoVersion === 1 ? await getAuto(m) : null;
+        return { id: m.id, platform: m.platform, providerId: m.providerId, nativeId: m.nativeId, auto: a ? { enabled: autoActive(a) && m.state === "active", generation: a.generation, stopId: a.stopId } : null };
+      }));
+      return res.status(200).json({ jobs, meetings: sessions });
     }
     if (!validMeetingId(body.id)) return res.status(400).json({ error: "Invalid meeting." });
     const meeting = await getMeeting(device.owner, body.id);
     if (!meeting || meeting.deviceHash !== device.tokenHash) return res.status(404).json({ error: "Meeting not found for this PC." });
     if (body.action === "voice") {
+      if (meeting.autoGeneration && !await automaticSpeechAllowed(meeting)) return res.status(409).json({ error: "Automatic speech has been paused." });
       if (meeting.jobType !== "speak" || meeting.jobState !== "running" || meeting.jobId !== body.jobId || meeting.jobLease !== body.lease || !meeting.voiceEnabled || meeting.platform !== "meet" || meeting.state !== "active") return res.status(409).json({ error: "This speech request is no longer active." });
       // Claim synthesis once. A retry must never spend credits or speak twice.
       if (meeting.voiceSynthesisJob === body.jobId) return res.status(409).json({ error: "Speech synthesis was already requested." });
@@ -43,6 +50,7 @@ export default async function handler(req, res) {
         if (!await authenticateDevice(req.headers.authorization)) return res.status(401).end();
         const current = await getMeeting(device.owner, meeting.id);
         if (!current || current.deviceHash !== device.tokenHash || !current.voiceEnabled || current.jobId !== body.jobId || current.jobLease !== body.lease || current.state !== "active") return res.status(409).end();
+        if (current.autoGeneration && !await automaticSpeechAllowed(current)) return res.status(409).end();
         if (!await compareUpdate(meetingKey(device.owner, meeting.id), "jobState", "synthesizing", { ...current, jobState: "running" })) return res.status(409).end();
         return res.status(200).json(audio);
       } finally {
@@ -72,6 +80,10 @@ export default async function handler(req, res) {
       }
       if (body.ok === true && meeting.jobType === "purge") next.operation = "worker";
       if (!await compareUpdate(meetingKey(device.owner, meeting.id), "jobState", "running", next)) return res.status(409).json({ error: "Job already changed." });
+      if (meeting.autoGeneration) {
+        const a = await getAuto(meeting);
+        if (a?.enabled && a.generation === meeting.autoGeneration && a.turnId === meeting.autoTurnId) await updateAuto(meeting, a, body.ok === true ? { status: "listening" } : { enabled: false, status: "error", error: "Speech delivery was not confirmed. Automatic replies paused; the reply will not be repeated." });
+      }
       if (body.ok === true && meeting.jobType === "purge") await deleteMeetingData(next);
       return res.status(200).json({ accepted: true });
     }

@@ -24,6 +24,6 @@ export default function MeetingVoiceControls({ meeting, capable, hasClone, draft
     {meeting.speechDelivery === "submitted" && <p role="status">Audio sent to the bot. Confirm it was audible with a participant.</p>}
     {meeting.speechDelivery === "stop_requested" && <p role="status">Stop request delivered. Allow a few seconds for the PC connection.</p>}
     {meeting.speechDelivery === "unconfirmed" && <p role="alert">Speech delivery was not confirmed. It will not be repeated automatically.</p>}
-    <small>Keep replies short. The bot limits playback to 30 seconds; allow 45 seconds between replies. This version speaks approved replies, not autonomous responses.</small>
+    <small>Keep replies short. The bot limits playback to 30 seconds; allow 45 seconds between replies. Use the automatic-replies control above for hands-free answers.</small>
   </section>;
 }

@@ -32,8 +32,9 @@ The first live test must confirm the audio is audible and uses the correct voice
 An accepted API request is not proof of successful audible playback.
 
 LIMITS
-English, Google Meet, owner-approved replies only. No autonomous turn-taking,
-Zoom/Teams speech, WhatsApp bot, or meeting chat sending in this version.
+English, Google Meet. The updated connector supports opt-in automatic replies
+when addressed by name; see the PC README. Zoom/Teams speech, WhatsApp bots
+and meeting chat sending are not supported.
 240 characters per reply, 1 MiB audio, maximum 30 seconds playback and 45 seconds
 between replies. Stop requests travel through the PC polling connection.
 Voice generation uses the configured service and may consume paid credits.

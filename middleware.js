@@ -26,7 +26,7 @@ const clerkHandler = process.env.CLERK_SECRET_KEY
 
 // This endpoint uses an owner-bound, revocable PC token, not a Clerk JWT.
 export default function middleware(req, event) {
-  if (req.nextUrl.pathname === "/api/meeting-worker") return NextResponse.next();
+  if (req.nextUrl.pathname === "/api/meeting-worker" || (req.nextUrl.pathname === "/api/meeting-auto" && req.headers?.get("authorization")?.startsWith("Bearer "))) return NextResponse.next();
   return clerkHandler(req, event);
 }
 

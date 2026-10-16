@@ -8,6 +8,7 @@ import { getMeeting, listMeetings, saveMeeting, saveMeetingEvent, meetingDetail,
 import { deviceKey, deviceOnline, pairDevice, compareUpdate } from "../../lib/meeting-device";
 import { generateMeetingNotes, draftMeetingReply } from "../../lib/meeting-ai";
 import { validateMeetingSpeech } from "../../lib/meeting-voice";
+import { pauseAuto } from "../../lib/meeting-auto";
 
 export const config = { maxDuration: 60, api: { bodyParser: { sizeLimit: "1mb" } } };
 export default async function handler(req, res) {
@@ -26,7 +27,7 @@ export default async function handler(req, res) {
       }
       const twin = (await getRow(twinKey(userId)))?.traits;
       const device = (await getRow(deviceKey(userId)))?.traits;
-      return res.status(200).json({ meetings: await listMeetings(userId), device: { paired: !!device && !device.revoked, online: deviceOnline(device), lastSeen: device?.lastSeen, expiresAt: device?.expiresAt, voiceVersion: device?.voiceVersion || 0 }, capabilities: { notes: !!process.env.ANTHROPIC_API_KEY, liveReplies: deviceOnline(device) && device?.voiceVersion === 1 && !!twin?.voiceCloned }, twin: twin?.persona ? { name: twin.name, voiceCloned: !!twin.voiceCloned } : null });
+      return res.status(200).json({ meetings: await listMeetings(userId), device: { paired: !!device && !device.revoked, online: deviceOnline(device), lastSeen: device?.lastSeen, expiresAt: device?.expiresAt, voiceVersion: device?.voiceVersion || 0, autoVersion: device?.autoVersion || 0 }, capabilities: { notes: !!process.env.ANTHROPIC_API_KEY, liveReplies: deviceOnline(device) && device?.voiceVersion === 1 && !!twin?.voiceCloned }, twin: twin?.persona ? { name: twin.name, voiceCloned: !!twin.voiceCloned } : null });
     }
     const body = req.body || {};
     const { action, id } = body;
@@ -56,6 +57,7 @@ export default async function handler(req, res) {
     if (!validMeetingId(id)) return res.status(400).json({ error: "Invalid meeting." });
     const meeting = await getMeeting(userId, id);
     if (!meeting) return res.status(404).json({ error: "Meeting not found." });
+    if (["leave", "stop_speaking", "resolve"].includes(action)) await pauseAuto(meeting);
     if (action === "resolve") {
       if (!meeting.deviceHash || !meeting.jobId || body.confirmLocalStopped !== true) return res.status(400).json({ error: "First stop this bot in local Vexa and confirm it is no longer in a call." });
       const resolved = { ...meeting, jobId: randomUUID(), jobLease: null, jobState: "recovering", state: "failed", operation: "recovering", error: "Marked finished after you confirmed the local bot was stopped." };
@@ -105,6 +107,9 @@ export default async function handler(req, res) {
             meeting.speechText = validateMeetingSpeech(body.text);
             meeting.lastSpeechAt = new Date().toISOString();
             meeting.speechDelivery = "pending";
+            delete meeting.autoGeneration;
+            delete meeting.autoTurnId;
+            delete meeting.autoFingerprint;
           }
         }
         if (action === "join") {
