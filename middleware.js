@@ -24,9 +24,11 @@ const clerkHandler = process.env.CLERK_SECRET_KEY
     ? NextResponse.json({ error: "Sign-in is not configured" }, { status: 503 })
     : NextResponse.next();
 
-// This endpoint uses an owner-bound, revocable PC token, not a Clerk JWT.
+// PC requests use a two-part pairing token. Browser requests carry a three-part
+// Clerk JWT and must pass through Clerk so owner controls retain authentication.
 export default function middleware(req, event) {
-  if (req.nextUrl.pathname === "/api/meeting-worker" || (req.nextUrl.pathname === "/api/meeting-auto" && req.headers?.get("authorization")?.startsWith("Bearer "))) return NextResponse.next();
+  const pcToken = /^Bearer [A-Za-z0-9_-]{5,160}\.[a-f0-9]{64}$/.test(req.headers?.get("authorization") || "");
+  if (req.nextUrl.pathname === "/api/meeting-worker" || (req.nextUrl.pathname === "/api/meeting-auto" && pcToken)) return NextResponse.next();
   return clerkHandler(req, event);
 }
 

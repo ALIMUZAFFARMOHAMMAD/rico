@@ -33,3 +33,20 @@ test('sign-in, second-factor, callback and public pages stay reachable', async (
     assert.equal((await middleware(null)(route)).status, 200);
   }
 });
+
+test('automatic-reply owner JWT requests run Clerk while pairing tokens reach device authentication', async () => {
+  let clerkCalls = 0;
+  const context = { process: { env: { CLERK_SECRET_KEY: 'test-only' } }, module: { exports: {} },
+    clerkMiddleware: handler => req => { clerkCalls++; return handler(async () => ({ userId: 'user_test' }), req); },
+    NextResponse: { next: () => ({ status: 200 }), json: (body, init) => ({ body, ...init }) },
+  };
+  vm.runInNewContext(source + '\nmodule.exports = middleware;', context);
+  const request = token => context.module.exports({ nextUrl: { pathname: '/api/meeting-auto' }, headers: { get: () => token } });
+  await request('Bearer eyJheader.eyJpayload.signature');
+  assert.equal(clerkCalls, 1, 'browser JWT must initialize owner authentication');
+  await request('Bearer dXNlcl90ZXN0.' + 'a'.repeat(64));
+  assert.equal(clerkCalls, 1, 'pairing token is authenticated by the endpoint');
+  await request('Bearer malformed');
+  await request(null);
+  assert.equal(clerkCalls, 3, 'other requests must not bypass Clerk');
+});
