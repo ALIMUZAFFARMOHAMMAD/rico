@@ -83,8 +83,10 @@
 
 .hero {
   border-radius: 30px;
-  background: #efcfb8;
-  color: #292131;
+  background: linear-gradient(120deg,#221b37,#19192e);
+  color: #f7f1ff;
+  border: 1px solid #d5b6ff30;
+  box-shadow: inset 0 1px #ffffff12,0 20px 60px #0c071b55;
   display: grid;
   grid-template-columns: 1.1fr .9fr;
   position: relative;
@@ -129,14 +131,15 @@
   font-size: 13px;
   line-height: 1.65;
   margin: 0 0 23px;
-  color: #554353;
+  color: #c4b7d6;
 }
 
 .heroCta {
   border: 0;
   border-radius: 30px;
-  background: #302637;
-  color: #fff;
+  background: #e4cbff;
+  color: #29133e;
+  box-shadow: 0 8px 30px #ba8bf72b;
   padding: 12px 20px;
   display: flex;
   align-items: center;
@@ -148,12 +151,12 @@
 }
 
 .heroCta:hover {
-  background: #51405d;
+  background: #f0e0ff;
 }
 
 .aiLabel {
   font-size: 9px;
-  color: #665363;
+  color: #b7a8cb;
   display: block;
   margin-top: 13px;
 }
@@ -162,7 +165,7 @@
   position: relative;
   display: flex;
   justify-content: center;
-  align-items: flex-end;
+  align-items: center;
   min-width: 0;
 }
 
@@ -186,13 +189,15 @@
 }
 
 .characterButton {
-  position: relative;
+  position: absolute;
+  bottom: -8px;
+  right: 0;
   z-index: 1;
   display: block;
   border: 0;
   background: none;
   padding: 0;
-  margin-bottom: 35px;
+  margin-bottom: 0;
   transition: transform .25s;
 }
 
@@ -243,13 +248,13 @@
 
 .waveCaption {
   position: absolute;
-  bottom: 20px;
-  left: 0;
-  right: 0;
+  bottom: 9px;
+  left: auto;
+  right: 100px;
   text-align: center;
   font-size: 10px;
   letter-spacing: .5px;
-  color: #6f5342;
+  color: #c8b5dd;
   z-index: 2;
 }
 
@@ -1046,3 +1051,6 @@
     scroll-behavior: auto !important;
   }
 }
+/* Orb composition adapts to small screens instead of squeezing behind the copy. */
+.heroArt .characterButton svg{height:auto;width:110px}.heroArt .characterButton{margin-bottom:0}
+@media(max-width:620px){.hero{grid-template-columns:1fr}.heroCopy{padding:28px 26px 6px}.hero h1{font-size:46px}.hero p{max-width:290px;font-size:13px}.heroArt{min-height:260px;width:100%;max-width:320px;margin:0 auto;padding:0 12px 25px}.heroArt .characterButton svg{height:auto;width:90px}.heroArt .characterButton{right:4px;bottom:0}.waveCaption{right:95px;bottom:16px}.topline .eyebrow{font-size:8px;letter-spacing:1px}}

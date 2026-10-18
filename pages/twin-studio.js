@@ -1,3 +1,4 @@
+import { LivingOrb } from "../components/VisualExperience";
 import Head from "next/head";
 import { useEffect, useRef, useState } from "react";
 import { useUser } from "@clerk/nextjs";
@@ -55,9 +56,9 @@ export default function TwinStudio() {
     <Head><title>Twin Studio · Ricomates</title><meta name="description" content="Shape your AI twin's character, rehearse together and create with other AI personalities." /></Head>
     <header className={s.topbar}><a href="/" className={s.brand}>rico<span>mates</span><i>✳</i></a><nav aria-label="Studio navigation"><a href="/meetings">Meetings</a><a href="/groups">Play & chat</a><a href="/">Back home ↗</a></nav></header>
     <main className={s.main}>
-      <section className={s.hero}>
-        <div><div className={s.eyebrow}><span /> YOUR PERSONALITY, MORE POSSIBILITIES</div><h1>A little more <em>you.</em><br />A whole new world.</h1><p>Shape a twin that sounds like you, knows what you choose to share, and brings your character into the conversation.</p><div className={s.tags}><span>✳ Your character</span><span>◎ Your boundaries</span><span>↗ Your creative circle</span></div></div>
-        <div className={s.art} aria-hidden="true"><div className={s.orbit} /><div className={s.orbitTwo} /><div className={s.core}>✳</div><span className={s.bubbleOne}>same energy.</span><span className={s.bubbleTwo}>new possibilities ↗</span><span className={s.spark}>✦</span></div>
+      <section data-vfx-reveal className={s.hero}>
+        <div><div className={s.eyebrow}><span /> YOUR PERSONALITY, MORE POSSIBILITIES</div><h1>A little more <em className="vfx-heading vfx-heading-ink">you.</em><br />A whole new world.</h1><p>Shape a twin that sounds like you, knows what you choose to share, and brings your character into the conversation.</p><div className={s.tags}><span>✳ Your character</span><span>◎ Your boundaries</span><span>↗ Your creative circle</span></div></div>
+        <div className={s.art}><LivingOrb compact /></div>
       </section>
       <div className={s.layout}>
         <section className={s.workspace} aria-label="Twin Studio">
@@ -84,7 +85,7 @@ export default function TwinStudio() {
               <button className={s.primary} disabled={busy || dirty || !data.hasTwin || !data.aiReady || !prompt.trim() || (tab === "discuss" && !partners.length)} onClick={() => run(async active => { setResult(null); const next = await studio({ action: tab, prompt, partnerIds: tab === "rehearse" ? [] : partners }); if (active()) setResult(next); })}>{busy ? "Your twin is thinking…" : tab === "create" ? "Create a reel script ↗" : tab === "discuss" ? "Start the AI discussion ↗" : "Try my twin ↗"}</button>
               {!data.hasTwin && <p className={s.muted}>Save your identity first to bring your twin to life.</p>}{!data.aiReady && <p className={s.notice}>AI generation needs the app's AI service. Profile editing remains available.</p>}
               <small className={s.cost}>Uses the app's configured AI service. Results can be inaccurate; review before sharing.</small>
-              {result && <article className={s.result} aria-live="polite"><div className={s.resultHeading}><b>✳ {tab === "create" ? "Your creative draft" : "Your twin, in words"}</b><span>AI GENERATED</span></div><div className={s.output}>{result.output}</div><div className={s.footer}><button className={s.secondary} onClick={download}>Export text ↓</button><button className={s.secondary} onClick={() => run(async active => { await navigator.clipboard.writeText(result.output); if (active()) setNotice("Copied. Keep the AI disclosure when sharing."); })}>Copy</button><button className={s.textButton} onClick={() => { changeTab("identity"); setNotice("Refine your style and examples, then rehearse again."); }}>Refine my twin →</button></div></article>}
+              {result && <article data-vfx-reveal className={s.result} aria-live="polite"><div className={s.resultHeading}><b>✳ {tab === "create" ? "Your creative draft" : "Your twin, in words"}</b><span>AI GENERATED</span></div><div className={s.output}>{result.output}</div><div className={s.footer}><button className={s.secondary} onClick={download}>Export text ↓</button><button className={s.secondary} onClick={() => run(async active => { await navigator.clipboard.writeText(result.output); if (active()) setNotice("Copied. Keep the AI disclosure when sharing."); })}>Copy</button><button className={s.textButton} onClick={() => { changeTab("identity"); setNotice("Refine your style and examples, then rehearse again."); }}>Refine my twin →</button></div></article>}
             </div>}
           </div>
         </section>

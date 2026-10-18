@@ -21,8 +21,8 @@ export default function Dialog({ title, onClose, busy = false, wide = false, chi
     panel.addEventListener("keydown", handleKey);
     return () => { panel.removeEventListener("keydown", handleKey); previous?.focus?.(); };
   }, [busy]);
-  return <div className={styles.backdrop} onClick={() => !busy && onClose()}>
-    <section ref={ref} tabIndex={-1} role="dialog" aria-modal="true" aria-label={title} className={styles.dialog} data-wide={wide || undefined} onClick={event => event.stopPropagation()}>
+  return <div className={`${styles.backdrop} vfx-dialog-backdrop`} onClick={() => !busy && onClose()}>
+    <section ref={ref} tabIndex={-1} role="dialog" aria-modal="true" aria-label={title} className={`${styles.dialog} vfx-dialog-panel`} data-wide={wide || undefined} onClick={event => event.stopPropagation()}>
       <header className={styles.row}><h2>{title}</h2><button className={styles.iconButton} aria-label="Close dialog" disabled={busy} onClick={onClose}>×</button></header>
       {children}
     </section>

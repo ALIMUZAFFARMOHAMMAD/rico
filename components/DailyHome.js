@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { Atmosphere, LivingOrb, MotionToggle, useVisualMotion } from "./VisualExperience";
 import TonyCharacter from "./TonyCharacter";
 import styles from "./DailyHome.module.css";
 
@@ -22,8 +23,7 @@ function Arrow() {
 }
 
 export default function DailyHome({ userName = "", userId, friends = [], onChat, onDiscover, onPlay, onChats }) {
-  const systemReduced = useReducedMotion();
-  const [calm, setCalm] = useState(false);
+  const { reduced } = useVisualMotion();
   const [mood, setMood] = useState(null);
   const [filter, setFilter] = useState("For you");
   const [greeting, setGreeting] = useState("Hello");
@@ -31,18 +31,12 @@ export default function DailyHome({ userName = "", userId, friends = [], onChat,
   const [seconds, setSeconds] = useState(0);
   const [finished, setFinished] = useState(false);
   const [waving, setWaving] = useState(false);
-  const reduced = systemReduced || calm;
-  const preferenceKey = userId ? "rico_motion_" + userId : null;
 
   useEffect(() => {
     const hour = new Date().getHours();
     setGreeting(hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening");
     setMood(null);
-    setCalm(false);
-    if (preferenceKey) {
-      try { setCalm(localStorage.getItem(preferenceKey) === "calm"); } catch (error) {}
-    }
-  }, [preferenceKey]);
+  }, [userId]);
 
   useEffect(() => {
     if (!breathing) return;
@@ -62,14 +56,6 @@ export default function DailyHome({ userName = "", userId, friends = [], onChat,
     return () => clearTimeout(timeout);
   }, [waving]);
 
-  function toggleMotion() {
-    const next = !calm;
-    setCalm(next);
-    if (preferenceKey) {
-      try { localStorage.setItem(preferenceKey, next ? "calm" : "full"); } catch (error) {}
-    }
-  }
-
   const visibleActivities = ACTIVITIES.filter(item => filter === "For you" || item.category === filter);
   const heroFriend = friends.find(friend => friend.id === "tony") || friends[0];
   const enter = reduced ? {} : { initial: { opacity: 0, y: 14 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.4 } };
@@ -80,39 +66,35 @@ export default function DailyHome({ userName = "", userId, friends = [], onChat,
     <main className={styles.home} data-calm={reduced ? "true" : "false"} aria-label="Your daily space">
       <div className={styles.topline}>
         <span className={styles.eyebrow}><span className={styles.sun}>✳</span> YOUR DAILY DOSE OF GOOD</span>
-        <button type="button" className={styles.motionToggle} onClick={toggleMotion} aria-pressed={calm} title={systemReduced ? "Your device's reduced motion setting is respected" : "Toggle gentle motion"}>
-          <span aria-hidden="true">{reduced ? "◌" : "≈"}</span> {reduced ? "Calm motion" : "Motion on"}
-        </button>
+        <MotionToggle />
       </div>
 
       <motion.section {...enter} className={styles.hero} aria-labelledby="daily-title">
+        <Atmosphere />
         <div className={styles.heroCopy}>
           <span className={styles.hello}>{greeting}{userName ? ", " + userName : ""} <span aria-hidden="true">↗</span></span>
-          <h1 id="daily-title">A little more<br /><em>you-time.</em></h1>
+          <h1 id="daily-title">A little more<br /><em className="vfx-heading">you-time.</em></h1>
           <p>A place to think out loud, try something new, or just be yourself.</p>
           <button type="button" className={styles.heroCta} onClick={() => onChat?.(heroFriend?.id || "tony", "")}>Let's talk <Arrow /></button>
           <span className={styles.aiLabel}>Your AI friends. Your kind of day.</span>
         </div>
         <div className={styles.heroArt}>
-          <div className={styles.orbit} aria-hidden="true" />
-          <span className={styles.sparkOne} aria-hidden="true">✳</span>
-          <span className={styles.sparkTwo} aria-hidden="true">✦</span>
-          <span className={styles.sticker}>come as you are</span>
+          <LivingOrb compact />
           <button type="button" className={styles.characterButton} onClick={() => setWaving(true)} aria-label="Wave to Tony">
-            <span aria-hidden="true"><TonyCharacter size={240} look={heroFriend?.look || {}} animated={!reduced} float="none" pose={waving ? "wave" : "down"} emote={!reduced && waving ? "wave" : "none"} expr={mood?.id === "bright" ? "😄" : "😊"} /></span>
+            <span aria-hidden="true"><TonyCharacter size={110} look={heroFriend?.look || {}} animated={!reduced} float="none" pose={waving ? "wave" : "down"} emote={!reduced && waving ? "wave" : "none"} expr={mood?.id === "bright" ? "😄" : "😊"} /></span>
           </button>
           <span className={styles.waveCaption} role="status">{waving ? "Hey, you! 👋" : "tap to say hi"}</span>
         </div>
       </motion.section>
 
-      <section className={styles.moodSection} aria-labelledby="mood-heading">
+      <section data-vfx-reveal className={styles.moodSection} aria-labelledby="mood-heading">
         <div className={styles.sectionHeading}>
           <div><span className={styles.eyebrow}>FIRST, A LITTLE CHECK-IN</span><h2 id="mood-heading">How's your world today?</h2></div>
           <span className={styles.optional}>Just for this visit</span>
         </div>
         <div className={styles.moods} role="group" aria-label="How are you feeling?">
           {MOODS.map(item => (
-            <motion.button {...lift} type="button" key={item.id} aria-pressed={mood?.id === item.id} className={styles.mood} data-selected={mood?.id === item.id} onClick={() => setMood(mood?.id === item.id ? null : item)}>
+            <motion.button key={item.id} {...lift} type="button" aria-pressed={mood?.id === item.id} className={styles.mood} data-selected={mood?.id === item.id} onClick={() => setMood(mood?.id === item.id ? null : item)}>
               <span aria-hidden="true" className={styles.moodFace}>{item.face}</span><span>{item.label}</span><span className={styles.moodCheck} aria-hidden="true">{mood?.id === item.id ? "✓" : "+"}</span>
             </motion.button>
           ))}
@@ -130,7 +112,7 @@ export default function DailyHome({ userName = "", userId, friends = [], onChat,
       </div>
       <div className={styles.friends} aria-label="Your AI friends">
         {friends.slice(0, 6).map((friend, index) => (
-          <motion.button {...lift} type="button" className={styles.friend} key={friend.id} onClick={() => onChat?.(friend.id, "")} style={{ "--friend-color": friend.look?.hoodie || "#cabafa" }}>
+          <motion.button key={friend.id} {...lift} type="button" data-vfx-card data-vfx-reveal data-vfx-order={index} className={styles.friend} onClick={() => onChat?.(friend.id, "")} style={{ "--friend-color": friend.look?.hoodie || "#cabafa" }}>
             <div className={styles.friendPortrait} aria-hidden="true">
               {friend.avatar ? <img src={friend.avatar} alt="" /> : <TonyCharacter size={108} look={friend.look || {}} animated={false} float="none" pose="down" />}
               <span className={styles.friendBadge}>{["✦", "☀", "☁", "✳", "♡", "◎"][index]}</span>
@@ -152,10 +134,10 @@ export default function DailyHome({ userName = "", userId, friends = [], onChat,
           {visibleActivities.map(item => {
             const content = <><div className={styles.cardTop}><span className={styles.cardTag}>{item.tag}</span><span className={styles.activityIcon} aria-hidden="true">{item.icon}</span></div><h3>{item.title}</h3><p>{item.detail}</p><span className={styles.cardAction}>{item.action}<Arrow /></span></>;
             return item.href
-              ? <motion.a {...lift} key={item.id} href={item.href} className={styles.activityCard} data-tone={item.tone}>{content}</motion.a>
-              : <motion.button {...lift} type="button" key={item.id} onClick={onPlay} className={styles.activityCard} data-tone={item.tone}>{content}</motion.button>;
+              ? <motion.a key={item.id} {...lift} href={item.href} data-vfx-card data-vfx-reveal className={styles.activityCard} data-tone={item.tone}>{content}</motion.a>
+              : <motion.button key={item.id} {...lift} type="button" onClick={onPlay} data-vfx-card data-vfx-reveal className={styles.activityCard} data-tone={item.tone}>{content}</motion.button>;
           })}
-          {filter === "Connect" && <motion.a {...lift} href="/groups" className={styles.activityCard} data-tone="peach"><div className={styles.cardTop}><span className={styles.cardTag}>TOGETHER</span><span className={styles.activityIcon} aria-hidden="true">♡</span></div><h3>Bring the circle together</h3><p>Start a conversation with a few AI friends.</p><span className={styles.cardAction}>Open group chats<Arrow /></span></motion.a>}
+          {filter === "Connect" && <motion.a {...lift} href="/groups" data-vfx-card data-vfx-reveal className={styles.activityCard} data-tone="peach"><div className={styles.cardTop}><span className={styles.cardTag}>TOGETHER</span><span className={styles.activityIcon} aria-hidden="true">♡</span></div><h3>Bring the circle together</h3><p>Start a conversation with a few AI friends.</p><span className={styles.cardAction}>Open group chats<Arrow /></span></motion.a>}
         </div>
       </section>
 

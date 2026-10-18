@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import s from "./Workspace.module.css";
+import { MotionToggle } from "./VisualExperience";
 
 function Avatar({ friend }) {
   return <span className={s.avatar} aria-hidden="true">{friend.avatar ? <img src={friend.avatar} alt="" /> : friend.name.slice(0, 1)}</span>;
@@ -40,6 +41,7 @@ export default function ChatWorkspace({ friend, friends, messages, input, onInpu
         <div className={s.identity}><h1>{friend.name}</h1><span>{friend.isTwin ? "AI twin" : "AI friend"} · Conversation</span></div>
         <a className={s.smallButton} href={`/voice?agent=${encodeURIComponent(friend.id)}`} aria-label={`Call ${friend.name}`}>Call ↗</a>
         <button className={s.smallButton} onClick={() => setToolsOpen(value => !value)} aria-expanded={toolsOpen} aria-controls="conversation-tools">Tools <span aria-hidden="true">{toolsOpen ? "−" : "+"}</span></button>
+        <div className="vfx-chat-motion"><MotionToggle /></div>
       </header>
       <div className={s.chatBody}>
         <div className={s.messageColumn}>
@@ -47,12 +49,12 @@ export default function ChatWorkspace({ friend, friends, messages, input, onInpu
           {error && <div className={s.error} role="alert">{error}<button className={s.smallButton} disabled={locked} onClick={onRetry}>{loadError ? "Try loading again" : saveState === "error" ? "Retry save" : "Dismiss"}</button></div>}
           <div ref={panelRef} className={s.messages} role="log" aria-label="Conversation messages" aria-live="polite">
             <div className={s.conversationStart}><span>CONVERSATION WITH {friend.name.toUpperCase()}</span><p>Bring a question, an idea, or whatever’s on your mind.</p></div>
-            {messages.map(message => <article key={message.id} className={message.role === "user" ? s.userMessage : s.assistantMessage}>
+            {messages.map(message => <article data-vfx-reveal key={message.id} className={message.role === "user" ? s.userMessage : s.assistantMessage}>
               <div className={s.messageLabel}>{message.role === "user" ? "You" : friend.name}<span>{message.role === "user" ? "" : "AI"}</span></div>
               <div className={s.messageText}>{message.text.split(/(\*[^*]+\*)/g).map((part, index) => part.startsWith("*") && part.endsWith("*") ? <em key={index}>{part.slice(1, -1)}</em> : part)}</div>
               <div className={s.messageActions}><button onClick={() => copy(message)} aria-label={`Copy ${message.role === "user" ? "your" : friend.name + "’s"} message`}>{copied === message.id ? "Copied ✓" : "Copy"}</button>{message.role === "agent" && <button onClick={() => onReport(message)}>Report</button>}</div>
             </article>)}
-            {busy && <div className={s.thinking} role="status"><span />{saveState === "saving" ? "Saving your conversation…" : `${friend.name} is thinking…`}</div>}
+            {busy && <div className={s.thinking} role="status"><span className="vfx-waveform" aria-hidden="true">{[0,1,2,3].map(bar => <i key={bar} style={{ "--bar": bar }} />)}</span>{saveState === "saving" ? "Saving your conversation…" : `${friend.name} is thinking…`}</div>}
           </div>
           {copyError && <p role="status" className={s.copyError}>{copyError}</p>}
           <div className={s.composeArea}>
