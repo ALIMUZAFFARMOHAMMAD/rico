@@ -4,6 +4,30 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
+const { execFile } = require('node:child_process');
+const { promisify } = require('node:util');
+const executeFile = promisify(execFile);
+// Inspect the pinned local services without a shell or any credential output.
+// Cache the checks so model health does not delay every cloud heartbeat.
+function createHealthProbe(run = executeFile) {
+  const docker = process.platform === 'win32'
+    ? ['D:\\RicomatesBot\\Docker\\resources\\bin\\docker.exe', 'C:\\Program Files\\Docker\\Docker\\resources\\bin\\docker.exe'].find(file => fs.existsSync(file)) || 'docker.exe'
+    : 'docker';
+  let cached, checkedAt = 0;
+  return async () => {
+    if (cached && Date.now() - checkedAt < 20000) return cached;
+    const check = args => run(docker, args, { windowsHide: true, timeout: 7000, maxBuffer: 16000 });
+    const [speech, runtime] = await Promise.allSettled([
+      check(['exec', 'ricomates-stt-transcription-api-1', 'wget', '-qO-', 'http://127.0.0.1/health']),
+      check(['inspect', 'vexa-v012-runtime-1', '--format', '{{.State.Health.Status}}']),
+    ]);
+    let speechStatus = 'unavailable';
+    try { if (speech.status === 'fulfilled' && JSON.parse(speech.value.stdout).status === 'healthy') speechStatus = 'ready'; } catch { /* Fail closed on malformed health. */ }
+    cached = { speechStatus, runtimeStatus: runtime.status === 'fulfilled' && runtime.value.stdout.trim() === 'healthy' ? 'ready' : 'unavailable' };
+    checkedAt = Date.now();
+    return cached;
+  };
+}
 const terminal = s => ['completed', 'failed'].includes(s);
 const platform = p => p === 'meet' ? 'google_meet' : p;
 function validateConfig(c) {
@@ -113,7 +137,8 @@ function createWorker(config, dependencies = {}) {
     if (ready) {
       try { const capabilities = await local('/bots/ricomates/voice-capabilities'); if (capabilities?.version === 1 && capabilities.platforms?.includes('google_meet')) voiceVersion = 1; } catch { /* Old Vexa still supports notes. */ }
     }
-    const data = await cloud({ action: 'poll', ready, voiceVersion, autoVersion: 1 });
+    const health = dependencies.health ? await dependencies.health() : { speechStatus: 'unknown', runtimeStatus: 'unknown' };
+    const data = await cloud({ action: 'poll', ready, voiceVersion, autoVersion: 1, ...health });
     if (!ready) return { ready: false };
     for (const m of data.meetings || []) {
       autoSessions.set(m.id, m.auto);
@@ -174,7 +199,7 @@ async function main() {
   const cleanup = () => { try { fs.closeSync(lock); fs.unlinkSync(lockPath); } catch {} };
   process.on('exit', cleanup);
   const state = fs.existsSync(statePath) ? JSON.parse(fs.readFileSync(statePath, 'utf8')) : { jobs: {}, active: {}, hashes: {} };
-  const worker = createWorker(config, { state, persist(value) { fs.writeFileSync(statePath + '.tmp', JSON.stringify(value), { mode: 0o600 }); fs.renameSync(statePath + '.tmp', statePath); }, warn: text => console.warn(text) });
+  const worker = createWorker(config, { state, health: createHealthProbe(), persist(value) { fs.writeFileSync(statePath + '.tmp', JSON.stringify(value), { mode: 0o600 }); fs.renameSync(statePath + '.tmp', statePath); }, warn: text => console.warn(text) });
   let running = true, lastStatus;
   process.on('SIGINT', () => { running = false; });
   process.on('SIGTERM', () => { running = false; });
@@ -192,5 +217,5 @@ async function main() {
   }
   await worker.stopAll();
 }
-module.exports = { createWorker, validateConfig, validateMeetingLink, identity };
+module.exports = { createWorker, createHealthProbe, validateConfig, validateMeetingLink, identity };
 if (require.main === module) main().catch(() => { console.error('Worker could not start. Check the config file. If a .lock file exists, confirm the previous worker has stopped before removing it.'); process.exitCode = 1; });

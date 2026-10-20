@@ -18,10 +18,12 @@ if [ ! -f "$upgrade/.ricomates-voice-patched" ]; then
   python3 "$assets/patch-vexa.py" "$upgrade"
   touch "$upgrade/.ricomates-voice-patched"
 fi
+python3 "$assets/patch-cpu-listening.py" "$upgrade"
 python3 "$assets/prepare-build.py" "$upgrade"
 echo 'Building the isolated voice extension. Your current note-taking service stays running during the build.'
 docker build -f "$upgrade/core/meetings/modules/join/Dockerfile.env" -t vexa/meet-join-env:dev "$upgrade/core/meetings/modules/join"
 docker build -f "$upgrade/core/meetings/services/bot/Dockerfile" -t ricomates/vexa-bot:voice-v1 --build-arg VEXA_IMAGE_VERSION=ricomates-voice-v1 "$upgrade"
+docker run --rm --entrypoint node -v "$assets:/checks:ro" ricomates/vexa-bot:voice-v1 /checks/test-slow-listening.mjs
 docker build -f "$upgrade/core/meetings/services/meeting-api/Dockerfile" -t ricomates/vexa-meeting-api:voice-v1 "$upgrade"
 docker build -f "$upgrade/core/gateway/services/gateway/Dockerfile" -t ricomates/vexa-gateway:voice-v1 "$upgrade"
 docker run --rm --entrypoint python -v "$assets:/checks:ro" ricomates/vexa-meeting-api:voice-v1 /checks/test_voice_routes.py

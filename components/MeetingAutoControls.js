@@ -2,11 +2,13 @@ import { useEffect, useState } from "react";
 import s from "./Meetings.module.css";
 import a from "./MeetingAutoControls.module.css";
 
-export default function MeetingAutoControls({ meeting, automatic, device, hasClone, onChange }) {
+export default function MeetingAutoControls({ meeting, automatic, device, hasClone, hasTranscript, onChange }) {
   const [callName, setCallName] = useState("Rico"), [consent, setConsent] = useState(false), [busy, setBusy] = useState(false), [error, setError] = useState("");
   useEffect(() => { setCallName(automatic?.callName || "Rico"); setConsent(false); setError(""); }, [meeting.id, automatic?.callName]);
   const active = automatic?.enabled && Date.parse(automatic.expiresAt) > Date.now() && automatic.count < 40 && meeting.status === "active";
-  const ready = device?.online && device.autoVersion === 1 && device.voiceVersion === 1 && hasClone && meeting.voiceEnabled && meeting.status === "active" && meeting.platform === "meet";
+  const servicesReady = device?.speechStatus !== "unavailable" && device?.runtimeStatus !== "unavailable";
+  const ready = device?.online && servicesReady && device.autoVersion === 1 && device.voiceVersion === 1 && hasClone && meeting.voiceEnabled && meeting.status === "active" && meeting.platform === "meet";
+  const status = !automatic?.enabled ? "Automatic replies off" : !device?.online ? "PC offline" : !servicesReady ? "Listening service unavailable" : !active ? "Session paused or expired" : automatic.status === "thinking" ? "Thinking…" : automatic.status === "queued" ? "Preparing voice…" : hasTranscript ? "Listening for your call name" : "Waiting for first speech";
   async function configure(enabled) {
     setBusy(true); setError("");
     try {
@@ -16,7 +18,7 @@ export default function MeetingAutoControls({ meeting, automatic, device, hasClo
     } catch (e) { setError(e.message); } finally { setBusy(false); }
   }
   return <section className={a.panel} aria-label="Automatic meeting replies">
-    <div className={s.row}><h3>Let your twin answer</h3><span className={s.pill}>{active ? automatic.status === "thinking" ? "Thinking…" : automatic.status === "queued" ? "Preparing voice…" : "Listening" : "Automatic replies off"}</span></div>
+    <div className={s.row}><h3>Let your twin answer</h3><span className={s.pill} role="status">{status}</span></div>
     <p>Your twin listens for its call name, waits for a pause and replies in your cloned voice and personality. No approval needed for each answer. Every reply identifies it as your AI twin.</p>
     {automatic?.enabled ? <>
       <p>Say <strong>“{automatic.callName}, what do you think?”</strong> to ask a question. {automatic.count}/40 replies this session.</p>

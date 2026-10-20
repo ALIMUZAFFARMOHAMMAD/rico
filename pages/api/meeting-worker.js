@@ -20,7 +20,8 @@ export default async function handler(req, res) {
     const body = req.body || {};
     if (body.action === "poll") {
       const ready = body.ready === true;
-      if (!await compareUpdate(deviceKey(device.owner), "tokenHash", device.tokenHash, { ...device, ready, voiceVersion: body.voiceVersion === 1 ? 1 : 0, autoVersion: body.autoVersion === 1 ? 1 : 0, lastSeen: new Date().toISOString() })) return res.status(401).end();
+      const serviceStatus = value => ["ready", "unavailable"].includes(value) ? value : "unknown";
+      if (!await compareUpdate(deviceKey(device.owner), "tokenHash", device.tokenHash, { ...device, ready, speechStatus: serviceStatus(body.speechStatus), runtimeStatus: serviceStatus(body.runtimeStatus), voiceVersion: body.voiceVersion === 1 ? 1 : 0, autoVersion: body.autoVersion === 1 ? 1 : 0, lastSeen: new Date().toISOString() })) return res.status(401).end();
       const meetings = (await listMeetings(device.owner)).filter(m => m.deviceHash === device.tokenHash);
       const jobs = [];
       if (ready) for (const meeting of meetings.filter(m => m.jobState === "pending")) {

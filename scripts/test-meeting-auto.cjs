@@ -33,6 +33,25 @@ test('automatic mode requires consent, clone, live speech and updated connector'
   f.device.autoVersion = 1; f.rows.get('twin').voiceCloned = false; await assert.rejects(() => f.enable(), /cloned voice/);
   assert.equal(f.rows.has('meeting::auto'), false);
 });
+test('unavailable speech or runtime blocks automatic enable even with an online PC', async () => {
+  for (const service of ['speechStatus', 'runtimeStatus']) {
+    const f = fixture(); f.device[service] = 'unavailable';
+    await assert.rejects(() => f.enable(), /service is unavailable/);
+    assert.equal(f.rows.has('meeting::auto'), false);
+  }
+});
+test('local readiness checks verify model and runtime separately and cache successful probes', async () => {
+  const { createHealthProbe } = require('../public/ricomates-meeting-worker.cjs');
+  let calls = 0;
+  const probe = createHealthProbe(async (_, args) => { calls++; return { stdout: args[0] === 'exec' ? '{"status":"healthy"}' : 'healthy\n' }; });
+  assert.deepEqual(await probe(), { speechStatus: 'ready', runtimeStatus: 'ready' });
+  assert.deepEqual(await probe(), { speechStatus: 'ready', runtimeStatus: 'ready' });
+  assert.equal(calls, 2);
+  const broken = createHealthProbe(async (_, args) => { if (args[0] === 'exec') throw new Error('mount unavailable'); return { stdout: 'healthy\n' }; });
+  assert.deepEqual(await broken(), { speechStatus: 'unavailable', runtimeStatus: 'ready' });
+  const malformed = createHealthProbe(async () => ({ stdout: 'unexpected' }));
+  assert.deepEqual(await malformed(), { speechStatus: 'unavailable', runtimeStatus: 'unavailable' });
+});
 test('question gate rejects other people, name substrings, self voice and oversized utterances', () => {
   const { auto } = fixture(); const q = (text, speaker = 'Person') => auto.addressedQuestion([{ text, speaker }], 'Rico');
   assert.equal(q('What do you think?'), null); assert.equal(q('Ricomates, what is next?'), null);

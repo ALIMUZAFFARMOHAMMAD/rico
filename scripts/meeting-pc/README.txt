@@ -37,7 +37,7 @@ Wait for the speech model:
   cd ~/ricomates-vexa-v0.12.28/deploy/transcription
   docker compose -p ricomates-stt -f docker-compose.ricomates.yml logs --tail=40 transcription-worker-1
 Look for "Model loaded successfully". Check from the private Docker network:
-  docker compose -p ricomates-stt -f docker-compose.ricomates.yml exec transcription-api wget -qO- http://localhost/health
+  docker compose -p ricomates-stt -f docker-compose.ricomates.yml exec transcription-api wget -qO- http://127.0.0.1/health
 The speech service has NO published host port. Vexa's own host ports bind to
 127.0.0.1. Do not change them to 0.0.0.0 or add a public tunnel.
 Open http://localhost:13000 for the local Vexa dashboard.
@@ -53,6 +53,11 @@ with your local Vexa key. Leave appUrl and vexaUrl unchanged.
 In Windows PowerShell in this folder:
   node .\ricomates-meeting-worker.cjs .\ricomates-pc.json
 The page shows connected after the worker authenticates to local Vexa.
+The connection check separately shows meeting-runtime and speech-model health.
+If a reboot leaves speech unavailable, open Ubuntu before restarting the stopped
+services. Docker can start before Ubuntu's bind-mounted files are available.
+Use the numeric 127.0.0.1 address for the speech gateway health check; localhost
+may resolve to IPv6 while nginx is listening only on IPv4.
 Keep this window open and the PC awake. Ctrl+C attempts to leave tracked calls.
 Configuration and state files are private: do not sync them to a public drive.
 Pairing expires after 30 days. Finish meetings before downloading a new pairing.
