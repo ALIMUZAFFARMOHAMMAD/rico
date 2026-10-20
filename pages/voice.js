@@ -79,7 +79,7 @@ export default function VoicePage() {
     const aid = params.get("agent") || "tony";
     if (params.get("build") === "1") { buildRef.current = true; setBuildMode(true); }
     if (aid.startsWith("twin__")) {
-      fetch("/api/tts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ warm: true, agentId: aid }) }).catch(() => {}); // wake the self-hosted voice GPU before the first reply
+      fetch("/api/tts", { signal: AbortSignal.timeout(30000), method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ warm: true, agentId: aid }) }).catch(() => {}); // wake the self-hosted voice GPU before the first reply
       fetch(`/api/twin?id=${aid}`).then(r => r.json()).then(d => {
         if (d.twin) { const a = { ...d.twin, id: aid }; agentRef.current = a; setAgentObj(a); }
       }).catch(() => {});
@@ -183,7 +183,7 @@ export default function VoicePage() {
     if (!callActiveRef.current) return;
     if (voiceModeRef.current === "human") {
       try {
-        const r = await fetch("/api/tts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, language: langRef.current, agentId: agentRef.current.id }) });
+        const r = await fetch("/api/tts", { signal: AbortSignal.timeout(30000), method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, language: langRef.current, agentId: agentRef.current.id }) });
         if (!callActiveRef.current || epoch !== callEpochRef.current) return;
         if (r.ok) { await playStreamed(r); return; }
         if (r.status === 503) voiceModeRef.current = "classic";
@@ -202,7 +202,7 @@ export default function VoicePage() {
     histRef.current = h;
     setMessages(p => [...p, { role: "user", text }]);
     try {
-      const r = await fetch("/api/voice", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: h, mode: "chat", userName, userId, language: langRef.current, agentId: agentRef.current.id, build: buildRef.current }) });
+      const r = await fetch("/api/voice", { signal: AbortSignal.timeout(45000), method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: h, mode: "chat", userName, userId, language: langRef.current, agentId: agentRef.current.id, build: buildRef.current }) });
       const d = await r.json();
       if (!callActiveRef.current || epoch !== callEpochRef.current) return;
       if (!r.ok) throw new Error(d.error || "Voice chat unavailable");
@@ -210,7 +210,7 @@ export default function VoicePage() {
       const fullHistory = [...h, { role: "assistant", content: reply }];
       histRef.current = fullHistory;
       setMessages(p => [...p, { role: "agent", text: reply }]);
-      if (userId) fetch("/api/voice", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: "save_call", userId, userName, callMessages: fullHistory, agentId: agentRef.current.id }) }).catch(() => {});
+      if (userId) fetch("/api/voice", { signal: AbortSignal.timeout(45000), method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: "save_call", userId, userName, callMessages: fullHistory, agentId: agentRef.current.id }) }).catch(() => {});
       setState(S.SPEAKING);
       await speak(reply);
       if (epoch !== callEpochRef.current) return;
@@ -286,10 +286,12 @@ export default function VoicePage() {
     callActiveRef.current = true;
     mutedRef.current = false; setMuted(false); serverInputRef.current = true;
     if (!typeModeRef.current) {
+      setInputStatus("Waiting for microphone permission…");
       try { await checkMicrophone(); }
       catch (error) { if (epoch !== callEpochRef.current) return; callActiveRef.current = false; setState(S.IDLE); setError(error.message); return; }
       if (!callActiveRef.current || epoch !== callEpochRef.current) return;
     }
+    setInputStatus("");
     // build mode: open a separate recorder to capture the user's voice for cloning
     if (buildRef.current && cloneConsentRef.current) {
       try {
@@ -305,7 +307,7 @@ export default function VoicePage() {
     }
     await new Promise(r => setTimeout(r, 700));
     try {
-      const r = await fetch("/api/voice", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: [], mode: "init", userName, userId, language: langRef.current, agentId: agentRef.current.id, build: buildRef.current }) });
+      const r = await fetch("/api/voice", { signal: AbortSignal.timeout(45000), method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: [], mode: "init", userName, userId, language: langRef.current, agentId: agentRef.current.id, build: buildRef.current }) });
       if (r.status === 401) { callActiveRef.current = false; clipStreamRef.current?.getTracks().forEach(track => track.stop()); setState(S.IDLE); setError("You're signed out — sign in again to call."); return; }
       const d = await r.json();
       if (!callActiveRef.current || epoch !== callEpochRef.current) return;
@@ -329,7 +331,7 @@ export default function VoicePage() {
     recRef.current?.cancel();
     setState(S.ENDED);
     if (userId && histRef.current.length > 1) {
-      try { await fetch("/api/voice", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: "save_call", userId, userName, callMessages: histRef.current, agentId: agentRef.current.id }) }); } catch (e) {}
+      try { await fetch("/api/voice", { signal: AbortSignal.timeout(45000), method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: "save_call", userId, userName, callMessages: histRef.current, agentId: agentRef.current.id }) }); } catch (e) {}
       // log the call for the personality dashboard's voice score
       try { fetch("/api/track", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, event: "voice", seconds: durationRef.current }) }); } catch (e) {}
     }
@@ -390,7 +392,7 @@ export default function VoicePage() {
 
   const status = {
     [S.IDLE]: "Ready when you are",
-    [S.CONNECTING]: "Calling…",
+    [S.CONNECTING]: inputStatus || "Calling…",
     [S.ACTIVE]: muted ? "Muted" : "Paused — tap ▶",
     [S.LISTENING]: inputStatus || "Listening — just talk",
     [S.THINKING]: inputStatus === "Transcribing…" ? "Transcribing…" : "Thinking…",

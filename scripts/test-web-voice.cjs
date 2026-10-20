@@ -101,6 +101,16 @@ test("permission denial is explicit and does not retry forever", async () => {
   assert.match(state.errors[0], /access is blocked/); assert.equal(state.timers.size, 0);
   await assert.rejects(checkMicrophone(env), /access is blocked/);
 });
+test("an unanswered permission prompt times out and releases a later grant", async () => {
+  const { env, options, state, stream, advance } = setup();
+  let grant;
+  env.navigator.mediaDevices.getUserMedia = () => new Promise(resolve => { grant = resolve; });
+  createVoiceInput(options, env).start();
+  await advance(20100);
+  assert.match(state.errors[0], /Still waiting for microphone permission/);
+  grant(stream); await flush();
+  assert.equal(state.stops, 1); assert.equal(state.recorder, undefined);
+});
 test("browser recognition network failure falls back to recording", async () => {
   const { env, options, state, advance } = setup();
   let aborted = 0;
