@@ -107,7 +107,10 @@ on an offline PC. Remove local records in Vexa and private config/state files.
 Docker volume removal permanently destroys Vexa data; this package never does it.
 
 AUTOMATIC MEETING REPLIES
-Update both the app and Windows worker; the existing voice images need no rebuild.
+Update both the app and Windows worker. Existing voice images built before the
+CPU listening fix need rebuilding with meeting-voice/install-voice.sh while no
+bot is in a call. The installer tests delayed results, concurrent speakers and
+short audio-delivery gaps before installing the updated image.
 Join Google Meet with cloned speech, then choose Enable automatic replies in the
 meeting workspace. Review your twin profile/briefing and confirm participant
 consent once per session. Address the twin by its chosen call name (default Rico).
