@@ -27,7 +27,6 @@ export default function VoicePage() {
   const [micLevel, setMicLevel] = useState(0);
   const serverInputRef = useRef(true);
   const callEpochRef = useRef(0);
-  const [voicesReady, setVoicesReady] = useState(false);
   const [lang, setLangState] = useState("en");
   const [langPref, setLangPref] = useState("auto");
   const [voiceNotice, setVoiceNotice] = useState("");
@@ -119,7 +118,6 @@ export default function VoicePage() {
       const rank = v => (/natural|neural|premium|enhanced|online/i.test(v.name) ? 0 : /google/i.test(v.name) ? 1 : /microsoft/i.test(v.name) ? 2 : 3);
       matches.sort((a, b) => rank(a) - rank(b));
       voiceRef.current = matches[0] || null;
-      setVoicesReady(true);
       setVoiceNotice(!matches.length && lang !== "en" ? "No device voice for this language — replies will show as text if the premium voice is unavailable." : "");
     }
     loadVoices();
@@ -478,6 +476,7 @@ export default function VoicePage() {
         {/* accessibility: type-instead-of-speak toggle */}
         {(state === S.IDLE || isLive) && (
           <div style={{ textAlign: "center", position: "relative", zIndex: 5 }}>
+            {state === S.IDLE && !typeMode && <p style={{ padding: "0 24px", marginBottom: 8, color: T.sub, fontSize: 12 }}>Allow microphone access when asked. Spoken turns use our speech transcription service.</p>}
             <button onClick={toggleTypeMode} style={{ background: "transparent", border: "none", color: T.sub, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: font, padding: "6px 10px" }}>
               {typeMode ? "🎙 Switch to voice" : "✍️ Can't speak? Type instead"}
             </button>
@@ -487,7 +486,7 @@ export default function VoicePage() {
         {/* controls */}
         <div style={{ padding: "10px 22px 30px", display: "flex", justifyContent: "center", alignItems: "center", gap: 22, position: "relative", zIndex: 5 }}>
           {state === S.IDLE && (
-            <button onClick={startCall} disabled={!voicesReady} style={{ width: "100%", background: T.grad, border: "none", color: "white", fontWeight: 800, fontSize: 16, padding: "16px 0", borderRadius: 100, cursor: "pointer", fontFamily: font, boxShadow: "0 12px 36px rgba(255,94,126,0.4)", opacity: voicesReady ? 1 : 0.6 }}>
+            <button onClick={startCall} disabled={!isLoaded || !isSignedIn} style={{ width: "100%", background: T.grad, border: "none", color: "white", fontWeight: 800, fontSize: 16, padding: "16px 0", borderRadius: 100, cursor: "pointer", fontFamily: font, boxShadow: "0 12px 36px rgba(255,94,126,0.4)", opacity: isLoaded && isSignedIn ? 1 : 0.6 }}>
               {buildMode ? "🎙 Start — talk to Rico" : `📞 Call ${agentObj.name}`}
             </button>
           )}
@@ -537,7 +536,6 @@ export default function VoicePage() {
           )}
         </div>
 
-        {state === S.IDLE && !typeMode && <p style={{ position: "absolute", bottom: 96, left: 24, right: 24, color: T.sub, textAlign: "center", fontSize: 12 }}>Allow microphone access when asked. Spoken turns use our speech transcription service.</p>}
         {isLive && !typeMode && serverInputRef.current && state === S.LISTENING && (
           <div aria-label="Microphone input level" role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(micLevel * 100)} style={{ position: "absolute", bottom: 110, left: "35%", width: "30%", height: 6, background: T.panel2, borderRadius: 8 }}>
             <div style={{ width: `${Math.max(2, micLevel * 100)}%`, height: "100%", background: T.violet, borderRadius: 8 }} />
