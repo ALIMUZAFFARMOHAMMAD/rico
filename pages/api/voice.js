@@ -1,4 +1,6 @@
+import { getAuth } from "@clerk/nextjs/server";
 import { languagePrompt, LANGS } from "../../lib/i18n";
+import { splitVoiceReply } from "../../lib/voice-delivery";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -60,7 +62,9 @@ ${memory?`WHAT YOU REMEMBER:\n${memory}\n\nUse this naturally like a real friend
 ${languagePrompt(language)}
 FRIENDSHIP ONLY: you are a platonic friend; warmly redirect anything romantic.
 HUMOR: Read the room FIRST — if they sound stressed, sad, or down, ZERO jokes, just be the present friend. Otherwise occasional light humor in YOUR character's style, native to the language you're speaking. Satire only about situations — never about the user or any group.
-RULES: 1-3 sentences MAX. Natural casual speech. ONE question per turn. No lists or markdown. Give real specific advice. Never say "certainly" or "as an AI". Stay in character.`;
+SPOKEN DELIVERY: Write for the ear. Use contractions, varied sentence lengths, and natural punctuation for breathing and emphasis. React specifically to what the person just said: gentle when they are struggling, brighter when they share good news. Keep your own personality; do not force cheerfulness, filler words, laughter, or repeated exclamations.
+VOICE DIRECTION: Add one or two short delivery cues immediately before the phrase they affect. Use ONLY [warmly], [excited], [curious], [thoughtful], [reassuring], [softly], or [confident]. Choose them from the conversation's meaning, not just punctuation. For distress use [reassuring] or [softly], never excitement; reserve [excited] for actual good news. Shift to [curious] for a genuine question, [thoughtful] when reflecting. No other stage directions, sound effects, or forced laughter. These cues will be removed from captions.
+RULES: 1-3 sentences MAX. Natural casual speech. Ask at most ONE question when useful, not automatically after every reply. No lists or markdown. Give real specific advice. Never say "certainly" or "as an AI". Stay in character.`;
 
 export default async function handler(req,res){
   if(req.method!=="POST")return res.status(405).end();
@@ -70,7 +74,8 @@ export default async function handler(req,res){
   const{messages,mode,userName,userId,callMessages,language,agentId,build}=req.body;
   if(userId&&!ownsUser(req,userId))return res.status(403).json({error:"forbidden"});
   const lang=LANGS[language]?language:"en";
-  const agent=await resolveAgent(agentId);
+  const agent=await resolveAgent(agentId,getAuth(req).userId);
+  if(!agent)return res.status(404).json({error:"This twin is private or unavailable."});
   const memUserId=userId?(agent.id==="tony"?userId:`${userId}::agent::${agent.id}`):null;
   console.log(`Voice API - mode:${mode} userId:${userId?userId.substring(0,8)+"...":"NULL"}`);
   if(mode==="save_call"){
@@ -98,6 +103,7 @@ export default async function handler(req,res){
     const msgs=mode==="init"?[{role:"user",content:initMsg}]:messages;
     const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01"},body:JSON.stringify({model:"claude-haiku-4-5-20251001",max_tokens:150,system,messages:msgs})});
     const d=await r.json();
-    return res.status(200).json({text:d.content[0].text,hasMemory:!!memory});
+    return res.status(200).json({...splitVoiceReply(d.content[0].text),hasMemory:!!memory});
   }catch(e){return res.status(500).json({error:e.message});}
 }
+

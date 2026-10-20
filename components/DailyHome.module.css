@@ -1,0 +1,1056 @@
+.home {
+  --ink: #f5f3ff;
+  --muted: #b6b0c9;
+  --line: #ffffff14;
+  color: var(--ink);
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 28px 38px 36px;
+  font-family: 'DM Sans',system-ui,sans-serif;
+  box-sizing: border-box;
+}
+
+.home * {
+  box-sizing: border-box;
+}
+
+.home button,.home a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.home button {
+  font: inherit;
+  cursor: pointer;
+}
+
+.home button:focus-visible,.home a:focus-visible {
+  outline: 3px solid #f6d897;
+  outline-offset: 5px;
+}
+
+.home a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.8px;
+  display: block;
+  color: var(--muted);
+}
+
+.topline .eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sun {
+  color: #e9cb88;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.motionToggle {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--line);
+  border-radius: 30px;
+  background: #ffffff05;
+  color: #c5bed7;
+  font-size: 11px !important;
+  padding: 8px 12px;
+  min-height: 40px;
+  white-space: nowrap;
+}
+
+.motionToggle span {
+  font-size: 19px;
+  line-height: 1;
+}
+
+.hero {
+  border-radius: 30px;
+  background: linear-gradient(120deg,#221b37,#19192e);
+  color: #f7f1ff;
+  border: 1px solid #d5b6ff30;
+  box-shadow: inset 0 1px #ffffff12,0 20px 60px #0c071b55;
+  display: grid;
+  grid-template-columns: 1.1fr .9fr;
+  position: relative;
+  overflow: hidden;
+  min-height: 330px;
+}
+
+.heroCopy {
+  position: relative;
+  z-index: 2;
+  padding: 34px 0 32px 38px;
+}
+
+.hello {
+  font-size: 13px;
+  font-weight: 600;
+  display: block;
+  margin-bottom: 16px;
+}
+
+.hello>span {
+  margin-left: 8px;
+}
+
+.hero h1 {
+  font-size: clamp(38px,4.6vw,62px);
+  font-weight: 750;
+  line-height: 1.04;
+  letter-spacing: -2.5px;
+  margin: 0 0 16px;
+}
+
+.hero h1 em {
+  font-family: Georgia,serif;
+  font-weight: 400;
+  letter-spacing: -2.2px;
+  color: #755844;
+}
+
+.hero p {
+  max-width: 260px;
+  font-size: 13px;
+  line-height: 1.65;
+  margin: 0 0 23px;
+  color: #c4b7d6;
+}
+
+.heroCta {
+  border: 0;
+  border-radius: 30px;
+  background: #e4cbff;
+  color: #29133e;
+  box-shadow: 0 8px 30px #ba8bf72b;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  min-height: 44px;
+  transition: background .2s;
+}
+
+.heroCta:hover {
+  background: #f0e0ff;
+}
+
+.aiLabel {
+  font-size: 9px;
+  color: #b7a8cb;
+  display: block;
+  margin-top: 13px;
+}
+
+.heroArt {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 0;
+}
+
+.orbit {
+  position: absolute;
+  width: 280px;
+  height: 280px;
+  border: 1px solid #a7806a55;
+  border-radius: 50%;
+  bottom: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.orbit:after {
+  content: "";
+  position: absolute;
+  inset: 24px;
+  border: 1px dashed #a7806a55;
+  border-radius: 50%;
+}
+
+.characterButton {
+  position: absolute;
+  bottom: -8px;
+  right: 0;
+  z-index: 1;
+  display: block;
+  border: 0;
+  background: none;
+  padding: 0;
+  margin-bottom: 0;
+  transition: transform .25s;
+}
+
+.characterButton:hover {
+  transform: rotate(-4deg) translateY(-5px);
+}
+
+.characterButton svg {
+  display: block;
+  max-width: 100%;
+}
+
+.sparkOne,.sparkTwo {
+  position: absolute;
+  color: #72503e;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.sparkOne {
+  font-size: 44px;
+  right: 18%;
+  top: 20%;
+  animation: gentleSpin 24s linear infinite;
+}
+
+.sparkTwo {
+  font-size: 22px;
+  left: 12%;
+  bottom: 29%;
+}
+
+.sticker {
+  position: absolute;
+  top: 42px;
+  left: 4%;
+  padding: 8px 13px;
+  border: 1px solid #ae8b72;
+  border-radius: 4px;
+  background: #f6e8d6;
+  color: #75543f;
+  transform: rotate(-9deg);
+  font-family: Georgia,serif;
+  font-size: 13px;
+  font-style: italic;
+  z-index: 2;
+}
+
+.waveCaption {
+  position: absolute;
+  bottom: 9px;
+  left: auto;
+  right: 100px;
+  text-align: center;
+  font-size: 10px;
+  letter-spacing: .5px;
+  color: #c8b5dd;
+  z-index: 2;
+}
+
+.sectionHeading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 30px 0 16px;
+}
+
+.sectionHeading h2 {
+  font-size: 23px;
+  line-height: 1.2;
+  letter-spacing: -.7px;
+  font-weight: 650;
+  margin: 7px 0 0;
+}
+
+.optional {
+  font-size: 10px;
+  color: #9a93af;
+  white-space: nowrap;
+}
+
+.moods {
+  display: grid;
+  grid-template-columns: repeat(4,1fr);
+  gap: 10px;
+}
+
+.mood {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 62px;
+  padding: 10px 15px;
+  border: 1px solid #ffffff19;
+  background: #211d2c;
+  color: #d7d1e6;
+  border-radius: 16px;
+  font-size: 12px !important;
+  transition: background .2s,border .2s;
+}
+
+.mood[data-selected=true] {
+  background: #3b304a;
+  border-color: #c9ace9;
+  color: white;
+}
+
+.moodFace {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #ffffff09;
+  color: #edcf96;
+  font-size: 23px;
+}
+
+.moodCheck {
+  margin-left: auto;
+  color: #9a8aaf;
+  font-size: 14px;
+}
+
+.moodResponse {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 15px 2px 0;
+}
+
+.moodResponse p {
+  font-size: 12px;
+  color: #c0b8d0;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.moodResponse button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #e4c6ff;
+  background: none;
+  border: 0;
+  font-size: 12px !important;
+  text-align: left;
+  min-height: 40px;
+}
+
+.headingDot {
+  font-size: 9px;
+  color: #afc6a1;
+  vertical-align: middle;
+  margin-left: 6px;
+}
+
+.textButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px !important;
+  color: #d0c7df;
+  background: none;
+  border: 0;
+  min-height: 40px;
+  white-space: nowrap;
+}
+
+.textButton svg {
+  width: 15px;
+}
+
+.friends {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  padding: 4px 4px 10px;
+  scroll-snap-type: x proximity;
+}
+
+.friend {
+  flex: 0 0 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #221e2c;
+  border: 1px solid #ffffff0e;
+  border-radius: 20px;
+  padding: 14px 10px 13px;
+  color: #f3eafa;
+  scroll-snap-align: start;
+}
+
+.friendPortrait {
+  width: 76px;
+  height: 79px;
+  position: relative;
+  border-radius: 16px;
+  background: color-mix(in srgb,var(--friend-color),transparent 80%);
+  overflow: hidden;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.friendPortrait>svg {
+  flex-shrink: 0;
+  margin-top: 8px;
+}
+
+.friendPortrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.friendBadge {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  background: #211b2c;
+  color: var(--friend-color);
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+}
+
+.friend strong {
+  font-size: 12px;
+}
+
+.friendRole {
+  font-size: 9px;
+  color: #b1a6c1;
+  margin-top: 4px;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.inviteCard {
+  flex: 1;
+  min-width: 138px;
+  border: 1px dashed #ffffff25;
+  border-radius: 20px;
+  background: transparent;
+  color: #c9bedc;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 14px;
+}
+
+.inviteCard>span {
+  font-size: 28px;
+  color: #d8bfef;
+  margin-bottom: 10px;
+}
+
+.inviteCard strong {
+  font-size: 12px;
+}
+
+.inviteCard small {
+  font-size: 10px;
+  max-width: 125px;
+  color: #9d91b0;
+  margin-top: 7px;
+  line-height: 1.6;
+}
+
+.filters {
+  display: flex;
+  gap: 7px;
+  margin-bottom: 17px;
+  overflow: auto;
+  padding: 2px 2px 5px;
+}
+
+.filters button {
+  border: 1px solid #ffffff12;
+  background: transparent;
+  border-radius: 30px;
+  color: #bdb3cd;
+  padding: 9px 17px;
+  min-height: 42px;
+  white-space: nowrap;
+  font-size: 11px !important;
+}
+
+.filters .activeFilter {
+  color: #241d30;
+  background: #ddd0ef;
+  border-color: #ddd0ef;
+  font-weight: 700;
+}
+
+.activityGrid {
+  display: grid;
+  grid-template-columns: repeat(4,minmax(0,1fr));
+  gap: 12px;
+}
+
+.activityCard {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  text-align: left;
+  border: 0;
+  border-radius: 20px;
+  padding: 20px;
+  color: #30233b !important;
+  min-height: 210px;
+}
+
+.activityCard[data-tone=lilac] {
+  background: #d3c4ec;
+}
+
+.activityCard[data-tone=peach] {
+  background: #edc7b4;
+}
+
+.activityCard[data-tone=mint] {
+  background: #c6d7bf;
+}
+
+.activityCard[data-tone=blue] {
+  background: #bfd4e5;
+}
+
+.cardTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+}
+
+.cardTag {
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 1.6px;
+}
+
+.activityIcon {
+  font-size: 31px;
+  line-height: 1;
+  display: block;
+  transition: transform .3s;
+}
+
+.activityCard:hover .activityIcon {
+  transform: rotate(-14deg) scale(1.14);
+}
+
+.activityCard h3 {
+  font-size: 17px;
+  letter-spacing: -.4px;
+  font-weight: 700;
+  margin: 0 0 8px;
+  line-height: 1.2;
+}
+
+.activityCard p {
+  font-size: 11px;
+  line-height: 1.6;
+  margin: 0 0 19px;
+  opacity: .8;
+  max-width: 180px;
+}
+
+.cardAction {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+  gap: 8px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.cardAction svg {
+  width: 16px;
+  flex-shrink: 0;
+}
+
+.breathe {
+  margin-top: 24px;
+  padding: 22px;
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  border: 1px solid #ffffff12;
+  border-radius: 22px;
+  background: #211d2b;
+  position: relative;
+}
+
+.breathOrb {
+  flex-shrink: 0;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: #c2cdb01a;
+  border: 1px solid #b3c49d33;
+  display: grid;
+  place-items: center;
+}
+
+.breathOrb span {
+  width: 50px;
+  height: 50px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #b9cba726;
+  font-size: 26px;
+  color: #c4d3b1;
+}
+
+.breathOrb[data-breathing=true] span {
+  animation: breathe 10s ease-in-out infinite;
+}
+
+.breatheCopy {
+  flex: 1;
+}
+
+.breathe h2 {
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -.4px;
+  margin: 6px 0;
+}
+
+.breathe p {
+  font-size: 11px;
+  line-height: 1.5;
+  margin: 0;
+  color: #aaa0bd;
+}
+
+.breatheButton {
+  min-height: 44px;
+  padding: 10px 15px;
+  border: 1px solid #ffffff25;
+  border-radius: 30px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: transparent;
+  color: #e3dbea;
+  font-size: 11px !important;
+  white-space: nowrap;
+}
+
+.breatheButton svg {
+  width: 16px;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 10px;
+  color: #a097b0;
+  margin-top: 25px;
+}
+
+.footer button {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  border: 0;
+  background: none;
+  color: #c5b7d8;
+  font-size: 10px !important;
+  min-height: 44px;
+}
+
+.footer svg {
+  width: 14px;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@keyframes gentleSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes breathe {
+  0%,100% {
+    transform: scale(.8);
+  }
+  40% {
+    transform: scale(1.2);
+  }
+}
+
+.home[data-calm=true] *,.home[data-calm=true] *:before,.home[data-calm=true] *:after {
+  animation: none !important;
+  transition: none !important;
+}
+
+.home[data-calm=true] .characterButton:hover,.home[data-calm=true] .activityCard:hover .activityIcon {
+  transform: none;
+}
+
+@media (min-width:1100px) {
+  .heroArt {
+    padding-right: 35px;
+  }
+  .heroCopy {
+    padding-left: 44px;
+  }
+  .heroArt .characterButton {
+    transform: scale(1.13);
+    transform-origin: bottom center;
+  }
+  .heroArt .characterButton:hover {
+    transform: scale(1.13) rotate(-3deg);
+  }
+}
+
+@media (max-width:760px) {
+  .home {
+    padding: 20px 20px 28px;
+  }
+  .activityGrid {
+    grid-template-columns: repeat(2,minmax(0,1fr));
+  }
+  .heroCopy {
+    padding: 28px 0 27px 25px;
+  }
+  .hero h1 {
+    font-size: 43px;
+  }
+  .heroArt .characterButton svg {
+    height: 210px;
+    width: auto;
+  }
+  .hero p {
+    max-width: 205px;
+  }
+  .sticker {
+    font-size: 11px;
+    left: -3%;
+    top: 34px;
+  }
+  .sparkOne {
+    right: 10%;
+    top: 30%;
+  }
+  .hero {
+    min-height: 323px;
+  }
+  .mood {
+    padding: 9px;
+    gap: 7px;
+  }
+  .moodCheck {
+    display: none;
+  }
+  .moodFace {
+    width: 26px;
+    height: 28px;
+    font-size: 20px;
+  }
+  .moods {
+    gap: 8px;
+  }
+  .sectionHeading h2 {
+    font-size: 22px;
+  }
+  .activityCard {
+    min-height: 205px;
+  }
+  .friend {
+    flex-basis: 110px;
+  }
+  .breathOrb {
+    width: 60px;
+    height: 60px;
+  }
+  .breathe {
+    gap: 14px;
+  }
+  .breatheButton {
+    gap: 6px;
+  }
+  .footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+  }
+}
+
+@media (max-width:460px) {
+  .home {
+    padding: 18px 17px 22px;
+  }
+  .topline {
+    gap: 5px;
+    margin-bottom: 17px;
+  }
+  .topline .eyebrow {
+    font-size: 8px;
+    letter-spacing: 1.1px;
+    gap: 6px;
+  }
+  .sun {
+    font-size: 18px;
+  }
+  .motionToggle {
+    font-size: 9px !important;
+    padding: 6px 9px;
+    gap: 5px;
+  }
+  .hero {
+    grid-template-columns: 1.1fr .9fr;
+    min-height: 305px;
+    border-radius: 24px;
+  }
+  .heroCopy {
+    padding: 27px 0 24px 22px;
+  }
+  .hello {
+    font-size: 11px;
+    max-width: 190px;
+    margin-bottom: 17px;
+  }
+  .hero h1 {
+    font-size: 38px;
+    letter-spacing: -1.8px;
+  }
+  .hero h1 em {
+    letter-spacing: -1.6px;
+  }
+  .hero p {
+    max-width: 175px;
+    font-size: 11px;
+    line-height: 1.6;
+    margin-bottom: 18px;
+  }
+  .heroCta {
+    font-size: 11px !important;
+    padding: 11px 15px;
+    gap: 18px;
+  }
+  .heroArt .characterButton svg {
+    height: 180px;
+    width: auto;
+  }
+  .characterButton {
+    margin-bottom: 41px;
+  }
+  .orbit {
+    width: 210px;
+    height: 210px;
+    bottom: 5px;
+  }
+  .sticker {
+    font-size: 9px;
+    top: 35px;
+    left: -10%;
+    padding: 7px 9px;
+  }
+  .sparkOne {
+    font-size: 30px;
+    right: 10%;
+    top: 27%;
+  }
+  .sparkTwo {
+    left: 0%;
+    bottom: 24%;
+  }
+  .aiLabel {
+    font-size: 8px;
+    max-width: 170px;
+  }
+  .waveCaption {
+    font-size: 9px;
+    bottom: 20px;
+  }
+  .sectionHeading {
+    margin-top: 27px;
+  }
+  .eyebrow {
+    font-size: 8px;
+    letter-spacing: 1.4px;
+  }
+  .sectionHeading h2 {
+    font-size: 20px;
+    letter-spacing: -.5px;
+  }
+  .optional {
+    font-size: 8px;
+  }
+  .moods {
+    gap: 6px;
+  }
+  .mood {
+    flex-direction: column;
+    gap: 5px;
+    min-height: 74px;
+    font-size: 11px !important;
+    padding: 10px 6px;
+    border-radius: 14px;
+  }
+  .moodFace {
+    width: 28px;
+    height: 28px;
+  }
+  .moodResponse {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1px;
+    padding-top: 12px;
+  }
+  .moodResponse p,.moodResponse button {
+    font-size: 11px !important;
+  }
+  .friends {
+    gap: 10px;
+  }
+  .friend {
+    flex-basis: 102px;
+    padding: 12px 8px;
+  }
+  .textButton {
+    font-size: 10px !important;
+  }
+  .filters {
+    gap: 5px;
+  }
+  .filters button {
+    font-size: 10px !important;
+    padding: 9px 14px;
+  }
+  .activityGrid {
+    gap: 10px;
+  }
+  .activityCard {
+    padding: 17px;
+    min-height: 204px;
+    border-radius: 18px;
+  }
+  .activityCard h3 {
+    font-size: 17px;
+  }
+  .activityCard p {
+    font-size: 10px;
+  }
+  .cardTop {
+    margin-bottom: 25px;
+  }
+  .cardAction {
+    font-size: 9px;
+  }
+  .breathe {
+    display: grid;
+    grid-template-columns: 52px 1fr;
+    gap: 13px;
+    padding: 18px;
+  }
+  .breathOrb {
+    width: 52px;
+    height: 52px;
+  }
+  .breathOrb span {
+    width: 37px;
+    height: 37px;
+    font-size: 23px;
+  }
+  .breathe h2 {
+    font-size: 17px;
+  }
+  .breathe p {
+    font-size: 10px;
+  }
+  .breatheButton {
+    grid-column: 2;
+    justify-self: start;
+    margin-top: 0;
+  }
+  .footer {
+    font-size: 9px;
+  }
+  .heroArt {
+    margin-left: -8px;
+  }
+}
+
+@media (max-width:350px) {
+  .home {
+    padding-inline: 12px;
+  }
+  .heroCopy {
+    padding-left: 17px;
+  }
+  .hero h1 {
+    font-size: 33px;
+  }
+  .heroArt .characterButton svg {
+    height: 155px;
+  }
+  .hero p {
+    max-width: 145px;
+  }
+  .sticker {
+    left: -20%;
+  }
+  .optional {
+    display: none;
+  }
+  .filters button {
+    padding-inline: 11px;
+  }
+  .activityCard {
+    padding: 14px;
+  }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  .home *,.home *:before,.home *:after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+/* Orb composition adapts to small screens instead of squeezing behind the copy. */
+.heroArt .characterButton svg{height:auto;width:110px}.heroArt .characterButton{margin-bottom:0}
+@media(max-width:620px){.hero{grid-template-columns:1fr}.heroCopy{padding:28px 26px 6px}.hero h1{font-size:46px}.hero p{max-width:290px;font-size:13px}.heroArt{min-height:260px;width:100%;max-width:320px;margin:0 auto;padding:0 12px 25px}.heroArt .characterButton svg{height:auto;width:90px}.heroArt .characterButton{right:4px;bottom:0}.waveCaption{right:95px;bottom:16px}.topline .eyebrow{font-size:8px;letter-spacing:1px}}

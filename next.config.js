@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Keep validation builds separate from a running desktop preview's cache.
+  distDir: process.env.RICOMATES_BUILD_DIR || ".next",
   reactStrictMode: true,
   eslint: {
     // Lint runs on demand via `npm run lint` — not coupled to production builds,
@@ -29,3 +31,4 @@ const nextConfig = {
 }
 
 module.exports = nextConfig
+

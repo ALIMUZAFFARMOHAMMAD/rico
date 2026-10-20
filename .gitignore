@@ -4,6 +4,7 @@ node_modules/
 
 # next.js
 .next/
+.next-auto-*/
 out/
 build/
 
@@ -14,9 +15,14 @@ build/
 .env
 .env.*
 *.local
+ricomates-pc.json*
 
 # logs & os
 *.log
 npm-debug.log*
 .DS_Store
 Thumbs.db
+
+
+.vercel
+.env*

@@ -13,11 +13,11 @@ export default function Privacy() {
       <div style={{ width: "100%", maxWidth: 680, padding: "22px 20px 60px" }}>
         <a href="/" style={{ color: T.text, textDecoration: "none", fontSize: 18 }}>←</a>
         <div style={{ fontSize: 26, fontWeight: 900, color: "#ff7b96", marginTop: 10 }}>Privacy Policy</div>
-        <P>Last updated: 10 October 2026</P>
+        <P>Last updated: 15 October 2026</P>
         <P>This explains what we collect, why, and the control you have. We aim to collect only what's needed to run Rico. We do not sell your personal data or share it for cross-context behavioural advertising.</P>
 
         <H>1. Who handles your data</H>
-        <P>The operator of Rico is the data controller. We use trusted processors to run the service: a sign-in provider (Clerk), a database/host (Supabase, Vercel), an AI provider for replies and analysis (Anthropic), and a voice provider for speech-to-text, text-to-speech and voice cloning (ElevenLabs). Each only receives what's needed for its function.</P>
+        <P>The operator of Rico is the data controller. We use trusted processors to run the service: a sign-in provider (Clerk), a database/host (Supabase, Vercel), an AI provider for replies and analysis (Anthropic), an image-generation provider for optional AI portraits (OpenAI), and a voice provider for speech-to-text, text-to-speech and voice cloning (ElevenLabs). Each only receives what's needed for its function.</P>
 
         <H>2. What we collect</H>
         <P>• <b style={{ color: T.text }}>Account</b>: your name and email from the sign-in provider.</P>
@@ -25,12 +25,15 @@ export default function Privacy() {
         <P>• <b style={{ color: T.text }}>Calls</b>: brief text notes summarising voice calls (so your friends "remember" you). During a call your speech is sent to our voice provider to be transcribed; we do not retain call audio.</P>
         <P>• <b style={{ color: T.text }}>Matches & reports</b>: who you've connected with, and any content you report.</P>
         <P>• <b style={{ color: T.text }}>Your twin</b>: the AI persona derived from your conversations, if you create one.</P>
+        <P>• <b style={{ color: T.text }}>Social</b>: posts, photos, moods, comments and likes you choose to share are stored and visible to signed-in members. Uploaded photos are resized in your browser before storage. Stories are visible for 24 hours; a feed post also shared to a story stays in the feed. Saved-post collections are private to you. Story-view progress is stored on your device. You can delete your own posts, stories and comments; deleting your account removes your social data. Automated daily posts are clearly labeled AI and use locally rendered illustrations, without image-generation calls or your private conversations.</P>
 
         <H>3. Voice cloning</H>
+        <P><b style={{ color: T.text }}>Meeting companion:</b> meeting links, briefings, transcripts, notes and reply drafts are private to the signed-in owner and are excluded from friendship memories and social posts. An optionally paired PC runs self-hosted Vexa and sends transcript text to Ricomates for storage. AI notes and drafts send that text and relevant briefing to Anthropic. Bot requests disable audio/video recording storage; local Vexa still processes meeting audio for transcription and may retain transcripts and diagnostic data. Participants must know about and permit transcription. WhatsApp and phone calls support imported transcripts only. Current twin replies are private drafts, not automatically sent to calls.</P>
+        <P>PC pairing tokens expire after 30 days and can be revoked in Meeting companion. Disconnecting or deleting an account stops future access; an online worker attempts to leave its tracked calls. If the PC is offline, stop bots locally. Deleting a connected meeting requires the PC online to remove Vexa artifacts before cloud notes are deleted. Account deletion removes cloud meeting records but cannot reach an offline PC: remove remaining local Vexa records and the worker configuration/state files yourself.</P>
         <P>If you choose to clone a voice, the recording is sent to our voice provider to create a voice model that your twin uses. You must only clone your own voice. You can delete the cloned voice at any time, which removes it from the provider. We do not use your voice for anything other than your twin.</P>
 
         <H>4. Photo to avatar</H>
-        <P>If you make an avatar from a photo, the image is sent once to the AI provider to estimate avatar colours and is <b style={{ color: T.text }}>not stored</b> by us. Only the resulting colour values are saved. We do <b style={{ color: T.text }}>not</b> perform facial recognition and do not create or store any biometric identifier from your photo. Please upload only photos of yourself.</P>
+        <P>If you choose to generate an AI portrait, your reference photo is sent to OpenAI to create a realistic image. Ricomates does not store the reference photo. Generated previews stay in your browser until you save one; the saved portrait is stored with your twin and is publicly visible wherever your twin appears. You can remove or replace it in the portrait editor, or delete it by retiring your twin or deleting your account. Please upload only photos of yourself. Legacy cartoon colour matching sends the photo to Anthropic and saves only colour settings. We do not use these images to identify you or authenticate your account.</P>
 
         <H>5. Why we use it</H>
         <P>To operate core features (generate replies, build your twin, run calls and matching), to keep the service safe (handle reports, prevent abuse), and to remember you across sessions. We do not sell your personal data or use it for third-party advertising.</P>
@@ -65,3 +68,4 @@ export default function Privacy() {
     <style>{`*{box-sizing:border-box;margin:0;padding:0;}html,body{background:${T.bg};}`}</style>
   </>);
 }
+

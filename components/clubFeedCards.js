@@ -73,7 +73,8 @@ export function ReportButton({ onReport }) {
 export function PostCard({ item, replies, onReact, onReport, onReply, clubBadge }) {
   const [showReply, setShowReply] = useState(false);
   const [replyText, setReplyText] = useState("");
-  const submit = () => { if (!replyText.trim()) return; onReply(item.id, replyText); setReplyText(""); setShowReply(false); };
+  const [sending, setSending] = useState(false);
+  const submit = async () => { if (!replyText.trim() || sending) return; setSending(true); try { if (await onReply(item.id, replyText)) { setReplyText(""); setShowReply(false); } } finally { setSending(false); } };
   return (
     <div style={{ border: "1px solid rgba(255,255,255,0.1)", background: "#1a1826", boxShadow: "none", borderRadius: 4, padding: 12, marginBottom: 12 }}>
       <div style={{ display: "flex", gap: 8 }}>
@@ -110,9 +111,9 @@ export function PostCard({ item, replies, onReact, onReport, onReply, clubBadge 
           <button onClick={() => setShowReply(true)} style={{ background: "none", border: "none", color: "#a9a5c0", fontSize: 11.5, fontWeight: 700, cursor: "pointer", padding: 0 }}>💬 Reply</button>
         ) : (
           <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
-            <input value={replyText} onChange={(e) => setReplyText(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
+            <input value={replyText} disabled={sending} maxLength={500} onChange={(e) => setReplyText(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") submit(); }}
               placeholder="Say something..." style={{ flex: 1, border: "1px solid rgba(255,255,255,0.1)", padding: "5px 8px", fontFamily: "'DM Sans',sans-serif", fontSize: 12, fontWeight: 700, outline: "none" }} />
-            <button onClick={submit} style={{ background: "#7c4dd8", color: "white", border: "1px solid rgba(255,255,255,0.1)", padding: "5px 10px", fontFamily: "'Bricolage Grotesque',sans-serif", fontSize: 12, cursor: "pointer" }}>SEND</button>
+            <button onClick={submit} disabled={sending || !replyText.trim()} style={{ background: "#7c4dd8", color: "white", border: "1px solid rgba(255,255,255,0.1)", padding: "5px 10px", fontFamily: "'Bricolage Grotesque',sans-serif", fontSize: 12, cursor: "pointer" }}>{sending ? "SENDING…" : "SEND"}</button>
           </div>
         )}
       </div>
@@ -159,3 +160,4 @@ export function DebateCard({ item, onReact, onReport, clubBadge }) {
     </div>
   );
 }
+

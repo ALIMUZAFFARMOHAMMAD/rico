@@ -30,7 +30,7 @@ export default async function handler(req, res) {
     ].filter(r => ownsKey(r.user_id, userId));
     for (const r of rows) await sb(`/conversations?id=eq.${r.id}`, "DELETE");
     try { await sb(`/career_results?user_id=eq.${enc}`, "DELETE"); } catch (e) { /* table optional */ }
-    await clerkClient.users.deleteUser(userId); // last: if anything above throws, the user can retry signed in
+    await (await clerkClient()).users.deleteUser(userId); // last: if anything above throws, the user can retry signed in
     console.log(`account deleted: ${rows.length} rows, …${userId.slice(-6)}`);
     return res.status(200).json({ ok: true });
   } catch (e) {
@@ -38,3 +38,4 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "Couldn't delete everything — please try again." });
   }
 }
+

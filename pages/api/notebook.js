@@ -52,7 +52,7 @@ const img = (dataUrl) => ({ type: "image", source: { type: "base64", media_type:
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
-  if (!configured() || !process.env.ANTHROPIC_API_KEY) return res.status(500).json({ error: "Not configured" });
+  if (!configured()) return res.status(503).json({ error: "Notebook storage is temporarily unavailable." });
   const { mode, userId, image, question, id } = req.body || {};
   if (!userId) return res.status(400).json({ error: "Sign in first" });
   if (!ownsUser(req, userId)) return res.status(403).json({ error: "forbidden" });
@@ -73,6 +73,7 @@ export default async function handler(req, res) {
     }
 
     // everything below spends credits
+    if (!process.env.ANTHROPIC_API_KEY) return res.status(503).json({ error: "AI note tools are temporarily unavailable. Your saved notes are still accessible." });
     if (rateLimited(req, { limit: 10 })) return res.status(429).json({ error: "Too many requests, slow down." });
 
     if (mode === "calibrate") {
@@ -124,3 +125,4 @@ Also return title: a short title for the page (max 8 words), and insight: ONE se
     return res.status(500).json({ error: "Something went wrong — try again." });
   }
 }
+

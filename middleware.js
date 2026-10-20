@@ -1,21 +1,38 @@
-import { authMiddleware } from "@clerk/nextjs";
+import { clerkMiddleware } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 // Every page and most APIs stay public here (pages redirect to /landing themselves; user-data
 // APIs check ownership with lib/auth ownsUser). The routes below spend Anthropic/ElevenLabs
 // credits, so a signed-out caller gets a 401 before any money is spent. All app pages already
 // require sign-in, so no real user ever hits this as anonymous.
-const PAID_API = /^\/api\/(tony|banter|club-feed|group|stt|translate|tts|voice|resume|tutor|notebook|avatar|checkin|remembers|digest|twin-voice)(\/|$)/;
+const PAID_API = /^\/api\/(tony|banter|club-feed|group|stt|translate|tts|voice|resume|tutor|notebook|avatar|portrait|checkin|remembers|digest|twin-voice|twin-studio)(\/|$)/;
 
 // Local dev without a real CLERK_SECRET_KEY would otherwise 500 on every request
-// (authMiddleware throws on init). Skip Clerk entirely in that case so pages still
+// (Clerk needs a valid secret to authenticate requests). Skip Clerk entirely in that case so pages still
 // render — every request is then anonymous (ownsUser() is always false, protected
 // API routes 403 gracefully instead of crashing). Production always has the real
 // key set in Vercel, so this branch never runs there.
-export default process.env.CLERK_SECRET_KEY
-  ? authMiddleware({ publicRoutes: (req) => !PAID_API.test(req.nextUrl.pathname) })
-  : () => NextResponse.next();
+const clerkHandler = process.env.CLERK_SECRET_KEY
+  ? clerkMiddleware(async (auth, req) => {
+      if (PAID_API.test(req.nextUrl.pathname)) {
+        const { userId } = await auth();
+        if (!userId) return NextResponse.json({ error: "Sign in first" }, { status: 401 });
+      }
+      return NextResponse.next();
+    })
+  : req => PAID_API.test(req.nextUrl.pathname)
+    ? NextResponse.json({ error: "Sign-in is not configured" }, { status: 503 })
+    : NextResponse.next();
+
+// PC requests use a two-part pairing token. Browser requests carry a three-part
+// Clerk JWT and must pass through Clerk so owner controls retain authentication.
+export default function middleware(req, event) {
+  const pcToken = /^Bearer [A-Za-z0-9_-]{5,160}\.[a-f0-9]{64}$/.test(req.headers?.get("authorization") || "");
+  if (req.nextUrl.pathname === "/api/meeting-worker" || (req.nextUrl.pathname === "/api/meeting-auto" && pcToken)) return NextResponse.next();
+  return clerkHandler(req, event);
+}
 
 export const config = {
   matcher: ["/((?!_next|[^?]*\\.(?:html?|css|js|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)"],
 };
+

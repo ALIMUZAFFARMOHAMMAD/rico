@@ -10,7 +10,7 @@ const FAST = "claude-haiku-4-5-20251001";
 
 async function claude(apiKey, model, system, userContent, maxTokens) {
   const r = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
+    method: "POST", signal: AbortSignal.timeout(30000),
     headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
     body: JSON.stringify({ model, max_tokens: maxTokens, system, messages: [{ role: "user", content: userContent }] }),
   });
@@ -94,3 +94,5 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "Group chat failed" });
   }
 }
+
+

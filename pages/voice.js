@@ -7,6 +7,8 @@ import { LANGS, getStoredPref, storePref, getDetectedLang, storeDetectedLang, de
 import TonyCharacter from "../components/TonyCharacter";
 import Aurora from "../components/Aurora";
 import { getAgent } from "../lib/agents";
+import { checkMicrophone, createVoiceInput } from "../lib/voice-input";
+import { createVoiceOutput } from "../lib/voice-output";
 
 const S = { IDLE:"idle", CONNECTING:"connecting", ACTIVE:"active", LISTENING:"listening", THINKING:"thinking", SPEAKING:"speaking", ENDED:"ended" };
 const T = { bg:"#0f0e17", panel:"rgba(255,255,255,0.055)", panel2:"rgba(255,255,255,0.09)", line:"rgba(255,255,255,0.1)", text:"#f5f3ff", sub:"#9b97b0", grad:"linear-gradient(135deg,#ff5e7e 0%,#8b5cf6 100%)", pink:"#ff5e7e", violet:"#8b5cf6" };
@@ -22,10 +24,18 @@ export default function VoicePage() {
   const durationRef = useRef(0);
   const [muted, setMuted] = useState(false);
   const [error, setError] = useState("");
-  const [voicesReady, setVoicesReady] = useState(false);
+  const [inputStatus, setInputStatus] = useState("");
+  const [micLevel, setMicLevel] = useState(0);
+  const serverInputRef = useRef(true);
+  const callEpochRef = useRef(0);
   const [lang, setLangState] = useState("en");
   const [langPref, setLangPref] = useState("auto");
   const [voiceNotice, setVoiceNotice] = useState("");
+  const [outputError, setOutputError] = useState("");
+  const [preview, setPreview] = useState("");
+  const [expression, setExpression] = useState("lively");
+  const expressionRef = useRef("lively");
+  const previewEpochRef = useRef(0);
   const [voiceMode, setVoiceMode] = useState("human");
   const [agentObj, setAgentObj] = useState(getAgent("tony"));
   // Accessibility: "type, don't talk" mode for non-speaking users — they type, Rico still replies in voice + text.
@@ -35,7 +45,8 @@ export default function VoicePage() {
   useEffect(() => { try { const v = localStorage.getItem("rico_typemode") === "1"; setTypeMode(v); typeModeRef.current = v; } catch (e) {} }, []);
 
   const voiceModeRef = useRef("human");
-  const audioRef = useRef(null);
+  const outputRef = useRef(null);
+  if (!outputRef.current) outputRef.current = createVoiceOutput();
   const langRef = useRef("en");
   const langPrefRef = useRef("auto");
   const recRef = useRef(null);
@@ -59,10 +70,6 @@ export default function VoicePage() {
   const clipStreamRef = useRef(null);
   const clipMsRef = useRef(0);
   const clipStartRef = useRef(0);
-  // server-side STT (ElevenLabs Scribe) for languages the browser can't transcribe (Telugu)
-  const sttRecRef = useRef(null);
-  const sttStreamRef = useRef(null);
-  const sttStopRef = useRef(null);
 
   const isLive = [S.ACTIVE,S.LISTENING,S.THINKING,S.SPEAKING].includes(state);
   useEffect(() => { stateRef.current = state; }, [state]);
@@ -79,7 +86,7 @@ export default function VoicePage() {
     const aid = params.get("agent") || "tony";
     if (params.get("build") === "1") { buildRef.current = true; setBuildMode(true); }
     if (aid.startsWith("twin__")) {
-      fetch("/api/tts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ warm: true, agentId: aid }) }).catch(() => {}); // wake the self-hosted voice GPU before the first reply
+      fetch("/api/tts", { signal: AbortSignal.timeout(30000), method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ warm: true, agentId: aid }) }).catch(() => {}); // wake the self-hosted voice GPU before the first reply
       fetch(`/api/twin?id=${aid}`).then(r => r.json()).then(d => {
         if (d.twin) { const a = { ...d.twin, id: aid }; agentRef.current = a; setAgentObj(a); }
       }).catch(() => {});
@@ -101,26 +108,35 @@ export default function VoicePage() {
   }, []);
 
   const changeVoiceMode = useCallback((v) => {
+    previewEpochRef.current++; outputRef.current.cancel(); window.speechSynthesis?.cancel(); setPreview(""); setOutputError("");
     setVoiceMode(v); voiceModeRef.current = v;
     window.localStorage.setItem("hitony_voice", v);
   }, []);
   useEffect(() => {
     const v = window.localStorage.getItem("hitony_voice");
     if (v === "human" || v === "classic") { setVoiceMode(v); voiceModeRef.current = v; }
+    const delivery = window.localStorage.getItem("rico_voice_expression");
+    if (delivery === "natural" || delivery === "lively") { setExpression(delivery); expressionRef.current = delivery; }
+  }, []);
+  const changeExpression = useCallback(value => {
+    previewEpochRef.current++; outputRef.current.cancel(); setPreview(""); setOutputError("");
+    expressionRef.current = value; setExpression(value);
+    try { window.localStorage.setItem("rico_voice_expression", value); } catch {}
   }, []);
 
   useEffect(() => {
     function loadVoices() {
+      if (!window.speechSynthesis) return;
       const voices = window.speechSynthesis.getVoices();
       if (voices.length === 0) return;
       const matches = voices.filter(v => v.lang.replace("_", "-").toLowerCase().startsWith(lang));
       const rank = v => (/natural|neural|premium|enhanced|online/i.test(v.name) ? 0 : /google/i.test(v.name) ? 1 : /microsoft/i.test(v.name) ? 2 : 3);
       matches.sort((a, b) => rank(a) - rank(b));
       voiceRef.current = matches[0] || null;
-      setVoicesReady(true);
-      setVoiceNotice(!matches.length && lang !== "en" ? "No device voice for this language — replies will show as text if the premium voice is unavailable." : "");
+      setVoiceNotice(!matches.length && lang !== "en" ? "No device voice for this language. Choose Expressive voice." : "");
     }
     loadVoices();
+    if (!window.speechSynthesis) return;
     window.speechSynthesis.onvoiceschanged = loadVoices;
     return () => { window.speechSynthesis.onvoiceschanged = null; };
   }, [lang]);
@@ -146,70 +162,70 @@ export default function VoicePage() {
     }, 150);
   }), []);
 
-  const playStreamed = useCallback((resp) => new Promise(async (resolve) => {
-    const mime = "audio/mpeg";
-    let settled = false;
-    const finish = (url) => { if (!settled) { settled = true; if (url) URL.revokeObjectURL(url); resolve(); } };
-    if (!(window.MediaSource && MediaSource.isTypeSupported(mime))) {
-      const blob = await resp.blob();
-      const url = URL.createObjectURL(blob);
-      const audio = new Audio(url);
-      audioRef.current = audio;
-      audio.onended = () => finish(url); audio.onerror = () => finish(url);
-      audio.play().catch(() => finish(url));
-      return;
-    }
-    const ms = new MediaSource();
-    const url = URL.createObjectURL(ms);
-    const audio = new Audio(url);
-    audioRef.current = audio;
-    audio.onended = () => finish(url); audio.onerror = () => finish(url);
-    ms.addEventListener("sourceopen", async () => {
-      try {
-        const sbuf = ms.addSourceBuffer(mime);
-        const reader = resp.body.getReader();
-        const append = (chunk) => new Promise(r2 => { sbuf.addEventListener("updateend", r2, { once: true }); sbuf.appendBuffer(chunk); });
-        while (true) { const { done, value } = await reader.read(); if (done) break; await append(value); }
-        if (ms.readyState === "open") ms.endOfStream();
-      } catch (e) { try { if (ms.readyState === "open") ms.endOfStream(); } catch (_) {} }
-    }, { once: true });
-    audio.play().catch(() => finish(url));
-    setTimeout(() => finish(url), 30000);
-  }), []);
-
-  const speak = useCallback(async (text) => {
+  const speak = useCallback(async (text, speechText) => {
+    const epoch = callEpochRef.current;
+    if (!callActiveRef.current) return;
+    setOutputError("");
     if (voiceModeRef.current === "human") {
       try {
-        const r = await fetch("/api/tts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, language: langRef.current, agentId: agentRef.current.id }) });
-        if (r.ok) { await playStreamed(r); return; }
-        if (r.status === 503) voiceModeRef.current = "classic";
-      } catch (e) {}
+        await outputRef.current.speak({ text, speechText, expression: expressionRef.current, language: langRef.current, agentId: agentRef.current.id });
+      } catch (e) { if (callActiveRef.current && epoch === callEpochRef.current) setOutputError(e.message); }
+      return;
     }
+    if (!callActiveRef.current || epoch !== callEpochRef.current) return;
     await speakBrowser(text);
-  }, [speakBrowser, playStreamed]);
+  }, [speakBrowser]);
+
+  const previewVoice = useCallback(async () => {
+    if (preview) { previewEpochRef.current++; outputRef.current.cancel(); window.speechSynthesis?.cancel(); setPreview(""); return; }
+    const epoch = ++previewEpochRef.current;
+    setOutputError(""); setPreview("Preparing voice…");
+    const samples = {
+      en: "Hey, it's good to hear from you! That sounds like a big step. Let's take it one thing at a time — what's on your mind?",
+      hi: "अरे, तुमसे बात करके अच्छा लगा! ये तो बड़ा कदम है। चलो, एक-एक चीज़ समझते हैं। तुम्हारे मन में क्या चल रहा है?",
+      es: "¡Qué gusto escucharte! Parece un gran paso. Vamos poco a poco. ¿Qué tienes en mente?",
+    };
+    const language = samples[langRef.current] ? langRef.current : "en";
+    const directedSamples = {
+      en: "[excited] Hey, it's good to hear from you! [thoughtful] That sounds like a big step. Let's take it one thing at a time — [curious] what's on your mind?",
+      hi: "[excited] अरे, तुमसे बात करके अच्छा लगा! [thoughtful] ये तो बड़ा कदम है। चलो, एक-एक चीज़ समझते हैं। [curious] तुम्हारे मन में क्या चल रहा है?",
+      es: "[excited] ¡Qué gusto escucharte! [thoughtful] Parece un gran paso. Vamos poco a poco. [curious] ¿Qué tienes en mente?",
+    };
+    try {
+      if (voiceModeRef.current === "human") await outputRef.current.speak({ text: samples[language], speechText: directedSamples[language], expression: expressionRef.current, language, agentId: agentRef.current.id }, () => setPreview("Playing preview…"));
+      else { setPreview("Playing device voice…"); await speakBrowser(samples[language]); }
+    } catch (e) { if (epoch === previewEpochRef.current) setOutputError(e.message); }
+    finally { if (epoch === previewEpochRef.current) setPreview(""); }
+  }, [preview, speakBrowser]);
 
   const handleSpoke = useCallback(async (text) => {
+    if (!callActiveRef.current) return;
+    const epoch = callEpochRef.current;
     autoDetect(text);
-    setState(S.THINKING);
+    setState(S.THINKING); setInputStatus("");
     const h = [...histRef.current, { role: "user", content: text }];
     histRef.current = h;
     setMessages(p => [...p, { role: "user", text }]);
     try {
-      const r = await fetch("/api/voice", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: h, mode: "chat", userName, userId, language: langRef.current, agentId: agentRef.current.id, build: buildRef.current }) });
+      const r = await fetch("/api/voice", { signal: AbortSignal.timeout(45000), method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: h, mode: "chat", userName, userId, language: langRef.current, agentId: agentRef.current.id, build: buildRef.current }) });
       const d = await r.json();
+      if (!callActiveRef.current || epoch !== callEpochRef.current) return;
+      if (!r.ok) throw new Error(d.error || "Voice chat unavailable");
       const reply = d.text || "Say that again?";
       const fullHistory = [...h, { role: "assistant", content: reply }];
       histRef.current = fullHistory;
       setMessages(p => [...p, { role: "agent", text: reply }]);
-      if (userId) fetch("/api/voice", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: "save_call", userId, userName, callMessages: fullHistory, agentId: agentRef.current.id }) }).catch(() => {});
+      if (userId) fetch("/api/voice", { signal: AbortSignal.timeout(45000), method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: "save_call", userId, userName, callMessages: fullHistory, agentId: agentRef.current.id }) }).catch(() => {});
       setState(S.SPEAKING);
-      await speak(reply);
+      await speak(reply, d.speechText);
+      if (epoch !== callEpochRef.current) return;
       if (callActiveRef.current && !mutedRef.current) listenRef.current?.();
-      else setState(S.ACTIVE);
+      else if (callActiveRef.current) setState(S.ACTIVE);
     } catch (e) {
+      if (!callActiveRef.current || epoch !== callEpochRef.current) return;
       setError("Connection hiccup");
       if (callActiveRef.current && !mutedRef.current) listenRef.current?.();
-      else setState(S.ACTIVE);
+      else if (callActiveRef.current) setState(S.ACTIVE);
     }
   }, [speak, userName, userId, autoDetect]);
 
@@ -223,90 +239,39 @@ export default function VoicePage() {
     try { if (mr.state === "recording") { mr.pause(); clipMsRef.current += Date.now() - clipStartRef.current; } } catch (e) {}
   }, []);
 
-  // Telugu (and any browser-unsupported language): record the turn + transcribe via Scribe.
-  // Ends the turn on ~1.3s of silence after speech (or tap to finish / 14s cap).
-  const STT_LANG = { te: "tel", hi: "hin", es: "spa", en: "eng" };
-  const listenScribe = useCallback(async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
-      sttStreamRef.current = stream;
-      const mime = MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "";
-      const mr = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
-      const chunks = [];
-      mr.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
-      const AC = window.AudioContext || window.webkitAudioContext;
-      const ac = new AC();
-      const an = ac.createAnalyser(); an.fftSize = 512; ac.createMediaStreamSource(stream).connect(an);
-      const data = new Uint8Array(an.frequencyBinCount);
-      let spoke = false, silenceAt = 0, raf = 0, stopped = false;
-      const t0 = Date.now();
-      const finalize = () => { if (stopped) return; stopped = true; cancelAnimationFrame(raf); try { ac.close(); } catch (e) {} if (mr.state !== "inactive") mr.stop(); };
-      sttStopRef.current = finalize;
-      const tick = () => {
-        an.getByteFrequencyData(data);
-        const vol = data.reduce((a, b) => a + b, 0) / data.length;
-        const el = Date.now() - t0;
-        if (vol > 13) { spoke = true; silenceAt = 0; setTranscript("…"); }
-        else if (spoke && !silenceAt) silenceAt = Date.now();
-        if (spoke && silenceAt && Date.now() - silenceAt > 1300) return finalize();
-        if (el > 14000) return finalize();
-        if (!spoke && el > 8000) return finalize();
-        raf = requestAnimationFrame(tick);
-      };
-      mr.onstop = async () => {
-        sttStreamRef.current?.getTracks().forEach(t => t.stop());
-        setTranscript("");
-        if (!callActiveRef.current) return;
-        if (!spoke) { if (!mutedRef.current) setTimeout(() => listenRef.current?.(), 300); else setState(S.ACTIVE); return; }
-        setState(S.THINKING);
-        try {
-          const blob = new Blob(chunks, { type: mr.mimeType || "audio/webm" });
-          const b64 = await new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = rej; fr.readAsDataURL(blob); });
-          const r = await fetch("/api/stt", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ audio: b64, mime: blob.type, language: STT_LANG[langRef.current] || undefined }) });
-          const { text } = await r.json();
-          if (text && text.trim()) { setTranscript(text); await handleSpoke(text.trim()); }
-          else if (callActiveRef.current && !mutedRef.current) setTimeout(() => listenRef.current?.(), 300);
-          else setState(S.ACTIVE);
-        } catch (e) { if (callActiveRef.current && !mutedRef.current) setTimeout(() => listenRef.current?.(), 300); else setState(S.ACTIVE); }
-      };
-      sttRecRef.current = mr;
-      mr.start(); setState(S.LISTENING); tick();
-    } catch (e) { setError("Microphone unavailable"); setState(S.ACTIVE); }
-  }, [handleSpoke]);
-
   const listen = useCallback(() => {
-    if (!callActiveRef.current) return;
-    if (typeModeRef.current) { setState(S.ACTIVE); return; } // accessibility: wait for typed input, don't open mic
-    if (mutedRef.current) { setState(S.ACTIVE); return; }
-    if (langRef.current === "te") { listenScribe(); return; } // browser can't transcribe Telugu
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) { setError("Voice calls need Chrome or Edge."); return; }
-    const rec = new SR();
-    rec.continuous = false; rec.interimResults = true; rec.lang = (LANGS[langRef.current] || LANGS.en).speech;
-    let final = "";
-    let fatal = false;
-    rec.onresult = e => { final = Array.from(e.results).map(r => r[0].transcript).join(""); setTranscript(final); };
-    rec.onerror = e => { if (["not-allowed","service-not-allowed","audio-capture"].includes(e.error)) { fatal = true; setError("Microphone unavailable: " + e.error); } };
-    rec.onend = async () => {
-      setTranscript(""); clipPause();
-      if (!callActiveRef.current) return;
-      if (fatal) { setState(S.ACTIVE); return; }
-      if (final.trim()) { await handleSpoke(final); }
-      else if (!mutedRef.current) { setTimeout(() => listenRef.current?.(), 300); }
-      else { setState(S.ACTIVE); }
-    };
-    recRef.current = rec;
-    try { rec.start(); setState(S.LISTENING); if (buildRef.current && cloneConsentRef.current) clipResume(); }
-    catch (e) { setTimeout(() => listenRef.current?.(), 500); }
-  }, [handleSpoke, clipResume, clipPause, listenScribe]);
+    recRef.current?.cancel();
+    if (!callActiveRef.current || mutedRef.current || typeModeRef.current) {
+      if (callActiveRef.current) setState(S.ACTIVE);
+      return;
+    }
+    setError(""); setTranscript(""); setInputStatus("Opening microphone…");
+    setState(S.ACTIVE);
+    const input = createVoiceInput({
+      language: (LANGS[langRef.current] || LANGS.en).speech,
+      preferServer: serverInputRef.current,
+      onFallback: () => { serverInputRef.current = true; },
+      onTranscript: setTranscript,
+      onStatus: value => { setInputStatus(value); if (value === "Transcribing…") { clipPause(); setState(S.THINKING); } },
+      onLevel: setMicLevel,
+      onListening: () => { setState(S.LISTENING); if (buildRef.current && cloneConsentRef.current) clipResume(); },
+      onText: text => {
+        clipPause(); setTranscript("");
+        if (callActiveRef.current && !mutedRef.current && !typeModeRef.current) void handleSpoke(text);
+      },
+      onError: message => { clipPause(); setTranscript(""); setInputStatus(""); setError(message); if (callActiveRef.current) setState(S.ACTIVE); },
+    });
+    recRef.current = input;
+    input.start();
+  }, [handleSpoke, clipResume, clipPause]);
   useEffect(() => { listenRef.current = listen; }, [listen]);
 
   const toggleTypeMode = useCallback(() => {
     const v = !typeModeRef.current; typeModeRef.current = v; setTypeMode(v);
     try { localStorage.setItem("rico_typemode", v ? "1" : "0"); } catch (e) {}
-    if (v) { try { recRef.current?.stop(); } catch (e) {} try { sttStopRef.current?.(); } catch (e) {} if (callActiveRef.current) setState(S.ACTIVE); }
+    if (v) { recRef.current?.cancel(); clipPause(); setTranscript(""); setInputStatus(""); if (callActiveRef.current && (inputStatus === "Transcribing…" || (stateRef.current !== S.THINKING && stateRef.current !== S.SPEAKING))) setState(S.ACTIVE); }
     else if (callActiveRef.current && !mutedRef.current && stateRef.current === S.ACTIVE) listenRef.current?.();
-  }, []);
+  }, [clipPause, inputStatus]);
   const sendTyped = useCallback(() => {
     const txt = callInput.trim();
     if (!txt || !callActiveRef.current) return;
@@ -316,14 +281,28 @@ export default function VoicePage() {
   }, [callInput, handleSpoke]);
 
   const startCall = useCallback(async () => {
-    const warmup = new SpeechSynthesisUtterance(" ");
-    warmup.volume = 0; window.speechSynthesis.speak(warmup);
+    if (callActiveRef.current) return;
+    previewEpochRef.current++; outputRef.current.cancel(); setPreview(""); setOutputError("");
+    const epoch = ++callEpochRef.current;
+    if (window.speechSynthesis && window.SpeechSynthesisUtterance) {
+      const warmup = new SpeechSynthesisUtterance(" ");
+      warmup.volume = 0; window.speechSynthesis.speak(warmup);
+    }
     setState(S.CONNECTING); setDuration(0); setMessages([]); histRef.current = []; setError(""); setCloneStatus("");
     callActiveRef.current = true;
+    mutedRef.current = false; setMuted(false); serverInputRef.current = true;
+    if (!typeModeRef.current) {
+      setInputStatus("Waiting for microphone permission…");
+      try { await checkMicrophone(); }
+      catch (error) { if (epoch !== callEpochRef.current) return; callActiveRef.current = false; setState(S.IDLE); setError(error.message); return; }
+      if (!callActiveRef.current || epoch !== callEpochRef.current) return;
+    }
+    setInputStatus("");
     // build mode: open a separate recorder to capture the user's voice for cloning
     if (buildRef.current && cloneConsentRef.current) {
       try {
         const s = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+        if (!callActiveRef.current || epoch !== callEpochRef.current) { s.getTracks().forEach(track => track.stop()); return; }
         clipStreamRef.current = s;
         const mime = MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "";
         const mr = new MediaRecorder(s, mime ? { mimeType: mime } : undefined);
@@ -334,29 +313,31 @@ export default function VoicePage() {
     }
     await new Promise(r => setTimeout(r, 700));
     try {
-      const r = await fetch("/api/voice", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: [], mode: "init", userName, userId, language: langRef.current, agentId: agentRef.current.id, build: buildRef.current }) });
-      if (r.status === 401) { callActiveRef.current = false; setState(S.IDLE); setError("You're signed out — sign in again to call."); return; }
+      const r = await fetch("/api/voice", { signal: AbortSignal.timeout(45000), method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: [], mode: "init", userName, userId, language: langRef.current, agentId: agentRef.current.id, build: buildRef.current }) });
+      if (r.status === 401) { callActiveRef.current = false; clipStreamRef.current?.getTracks().forEach(track => track.stop()); setState(S.IDLE); setError("You're signed out — sign in again to call."); return; }
       const d = await r.json();
+      if (!callActiveRef.current || epoch !== callEpochRef.current) return;
+      if (!r.ok) throw new Error("Call unavailable");
       const g = d.text || `Hey${userName ? ` ${userName}` : ""}! So good to hear you. What's going on?`;
       histRef.current = [{ role: "assistant", content: g }];
       setMessages([{ role: "agent", text: g }]);
       setState(S.SPEAKING);
-      await speak(g);
+      await speak(g, d.speechText);
+      if (epoch !== callEpochRef.current) return;
       if (callActiveRef.current && !mutedRef.current) listenRef.current?.();
-      else setState(S.ACTIVE);
-    } catch (e) { callActiveRef.current = false; setState(S.IDLE); setError("Couldn't connect."); }
+      else if (callActiveRef.current) setState(S.ACTIVE);
+    } catch (e) { if (epoch !== callEpochRef.current) return; callActiveRef.current = false; clipStreamRef.current?.getTracks().forEach(track => track.stop()); setState(S.IDLE); setError("Couldn't connect."); }
   }, [speak, userName, userId]);
 
   const endCall = useCallback(async () => {
-    callActiveRef.current = false;
+    callActiveRef.current = false; callEpochRef.current++;
+    setInputStatus(""); setMicLevel(0);
     window.speechSynthesis?.cancel();
-    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
-    recRef.current?.stop();
-    try { sttStopRef.current && sttStopRef.current(); } catch (e) {}
-    sttStreamRef.current?.getTracks().forEach(t => t.stop());
+    outputRef.current.cancel();
+    recRef.current?.cancel();
     setState(S.ENDED);
     if (userId && histRef.current.length > 1) {
-      try { await fetch("/api/voice", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: "save_call", userId, userName, callMessages: histRef.current, agentId: agentRef.current.id }) }); } catch (e) {}
+      try { await fetch("/api/voice", { signal: AbortSignal.timeout(45000), method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: "save_call", userId, userName, callMessages: histRef.current, agentId: agentRef.current.id }) }); } catch (e) {}
       // log the call for the personality dashboard's voice score
       try { fetch("/api/track", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, event: "voice", seconds: durationRef.current }) }); } catch (e) {}
     }
@@ -391,15 +372,15 @@ export default function VoicePage() {
 
   const micPress = useCallback(() => {
     if (state === S.ACTIVE) { mutedRef.current = false; setMuted(false); listen(); }
-    else if (state === S.LISTENING) { if (langRef.current === "te" && sttStopRef.current) sttStopRef.current(); else recRef.current?.stop(); }
+    else if (state === S.LISTENING) recRef.current?.finish();
   }, [state, listen]);
 
   const toggleMute = useCallback(() => {
     const v = !mutedRef.current;
     mutedRef.current = v; setMuted(v);
-    if (v) { recRef.current?.stop(); try { sttStopRef.current && sttStopRef.current(); } catch (e) {} }
+    if (v) { recRef.current?.cancel(); clipPause(); setTranscript(""); setInputStatus(""); if (stateRef.current === S.LISTENING || stateRef.current === S.ACTIVE || inputStatus === "Transcribing…") setState(S.ACTIVE); }
     else if (callActiveRef.current && stateRef.current === S.ACTIVE) listenRef.current?.();
-  }, []);
+  }, [clipPause, inputStatus]);
 
   useEffect(() => {
     const onKey = e => { if (e.key === "Escape" && isLive) endCall(); };
@@ -407,12 +388,20 @@ export default function VoicePage() {
     return () => window.removeEventListener("keydown", onKey);
   }, [isLive, endCall]);
 
+  useEffect(() => () => {
+    callActiveRef.current = false; callEpochRef.current++;
+    recRef.current?.cancel();
+    clipStreamRef.current?.getTracks().forEach(track => track.stop());
+    window.speechSynthesis?.cancel();
+    previewEpochRef.current++; outputRef.current.cancel();
+  }, []);
+
   const status = {
     [S.IDLE]: "Ready when you are",
-    [S.CONNECTING]: "Calling…",
+    [S.CONNECTING]: inputStatus || "Calling…",
     [S.ACTIVE]: muted ? "Muted" : "Paused — tap ▶",
-    [S.LISTENING]: "Listening — just talk",
-    [S.THINKING]: "Thinking…",
+    [S.LISTENING]: inputStatus || "Listening — just talk",
+    [S.THINKING]: inputStatus === "Transcribing…" ? "Transcribing…" : "Thinking…",
     [S.SPEAKING]: "Speaking",
     [S.ENDED]: "Call ended",
   }[state];
@@ -449,9 +438,9 @@ export default function VoicePage() {
             ))}
             <div style={{ width: 178, height: 178, borderRadius: "50%", padding: 3, background: isLive ? T.grad : T.panel2 }}>
               <div style={{ width: "100%", height: "100%", borderRadius: "50%", background: `radial-gradient(120% 120% at 50% 0%, ${agentObj.look?.hoodie || "#ffe566"}40 0%, #161226 75%)`, overflow: "hidden", display: "flex", justifyContent: "center", border: `1px solid ${T.line}` }}>
-                <div style={{ marginTop: 8 }}>
+                {agentObj.avatar ? <img src={agentObj.avatar} alt={`${agentObj.name}'s AI portrait`} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <div style={{ marginTop: 8 }}>
                   <TonyCharacter size={285} look={agentObj.look || {}} float="none" animated={false} pose="down" expr="😊" />
-                </div>
+                </div>}
               </div>
             </div>
           </div>
@@ -471,11 +460,19 @@ export default function VoicePage() {
           })()}
 
           {/* voice mode */}
-          {!isLive && state !== S.ENDED && (
-            <div style={{ display: "flex", gap: 8 }}>
-              {[["human", "✨ Real voice"], ["classic", "Robo voice"]].map(([v, label]) => (
-                <button key={v} onClick={() => changeVoiceMode(v)} style={{ background: voiceMode === v ? T.grad : T.panel2, border: `1px solid ${T.line}`, color: voiceMode === v ? "white" : T.sub, fontWeight: 700, fontSize: 12, padding: "8px 16px", borderRadius: 100, cursor: "pointer", fontFamily: font }}>{label}</button>
-              ))}
+          {state === S.IDLE && (
+            <div style={{ textAlign: "center", maxWidth: 340 }}>
+              <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
+                {[["human", "✨ Expressive voice"], ["classic", "Device voice"]].map(([v, label]) => (
+                  <button key={v} aria-pressed={voiceMode === v} onClick={() => changeVoiceMode(v)} style={{ background: voiceMode === v ? T.grad : T.panel2, border: `1px solid ${T.line}`, color: voiceMode === v ? "white" : T.sub, fontWeight: 700, fontSize: 12, padding: "8px 16px", borderRadius: 100, cursor: "pointer", fontFamily: font }}>{label}</button>
+                ))}
+              </div>
+              <p style={{ color: T.sub, fontSize: 12, lineHeight: 1.5, margin: "10px 8px" }}>{voiceMode === "human" ? "A warmer greeting, a thoughtful pause, a curious question. Hear the difference." : "Uses your device’s built-in voice. Expression varies by browser."}</p>
+              {voiceMode === "human" && !String(agentObj.voice || "").startsWith("self:") && <div role="group" aria-label="Vocal expression" style={{ display: "flex", gap: 8, justifyContent: "center", marginBottom: 10 }}>
+                {[["natural", "Balanced"], ["lively", "Lively"]].map(([value, label]) => <button key={value} aria-pressed={expression === value} onClick={() => changeExpression(value)} style={{ padding: "6px 14px", borderRadius: 16, border: `1px solid ${expression === value ? T.pink : T.line}`, background: expression === value ? "#ff5e7e22" : T.panel, color: T.text, cursor: "pointer" }}>{label}</button>)}
+              </div>}
+              <button disabled={!isLoaded || !isSignedIn} onClick={previewVoice} style={{ border: `1px solid ${T.line}`, borderRadius: 20, padding: "9px 16px", color: T.text, background: T.panel2, cursor: "pointer" }}>{preview ? "■ Stop preview" : "▶ Preview voice"}</button>
+              <div role="status" aria-live="polite" style={{ minHeight: 18, marginTop: 6, color: T.sub, fontSize: 12 }}>{preview || "Listen first · no microphone needed"}</div>
             </div>
           )}
 
@@ -495,6 +492,7 @@ export default function VoicePage() {
         {/* accessibility: type-instead-of-speak toggle */}
         {(state === S.IDLE || isLive) && (
           <div style={{ textAlign: "center", position: "relative", zIndex: 5 }}>
+            {state === S.IDLE && !typeMode && <p style={{ padding: "0 24px", marginBottom: 8, color: T.sub, fontSize: 12 }}>Allow microphone access when asked. Spoken turns use our speech transcription service.</p>}
             <button onClick={toggleTypeMode} style={{ background: "transparent", border: "none", color: T.sub, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: font, padding: "6px 10px" }}>
               {typeMode ? "🎙 Switch to voice" : "✍️ Can't speak? Type instead"}
             </button>
@@ -504,7 +502,7 @@ export default function VoicePage() {
         {/* controls */}
         <div style={{ padding: "10px 22px 30px", display: "flex", justifyContent: "center", alignItems: "center", gap: 22, position: "relative", zIndex: 5 }}>
           {state === S.IDLE && (
-            <button onClick={startCall} disabled={!voicesReady} style={{ width: "100%", background: T.grad, border: "none", color: "white", fontWeight: 800, fontSize: 16, padding: "16px 0", borderRadius: 100, cursor: "pointer", fontFamily: font, boxShadow: "0 12px 36px rgba(255,94,126,0.4)", opacity: voicesReady ? 1 : 0.6 }}>
+            <button onClick={startCall} disabled={!isLoaded || !isSignedIn} style={{ width: "100%", background: T.grad, border: "none", color: "white", fontWeight: 800, fontSize: 16, padding: "16px 0", borderRadius: 100, cursor: "pointer", fontFamily: font, boxShadow: "0 12px 36px rgba(255,94,126,0.4)", opacity: isLoaded && isSignedIn ? 1 : 0.6 }}>
               {buildMode ? "🎙 Start — talk to Rico" : `📞 Call ${agentObj.name}`}
             </button>
           )}
@@ -517,7 +515,7 @@ export default function VoicePage() {
               </label>
             </div>
           )}
-          {state === S.CONNECTING && <div style={{ color: T.sub, fontWeight: 600, fontSize: 14, padding: "16px 0" }}>Ringing…</div>}
+          {state === S.CONNECTING && <div style={{ color: T.sub, fontWeight: 600, fontSize: 14, padding: "16px 0" }}>Connecting… <button onClick={endCall}>Cancel call</button></div>}
           {isLive && typeMode && (<>
             <input value={callInput} onChange={e => setCallInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter") sendTyped(); }}
               placeholder={state === S.SPEAKING ? "Rico is speaking…" : state === S.THINKING ? "Rico is thinking…" : "Type your message…"}
@@ -525,15 +523,15 @@ export default function VoicePage() {
               style={{ flex: 1, background: T.panel2, border: `1px solid ${T.line}`, color: T.text, fontSize: 15, padding: "14px 16px", borderRadius: 100, outline: "none", fontFamily: font, opacity: (state === S.THINKING || state === S.SPEAKING) ? 0.5 : 1 }} />
             <button onClick={sendTyped} disabled={!callInput.trim() || state === S.THINKING || state === S.SPEAKING}
               style={{ width: 54, height: 54, borderRadius: "50%", background: T.grad, border: "none", color: "white", fontSize: 20, cursor: callInput.trim() ? "pointer" : "not-allowed", opacity: (!callInput.trim() || state === S.THINKING || state === S.SPEAKING) ? 0.5 : 1, flexShrink: 0 }}>➤</button>
-            <button onClick={endCall} style={{ width: 54, height: 54, borderRadius: "50%", background: "#e63946", border: "none", fontSize: 18, cursor: "pointer", flexShrink: 0 }}>📵</button>
+            <button aria-label="End call" onClick={endCall} style={{ width: 54, height: 54, borderRadius: "50%", background: "#e63946", border: "none", fontSize: 18, cursor: "pointer", flexShrink: 0 }}>📵</button>
           </>)}
           {isLive && !typeMode && (<>
-            <button onClick={toggleMute} style={{ width: 56, height: 56, borderRadius: "50%", background: muted ? "#ff5e7e33" : T.panel2, border: `1px solid ${T.line}`, fontSize: 19, cursor: "pointer" }}>{muted ? "🔇" : "🎙"}</button>
-            <button onClick={micPress} disabled={state === S.THINKING || state === S.SPEAKING}
+            <button aria-label={muted ? "Unmute microphone" : "Mute microphone"} onClick={toggleMute} style={{ width: 56, height: 56, borderRadius: "50%", background: muted ? "#ff5e7e33" : T.panel2, border: `1px solid ${T.line}`, fontSize: 19, cursor: "pointer" }}>{muted ? "🔇" : "🎙"}</button>
+            <button aria-label={state === S.LISTENING ? "Send spoken message" : "Retry microphone"} onClick={micPress} disabled={state === S.THINKING || state === S.SPEAKING}
               style={{ width: 74, height: 74, borderRadius: "50%", background: state === S.LISTENING ? `${T.violet}` : T.panel2, border: `1px solid ${T.line}`, color: "white", fontSize: 24, cursor: (state === S.THINKING || state === S.SPEAKING) ? "not-allowed" : "pointer", opacity: (state === S.THINKING || state === S.SPEAKING) ? 0.45 : 1 }}>
               {state === S.LISTENING ? "✓" : "▶"}
             </button>
-            <button onClick={endCall} style={{ width: 56, height: 56, borderRadius: "50%", background: "#e63946", border: "none", fontSize: 19, cursor: "pointer" }}>📵</button>
+            <button aria-label="End call" onClick={endCall} style={{ width: 56, height: 56, borderRadius: "50%", background: "#e63946", border: "none", fontSize: 19, cursor: "pointer" }}>📵</button>
           </>)}
           {state === S.ENDED && (
             <div style={{ width: "100%" }}>
@@ -554,8 +552,14 @@ export default function VoicePage() {
           )}
         </div>
 
-        {(error || voiceNotice) && (
-          <div style={{ position: "absolute", top: 64, left: 20, right: 20, textAlign: "center", color: error ? T.pink : T.sub, fontSize: 12, fontWeight: 600, zIndex: 6 }}>{error || voiceNotice}</div>
+        {isLive && !typeMode && serverInputRef.current && state === S.LISTENING && (
+          <div aria-label="Microphone input level" role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(micLevel * 100)} style={{ position: "absolute", bottom: 110, left: "35%", width: "30%", height: 6, background: T.panel2, borderRadius: 8 }}>
+            <div style={{ width: `${Math.max(2, micLevel * 100)}%`, height: "100%", background: T.violet, borderRadius: 8 }} />
+          </div>
+        )}
+        {outputError && <div role="alert" style={{ padding: "8px 22px", color: T.pink, fontSize: 12, textAlign: "center" }}>{outputError}{isLive && " You can still read the reply above."}</div>}
+        {(error || (voiceMode === "classic" && voiceNotice)) && (
+          <div role={error ? "alert" : "status"} style={{ position: "absolute", top: 64, left: 20, right: 20, textAlign: "center", color: error ? T.pink : T.sub, fontSize: 12, fontWeight: 600, zIndex: 6 }}>{error || voiceNotice}{error && isLive && !typeMode && state === S.ACTIVE && <button onClick={() => { serverInputRef.current = true; mutedRef.current = false; setMuted(false); listen(); }} style={{ display: "block", margin: "8px auto", padding: "8px 14px", borderRadius: 20, border: "none", cursor: "pointer" }}>Retry microphone</button>}</div>
         )}
 
       </div>
@@ -569,3 +573,4 @@ export default function VoicePage() {
     `}</style>
   </>);
 }
+

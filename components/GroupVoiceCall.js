@@ -3,6 +3,9 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import TonyCharacter from "./TonyCharacter";
 import { getAgent } from "../lib/agents";
+import { LANGS } from "../lib/i18n";
+import { createVoiceInput } from "../lib/voice-input";
+import { createVoiceOutput } from "../lib/voice-output";
 
 const T = { bg: "#0f0e17", panel: "rgba(255,255,255,0.07)", line: "rgba(255,255,255,0.1)", text: "#f5f3ff", sub: "#a9a5c0", grad: "#d6365e", pink: "#ff5e7e", violet: "#8b5cf6" };
 const font = "'DM Sans',system-ui,sans-serif";
@@ -16,7 +19,12 @@ export default function GroupVoiceCall({ group, userName, userId, lang, onMessag
   const [speaker, setSpeaker] = useState(null); // agentId currently speaking
   const [log, setLog] = useState([]); // [{from, text}]
   const [muted, setMuted] = useState(false);
-  const audioRef = useRef(null);
+  const [error, setError] = useState("");
+  const [inputStatus, setInputStatus] = useState("");
+  const listenRef = useRef(null);
+  const serverInputRef = useRef(true);
+  const outputRef = useRef(null);
+  if (!outputRef.current) outputRef.current = createVoiceOutput();
   const recRef = useRef(null);
   const activeRef = useRef(true);
   const mutedRef = useRef(false);
@@ -25,89 +33,79 @@ export default function GroupVoiceCall({ group, userName, userId, lang, onMessag
   useEffect(() => { stateRef.current = state; }, [state]);
 
   // stop everything on unmount
-  useEffect(() => () => {
+  useEffect(() => { activeRef.current = true; return () => {
     activeRef.current = false;
     window.speechSynthesis?.cancel();
-    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
-    try { recRef.current?.stop(); } catch (e) {}
-  }, []);
+    outputRef.current.cancel();
+    try { recRef.current?.cancel(); } catch (e) {}
+  }; }, []);
 
-  // play a single agent's reply via ElevenLabs TTS, falling back to browser synth
+  // Each companion retains their selected voice. Fail visibly instead of switching
+  // to a robotic device voice without the listener choosing it.
   const playReply = useCallback(async (text, agentId) => {
-    window.speechSynthesis?.cancel();
-    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
-    try {
-      const r = await fetch("/api/tts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, language: lang || "en", agentId }) });
-      if (r.ok) {
-        const blob = await r.blob();
-        const url = URL.createObjectURL(blob);
-        const audio = new Audio(url);
-        audioRef.current = audio;
-        await new Promise(res => { audio.onended = res; audio.onerror = res; audio.play().catch(res); setTimeout(res, text.length * 95 + 3500); });
-        URL.revokeObjectURL(url);
-        audioRef.current = null;
-        return;
-      }
-    } catch (e) {}
-    // browser fallback
-    await new Promise(res => {
-      const u = new SpeechSynthesisUtterance(text);
-      u.rate = 0.95; u.onend = res; u.onerror = res;
-      window.speechSynthesis.speak(u);
-      setTimeout(res, text.length * 80 + 3000);
-    });
+    if (!activeRef.current) return;
+    await outputRef.current.speak({ text, language: lang || "en", agentId });
   }, [lang]);
-
-  const listen = useCallback(() => {
-    if (!activeRef.current || mutedRef.current) { setState(S.IDLE); return; }
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) { setState(S.IDLE); return; }
-    const rec = new SR();
-    rec.continuous = false; rec.interimResults = true; rec.lang = lang === "ar" ? "ar-SA" : "en-US";
-    let final = "";
-    rec.onresult = e => { final = Array.from(e.results).map(r => r[0].transcript).join(""); setTranscript(final); };
-    rec.onend = async () => {
-      setTranscript("");
-      if (!activeRef.current) return;
-      if (!final.trim()) { if (!mutedRef.current) setTimeout(listen, 300); else setState(S.IDLE); return; }
-      setState(S.THINKING); setSpeaker(null);
-      const withUser = [...histRef.current, { from: "user", text: final }];
-      histRef.current = withUser;
-      setLog(l => [...l, { from: "user", text: final }]);
-      if (onMessage) onMessage({ from: "user", text: final });
-      try {
-        const r = await fetch("/api/group", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: "chat", groupName: group.name, agents: group.agentIds, messages: withUser, userName, language: lang || "en" }) });
-        const d = await r.json();
-        for (const rep of d.replies || []) {
-          if (!activeRef.current) break;
-          setSpeaker(rep.agentId); setState(S.SPEAKING);
-          setLog(l => [...l, { from: rep.agentId, text: rep.text }]);
-          histRef.current = [...histRef.current, { from: rep.agentId, text: rep.text }];
-          if (onMessage) onMessage({ from: rep.agentId, text: rep.text });
-          await playReply(rep.text, rep.agentId);
-        }
-      } catch (e) {}
-      setSpeaker(null);
-      if (activeRef.current && !mutedRef.current) setTimeout(listen, 400);
-      else setState(S.IDLE);
-    };
-    recRef.current = rec;
-    try { rec.start(); setState(S.LISTENING); } catch (e) { setTimeout(listen, 500); }
+  const handleSpoke = useCallback(async text => {
+    if (!activeRef.current || mutedRef.current) return;
+    setState(S.THINKING); setSpeaker(null); setInputStatus("");
+    const withUser = [...histRef.current, { from: "user", text }];
+    histRef.current = withUser;
+    setLog(log => [...log, { from: "user", text }]);
+    onMessage?.({ from: "user", text });
+    try {
+      const response = await fetch("/api/group", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: "chat", groupName: group.name, agents: group.agentIds, messages: withUser, userName, language: lang || "en" }) });
+      const data = await response.json();
+      if (!response.ok) throw Error("Group response failed");
+      for (const reply of data.replies || []) {
+        if (!activeRef.current) return;
+        setSpeaker(reply.agentId); setState(S.SPEAKING);
+        setLog(log => [...log, { from: reply.agentId, text: reply.text }]);
+        histRef.current = [...histRef.current, { from: reply.agentId, text: reply.text }];
+        onMessage?.({ from: reply.agentId, text: reply.text });
+        await playReply(reply.text, reply.agentId);
+      }
+    } catch (error) {
+      if (activeRef.current) { setError(error.message || "Could not get a group reply. Tap Retry microphone."); setSpeaker(null); setState(S.IDLE); }
+      return;
+    }
+    if (!activeRef.current) return;
+    setSpeaker(null);
+    if (!mutedRef.current) listenRef.current?.();
+    else setState(S.IDLE);
   }, [group, lang, userName, onMessage, playReply]);
 
-  const start = useCallback(() => { listen(); }, [listen]);
+  const listen = useCallback(() => {
+    recRef.current?.cancel();
+    if (!activeRef.current || mutedRef.current) return;
+    setError(""); setTranscript(""); setState(S.IDLE);
+    const input = createVoiceInput({
+      language: (LANGS[lang] || LANGS.en).speech,
+      preferServer: serverInputRef.current,
+      onFallback: () => { serverInputRef.current = true; },
+      onTranscript: setTranscript,
+      onStatus: value => { setInputStatus(value); if (value === "Transcribing…") setState(S.THINKING); },
+      onListening: () => setState(S.LISTENING),
+      onText: text => { setTranscript(""); void handleSpoke(text); },
+      onError: message => { setTranscript(""); setError(message); setState(S.IDLE); },
+    });
+    recRef.current = input;
+    input.start();
+  }, [lang, handleSpoke]);
+  useEffect(() => { listenRef.current = listen; }, [listen]);
+  const start = useCallback(() => { mutedRef.current = false; setMuted(false); listen(); }, [listen]);
 
   const toggleMute = () => {
     const v = !mutedRef.current; mutedRef.current = v; setMuted(v);
-    if (v) { try { recRef.current?.stop(); } catch (e) {} window.speechSynthesis?.cancel(); if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; } setState(S.IDLE); }
+    if (v) { try { recRef.current?.cancel(); } catch (e) {} window.speechSynthesis?.cancel(); outputRef.current.cancel(); setState(S.IDLE); }
     else if (stateRef.current === S.IDLE) listen();
   };
 
   const end = () => {
     activeRef.current = false;
     window.speechSynthesis?.cancel();
-    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
-    try { recRef.current?.stop(); } catch (e) {}
+    outputRef.current.cancel();
+    try { recRef.current?.cancel(); } catch (e) {}
     onEnd?.();
   };
 
@@ -138,7 +136,7 @@ export default function GroupVoiceCall({ group, userName, userId, lang, onMessag
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={() => setExpanded(false)} style={{ background: T.panel, border: `1px solid ${T.line}`, color: T.sub, width: 30, height: 30, borderRadius: "50%", cursor: "pointer", fontSize: 13 }}>—</button>
-          <button onClick={end} style={{ background: "#e63946", border: "none", color: "white", width: 30, height: 30, borderRadius: "50%", cursor: "pointer", fontSize: 13 }}>✕</button>
+          <button aria-label="End group call" onClick={end} style={{ background: "#e63946", border: "none", color: "white", width: 30, height: 30, borderRadius: "50%", cursor: "pointer", fontSize: 13 }}>✕</button>
         </div>
       </div>
 
@@ -161,6 +159,8 @@ export default function GroupVoiceCall({ group, userName, userId, lang, onMessag
         )}
       </div>
 
+      {error && <div role="alert" style={{ color: T.pink, padding: "0 16px 12px", fontSize: 13 }}>{error}<button onClick={start} style={{ display: "block", marginTop: 8, padding: "8px 12px", borderRadius: 16 }}>Retry microphone</button></div>}
+      {inputStatus === "Transcribing…" && state === S.THINKING && <div role="status" style={{ color: T.sub, padding: "0 16px 10px" }}>Transcribing your speech…</div>}
       {/* recent log */}
       {log.length > 0 && (
         <div style={{ maxHeight: 80, overflowY: "auto", padding: "0 16px 10px", display: "flex", flexDirection: "column", gap: 4 }}>
@@ -181,11 +181,11 @@ export default function GroupVoiceCall({ group, userName, userId, lang, onMessag
           <button onClick={start} style={{ background: T.grad, border: "none", color: "white", fontWeight: 800, fontSize: 14, padding: "12px 32px", borderRadius: 100, cursor: "pointer", fontFamily: font }}>🎙 Start talking</button>
         ) : (
           <>
-            <button onClick={toggleMute} title={muted ? "Unmute" : "Mute"} style={{ width: 48, height: 48, borderRadius: "50%", background: muted ? "#ff5e7e22" : T.panel, border: `1px solid ${muted ? T.pink : T.line}`, fontSize: 20, cursor: "pointer" }}>{muted ? "🔇" : "🎙"}</button>
+            <button onClick={toggleMute} aria-label={muted ? "Unmute microphone" : "Mute microphone"} title={muted ? "Unmute" : "Mute"} style={{ width: 48, height: 48, borderRadius: "50%", background: muted ? "#ff5e7e22" : T.panel, border: `1px solid ${muted ? T.pink : T.line}`, fontSize: 20, cursor: "pointer" }}>{muted ? "🔇" : "🎙"}</button>
             <div style={{ width: 48, height: 48, borderRadius: "50%", background: T.panel, border: `1.5px solid ${pulseColor}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, animation: state !== S.IDLE ? "grp-pulse 1.4s ease-in-out infinite" : "none" }}>
               {state === S.LISTENING ? "👂" : state === S.THINKING ? "💭" : state === S.SPEAKING ? "🔊" : "💬"}
             </div>
-            <button onClick={end} style={{ width: 48, height: 48, borderRadius: "50%", background: "#e6394622", border: `1px solid #e63946`, fontSize: 20, cursor: "pointer" }}>📵</button>
+            <button aria-label="End group call" onClick={end} style={{ width: 48, height: 48, borderRadius: "50%", background: "#e6394622", border: `1px solid #e63946`, fontSize: 20, cursor: "pointer" }}>📵</button>
           </>
         )}
       </div>
@@ -193,3 +193,4 @@ export default function GroupVoiceCall({ group, userName, userId, lang, onMessag
     </div>
   );
 }
+
