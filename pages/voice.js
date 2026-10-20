@@ -8,6 +8,7 @@ import TonyCharacter from "../components/TonyCharacter";
 import Aurora from "../components/Aurora";
 import { getAgent } from "../lib/agents";
 import { checkMicrophone, createVoiceInput } from "../lib/voice-input";
+import { createVoiceOutput } from "../lib/voice-output";
 
 const S = { IDLE:"idle", CONNECTING:"connecting", ACTIVE:"active", LISTENING:"listening", THINKING:"thinking", SPEAKING:"speaking", ENDED:"ended" };
 const T = { bg:"#0f0e17", panel:"rgba(255,255,255,0.055)", panel2:"rgba(255,255,255,0.09)", line:"rgba(255,255,255,0.1)", text:"#f5f3ff", sub:"#9b97b0", grad:"linear-gradient(135deg,#ff5e7e 0%,#8b5cf6 100%)", pink:"#ff5e7e", violet:"#8b5cf6" };
@@ -30,6 +31,9 @@ export default function VoicePage() {
   const [lang, setLangState] = useState("en");
   const [langPref, setLangPref] = useState("auto");
   const [voiceNotice, setVoiceNotice] = useState("");
+  const [outputError, setOutputError] = useState("");
+  const [preview, setPreview] = useState("");
+  const previewEpochRef = useRef(0);
   const [voiceMode, setVoiceMode] = useState("human");
   const [agentObj, setAgentObj] = useState(getAgent("tony"));
   // Accessibility: "type, don't talk" mode for non-speaking users — they type, Rico still replies in voice + text.
@@ -39,7 +43,8 @@ export default function VoicePage() {
   useEffect(() => { try { const v = localStorage.getItem("rico_typemode") === "1"; setTypeMode(v); typeModeRef.current = v; } catch (e) {} }, []);
 
   const voiceModeRef = useRef("human");
-  const audioRef = useRef(null);
+  const outputRef = useRef(null);
+  if (!outputRef.current) outputRef.current = createVoiceOutput();
   const langRef = useRef("en");
   const langPrefRef = useRef("auto");
   const recRef = useRef(null);
@@ -101,6 +106,7 @@ export default function VoicePage() {
   }, []);
 
   const changeVoiceMode = useCallback((v) => {
+    previewEpochRef.current++; outputRef.current.cancel(); window.speechSynthesis?.cancel(); setPreview(""); setOutputError("");
     setVoiceMode(v); voiceModeRef.current = v;
     window.localStorage.setItem("hitony_voice", v);
   }, []);
@@ -118,7 +124,7 @@ export default function VoicePage() {
       const rank = v => (/natural|neural|premium|enhanced|online/i.test(v.name) ? 0 : /google/i.test(v.name) ? 1 : /microsoft/i.test(v.name) ? 2 : 3);
       matches.sort((a, b) => rank(a) - rank(b));
       voiceRef.current = matches[0] || null;
-      setVoiceNotice(!matches.length && lang !== "en" ? "No device voice for this language — replies will show as text if the premium voice is unavailable." : "");
+      setVoiceNotice(!matches.length && lang !== "en" ? "No device voice for this language. Choose Expressive voice." : "");
     }
     loadVoices();
     if (!window.speechSynthesis) return;
@@ -147,51 +153,36 @@ export default function VoicePage() {
     }, 150);
   }), []);
 
-  const playStreamed = useCallback((resp) => new Promise(async (resolve) => {
-    const mime = "audio/mpeg";
-    let settled = false;
-    const finish = (url) => { if (!settled) { settled = true; if (url) URL.revokeObjectURL(url); resolve(); } };
-    if (!(window.MediaSource && MediaSource.isTypeSupported(mime))) {
-      const blob = await resp.blob();
-      const url = URL.createObjectURL(blob);
-      const audio = new Audio(url);
-      audioRef.current = audio;
-      audio.onended = () => finish(url); audio.onerror = () => finish(url);
-      audio.play().catch(() => finish(url));
-      return;
-    }
-    const ms = new MediaSource();
-    const url = URL.createObjectURL(ms);
-    const audio = new Audio(url);
-    audioRef.current = audio;
-    audio.onended = () => finish(url); audio.onerror = () => finish(url);
-    ms.addEventListener("sourceopen", async () => {
-      try {
-        const sbuf = ms.addSourceBuffer(mime);
-        const reader = resp.body.getReader();
-        const append = (chunk) => new Promise(r2 => { sbuf.addEventListener("updateend", r2, { once: true }); sbuf.appendBuffer(chunk); });
-        while (true) { const { done, value } = await reader.read(); if (done) break; await append(value); }
-        if (ms.readyState === "open") ms.endOfStream();
-      } catch (e) { try { if (ms.readyState === "open") ms.endOfStream(); } catch (_) {} }
-    }, { once: true });
-    audio.play().catch(() => finish(url));
-    setTimeout(() => finish(url), 30000);
-  }), []);
-
   const speak = useCallback(async (text) => {
     const epoch = callEpochRef.current;
     if (!callActiveRef.current) return;
+    setOutputError("");
     if (voiceModeRef.current === "human") {
       try {
-        const r = await fetch("/api/tts", { signal: AbortSignal.timeout(30000), method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, language: langRef.current, agentId: agentRef.current.id }) });
-        if (!callActiveRef.current || epoch !== callEpochRef.current) return;
-        if (r.ok) { await playStreamed(r); return; }
-        if (r.status === 503) voiceModeRef.current = "classic";
-      } catch (e) {}
+        await outputRef.current.speak({ text, language: langRef.current, agentId: agentRef.current.id });
+      } catch (e) { if (callActiveRef.current && epoch === callEpochRef.current) setOutputError(e.message); }
+      return;
     }
     if (!callActiveRef.current || epoch !== callEpochRef.current) return;
     await speakBrowser(text);
-  }, [speakBrowser, playStreamed]);
+  }, [speakBrowser]);
+
+  const previewVoice = useCallback(async () => {
+    if (preview) { previewEpochRef.current++; outputRef.current.cancel(); window.speechSynthesis?.cancel(); setPreview(""); return; }
+    const epoch = ++previewEpochRef.current;
+    setOutputError(""); setPreview("Preparing voice…");
+    const samples = {
+      en: "Hey, it's good to hear from you! That sounds like a big step. Let's take it one thing at a time — what's on your mind?",
+      hi: "अरे, तुमसे बात करके अच्छा लगा! ये तो बड़ा कदम है। चलो, एक-एक चीज़ समझते हैं। तुम्हारे मन में क्या चल रहा है?",
+      es: "¡Qué gusto escucharte! Parece un gran paso. Vamos poco a poco. ¿Qué tienes en mente?",
+    };
+    const language = samples[langRef.current] ? langRef.current : "en";
+    try {
+      if (voiceModeRef.current === "human") await outputRef.current.speak({ text: samples[language], language, agentId: agentRef.current.id }, () => setPreview("Playing preview…"));
+      else { setPreview("Playing device voice…"); await speakBrowser(samples[language]); }
+    } catch (e) { if (epoch === previewEpochRef.current) setOutputError(e.message); }
+    finally { if (epoch === previewEpochRef.current) setPreview(""); }
+  }, [preview, speakBrowser]);
 
   const handleSpoke = useCallback(async (text) => {
     if (!callActiveRef.current) return;
@@ -277,6 +268,7 @@ export default function VoicePage() {
 
   const startCall = useCallback(async () => {
     if (callActiveRef.current) return;
+    previewEpochRef.current++; outputRef.current.cancel(); setPreview(""); setOutputError("");
     const epoch = ++callEpochRef.current;
     if (window.speechSynthesis && window.SpeechSynthesisUtterance) {
       const warmup = new SpeechSynthesisUtterance(" ");
@@ -327,7 +319,7 @@ export default function VoicePage() {
     callActiveRef.current = false; callEpochRef.current++;
     setInputStatus(""); setMicLevel(0);
     window.speechSynthesis?.cancel();
-    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
+    outputRef.current.cancel();
     recRef.current?.cancel();
     setState(S.ENDED);
     if (userId && histRef.current.length > 1) {
@@ -387,7 +379,7 @@ export default function VoicePage() {
     recRef.current?.cancel();
     clipStreamRef.current?.getTracks().forEach(track => track.stop());
     window.speechSynthesis?.cancel();
-    audioRef.current?.pause();
+    previewEpochRef.current++; outputRef.current.cancel();
   }, []);
 
   const status = {
@@ -454,11 +446,16 @@ export default function VoicePage() {
           })()}
 
           {/* voice mode */}
-          {!isLive && state !== S.ENDED && (
-            <div style={{ display: "flex", gap: 8 }}>
-              {[["human", "✨ Real voice"], ["classic", "Robo voice"]].map(([v, label]) => (
-                <button key={v} onClick={() => changeVoiceMode(v)} style={{ background: voiceMode === v ? T.grad : T.panel2, border: `1px solid ${T.line}`, color: voiceMode === v ? "white" : T.sub, fontWeight: 700, fontSize: 12, padding: "8px 16px", borderRadius: 100, cursor: "pointer", fontFamily: font }}>{label}</button>
-              ))}
+          {state === S.IDLE && (
+            <div style={{ textAlign: "center", maxWidth: 340 }}>
+              <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
+                {[["human", "✨ Expressive voice"], ["classic", "Device voice"]].map(([v, label]) => (
+                  <button key={v} aria-pressed={voiceMode === v} onClick={() => changeVoiceMode(v)} style={{ background: voiceMode === v ? T.grad : T.panel2, border: `1px solid ${T.line}`, color: voiceMode === v ? "white" : T.sub, fontWeight: 700, fontSize: 12, padding: "8px 16px", borderRadius: 100, cursor: "pointer", fontFamily: font }}>{label}</button>
+                ))}
+              </div>
+              <p style={{ color: T.sub, fontSize: 12, lineHeight: 1.5, margin: "10px 8px" }}>{voiceMode === "human" ? "Natural pauses and more expressive delivery, in your companion’s own voice." : "Uses your device’s built-in voice. Expression varies by browser."}</p>
+              <button disabled={!isLoaded || !isSignedIn} onClick={previewVoice} style={{ border: `1px solid ${T.line}`, borderRadius: 20, padding: "9px 16px", color: T.text, background: T.panel2, cursor: "pointer" }}>{preview ? "■ Stop preview" : "▶ Preview voice"}</button>
+              <div role="status" aria-live="polite" style={{ minHeight: 18, marginTop: 6, color: T.sub, fontSize: 12 }}>{preview || "Listen first · no microphone needed"}</div>
             </div>
           )}
 
@@ -543,7 +540,8 @@ export default function VoicePage() {
             <div style={{ width: `${Math.max(2, micLevel * 100)}%`, height: "100%", background: T.violet, borderRadius: 8 }} />
           </div>
         )}
-        {(error || voiceNotice) && (
+        {outputError && <div role="alert" style={{ padding: "8px 22px", color: T.pink, fontSize: 12, textAlign: "center" }}>{outputError}{isLive && " You can still read the reply above."}</div>}
+        {(error || (voiceMode === "classic" && voiceNotice)) && (
           <div role={error ? "alert" : "status"} style={{ position: "absolute", top: 64, left: 20, right: 20, textAlign: "center", color: error ? T.pink : T.sub, fontSize: 12, fontWeight: 600, zIndex: 6 }}>{error || voiceNotice}{error && isLive && !typeMode && state === S.ACTIVE && <button onClick={() => { serverInputRef.current = true; mutedRef.current = false; setMuted(false); listen(); }} style={{ display: "block", margin: "8px auto", padding: "8px 14px", borderRadius: 20, border: "none", cursor: "pointer" }}>Retry microphone</button>}</div>
         )}
 

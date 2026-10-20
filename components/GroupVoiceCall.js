@@ -5,6 +5,7 @@ import TonyCharacter from "./TonyCharacter";
 import { getAgent } from "../lib/agents";
 import { LANGS } from "../lib/i18n";
 import { createVoiceInput } from "../lib/voice-input";
+import { createVoiceOutput } from "../lib/voice-output";
 
 const T = { bg: "#0f0e17", panel: "rgba(255,255,255,0.07)", line: "rgba(255,255,255,0.1)", text: "#f5f3ff", sub: "#a9a5c0", grad: "#d6365e", pink: "#ff5e7e", violet: "#8b5cf6" };
 const font = "'DM Sans',system-ui,sans-serif";
@@ -22,7 +23,8 @@ export default function GroupVoiceCall({ group, userName, userId, lang, onMessag
   const [inputStatus, setInputStatus] = useState("");
   const listenRef = useRef(null);
   const serverInputRef = useRef(true);
-  const audioRef = useRef(null);
+  const outputRef = useRef(null);
+  if (!outputRef.current) outputRef.current = createVoiceOutput();
   const recRef = useRef(null);
   const activeRef = useRef(true);
   const mutedRef = useRef(false);
@@ -34,39 +36,16 @@ export default function GroupVoiceCall({ group, userName, userId, lang, onMessag
   useEffect(() => { activeRef.current = true; return () => {
     activeRef.current = false;
     window.speechSynthesis?.cancel();
-    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
+    outputRef.current.cancel();
     try { recRef.current?.cancel(); } catch (e) {}
   }; }, []);
 
-  // play a single agent's reply via ElevenLabs TTS, falling back to browser synth
+  // Each companion retains their selected voice. Fail visibly instead of switching
+  // to a robotic device voice without the listener choosing it.
   const playReply = useCallback(async (text, agentId) => {
-    window.speechSynthesis?.cancel();
-    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
-    try {
-      const r = await fetch("/api/tts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, language: lang || "en", agentId }) });
-      if (r.ok) {
-        const blob = await r.blob();
-        if (!activeRef.current) return;
-        const url = URL.createObjectURL(blob);
-        const audio = new Audio(url);
-        audioRef.current = audio;
-        await new Promise(res => { audio.onended = res; audio.onerror = res; audio.play().catch(res); setTimeout(res, text.length * 95 + 3500); });
-        URL.revokeObjectURL(url);
-        audioRef.current = null;
-        return;
-      }
-    } catch (e) {}
     if (!activeRef.current) return;
-    // browser fallback
-    await new Promise(res => {
-      if (!window.speechSynthesis || !window.SpeechSynthesisUtterance) { res(); return; }
-      const u = new SpeechSynthesisUtterance(text);
-      u.rate = 0.95; u.onend = res; u.onerror = res;
-      window.speechSynthesis.speak(u);
-      setTimeout(res, text.length * 80 + 3000);
-    });
+    await outputRef.current.speak({ text, language: lang || "en", agentId });
   }, [lang]);
-
   const handleSpoke = useCallback(async text => {
     if (!activeRef.current || mutedRef.current) return;
     setState(S.THINKING); setSpeaker(null); setInputStatus("");
@@ -86,8 +65,8 @@ export default function GroupVoiceCall({ group, userName, userId, lang, onMessag
         onMessage?.({ from: reply.agentId, text: reply.text });
         await playReply(reply.text, reply.agentId);
       }
-    } catch {
-      if (activeRef.current) { setError("Could not get a group reply. Tap Retry microphone."); setState(S.IDLE); }
+    } catch (error) {
+      if (activeRef.current) { setError(error.message || "Could not get a group reply. Tap Retry microphone."); setSpeaker(null); setState(S.IDLE); }
       return;
     }
     if (!activeRef.current) return;
@@ -118,14 +97,14 @@ export default function GroupVoiceCall({ group, userName, userId, lang, onMessag
 
   const toggleMute = () => {
     const v = !mutedRef.current; mutedRef.current = v; setMuted(v);
-    if (v) { try { recRef.current?.cancel(); } catch (e) {} window.speechSynthesis?.cancel(); if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; } setState(S.IDLE); }
+    if (v) { try { recRef.current?.cancel(); } catch (e) {} window.speechSynthesis?.cancel(); outputRef.current.cancel(); setState(S.IDLE); }
     else if (stateRef.current === S.IDLE) listen();
   };
 
   const end = () => {
     activeRef.current = false;
     window.speechSynthesis?.cancel();
-    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
+    outputRef.current.cancel();
     try { recRef.current?.cancel(); } catch (e) {}
     onEnd?.();
   };
