@@ -13,10 +13,31 @@ for relative in ("core/meetings/modules/gmeet-pipeline/src/gmeet-pipeline.ts",
     if not target.is_file():
         continue
     source = target.read_text()
-    if "closedTurns" in source:
-        continue
     typescript = target.suffix == ".ts"
     typed = ": string" if typescript else ""
+    if "transcriptionQueue" not in source:
+        # A CPU service accepts one request at a time. Keep per-channel identities,
+        # but serialize STT so simultaneous turns do not exhaust all retries.
+        needle = "const mgr = new SpeakerStreamManager(opts.config);"
+        if source.count(needle) != 1:
+            raise RuntimeError("Unexpected pinned pipeline: manager declaration")
+        source = source.replace(needle, """const mgr = new SpeakerStreamManager({ ...opts.config, callbackStampedFrames: true });
+  let transcriptionQueue = Promise.resolve();
+""")
+        needle = "const r = await opts.transcribe(audio, mgr.getLastConfirmedText(speakerId) || undefined);"
+        if source.count(needle) != 1:
+            raise RuntimeError("Unexpected pinned pipeline: transcribe call")
+        source = source.replace(needle, """const task = transcriptionQueue.then(() =>
+          opts.transcribe(audio, mgr.getLastConfirmedText(speakerId) || undefined));
+        transcriptionQueue = task.then(() => {}, () => {});
+        const r = await task;""")
+        # A one-second delivery gap under CPU pressure is not a reliable end of
+        # utterance. Confident speaker-name changes still split immediately.
+        source = source.replace("opts.onsetGapMs ?? 1000", "opts.onsetGapMs ?? 3000")
+    if "closedTurns" in source:
+        target.write_text(source)
+        print("Updated CPU queue", relative)
+        continue
     needle = "const inflight = new Set<Promise<void>>();" if typescript else "const inflight = new Set();"
     extra = f"""
   // Closed turns must outlive slow STT and any deferred final resubmission.
