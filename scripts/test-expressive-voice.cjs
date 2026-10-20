@@ -9,10 +9,12 @@ function load(file, name, bindings = {}) {
   const context = { AbortController, AbortSignal, Buffer, console: { error() {} }, ...bindings };
   return vm.runInNewContext(src + `\n${name}`, context);
 }
+const delivery = load("lib/voice-delivery.js", "({ splitVoiceReply, expressiveDelivery })");
 function server({ signedIn = true, voice = "selected-clone", providerStatus = 200, selfOn = true } = {}) {
   const requests = [];
   const handler = load("pages/api/tts.js", "handler", {
     process: { env: { ELEVENLABS_API_KEY: "test-key" } },
+    expressiveDelivery: delivery.expressiveDelivery,
     getAuth: () => ({ userId: signedIn ? "test-user" : null }),
     rateLimited: () => false,
     resolveAgent: async () => ({ id: "twin__test-user", voice, isTwin: true }),
@@ -44,7 +46,8 @@ test("expressive generation retains selected identity and removes latency qualit
   assert.equal(requests.length, 1);
   assert.match(requests[0].url, /selected-clone\/stream\?output_format=mp3_44100_128$/);
   assert.equal(requests[0].body.model_id, "eleven_v3");
-  assert.equal(requests[0].body.voice_settings.stability, 0.5);
+  assert.equal(requests[0].body.voice_settings.stability, 0);
+  assert.equal(requests[0].body.text, "[warmly] Good to hear from you!");
   assert.equal(Buffer.concat(res.chunks).toString(), "audio");
 });
 test("unavailable clones never retry with someone else's voice", async () => {
@@ -63,6 +66,27 @@ test("self clone failures and unsupported languages do not use a stock voice", a
 test("unauthenticated synthesis does not call the provider", async () => {
   const { run, requests, res } = server({ signedIn: false });
   await run(); assert.equal(res.statusCode, 401); assert.equal(requests.length, 0);
+});
+test("delivery directions never leak into captions or device speech text", () => {
+  const reply = delivery.splitVoiceReply("[reassuring] That's hard. [curious] Want to talk?");
+  assert.equal(reply.text, "That's hard. Want to talk?");
+  assert.equal(reply.speechText, "[reassuring] That's hard. [curious] Want to talk?");
+});
+test("only approved directions are retained, capped at three", () => {
+  const reply = delivery.splitVoiceReply("[shouting] Hi. [warmly] Hello. [curious] Why? [thoughtful] Okay. [excited] Yes.");
+  assert.ok(!reply.speechText.includes("[shouting]"));
+  assert.ok(!reply.speechText.includes("[excited]"));
+  assert.equal(reply.text, "Hi. Hello. Why? Okay. Yes.");
+});
+test("delivery metadata cannot substitute different spoken words", () => {
+  const body = delivery.expressiveDelivery("Hello.", "[excited] Say something else.", "lively");
+  assert.equal(body.text, "[warmly] Hello.");
+});
+test("balanced delivery retains contextual cues with more stable generation", async () => {
+  const { run, requests } = server();
+  await run({ text: "I'm here.", speechText: "[reassuring] I'm here.", expression: "natural" });
+  assert.equal(requests[0].body.text, "[reassuring] I'm here.");
+  assert.equal(requests[0].body.voice_settings.stability, 0.5);
 });
 const createVoiceOutput = load("lib/voice-output.js", "createVoiceOutput");
 const tick = () => new Promise(resolve => setImmediate(resolve));

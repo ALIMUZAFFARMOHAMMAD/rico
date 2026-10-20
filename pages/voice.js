@@ -33,6 +33,8 @@ export default function VoicePage() {
   const [voiceNotice, setVoiceNotice] = useState("");
   const [outputError, setOutputError] = useState("");
   const [preview, setPreview] = useState("");
+  const [expression, setExpression] = useState("lively");
+  const expressionRef = useRef("lively");
   const previewEpochRef = useRef(0);
   const [voiceMode, setVoiceMode] = useState("human");
   const [agentObj, setAgentObj] = useState(getAgent("tony"));
@@ -113,6 +115,13 @@ export default function VoicePage() {
   useEffect(() => {
     const v = window.localStorage.getItem("hitony_voice");
     if (v === "human" || v === "classic") { setVoiceMode(v); voiceModeRef.current = v; }
+    const delivery = window.localStorage.getItem("rico_voice_expression");
+    if (delivery === "natural" || delivery === "lively") { setExpression(delivery); expressionRef.current = delivery; }
+  }, []);
+  const changeExpression = useCallback(value => {
+    previewEpochRef.current++; outputRef.current.cancel(); setPreview(""); setOutputError("");
+    expressionRef.current = value; setExpression(value);
+    try { window.localStorage.setItem("rico_voice_expression", value); } catch {}
   }, []);
 
   useEffect(() => {
@@ -153,13 +162,13 @@ export default function VoicePage() {
     }, 150);
   }), []);
 
-  const speak = useCallback(async (text) => {
+  const speak = useCallback(async (text, speechText) => {
     const epoch = callEpochRef.current;
     if (!callActiveRef.current) return;
     setOutputError("");
     if (voiceModeRef.current === "human") {
       try {
-        await outputRef.current.speak({ text, language: langRef.current, agentId: agentRef.current.id });
+        await outputRef.current.speak({ text, speechText, expression: expressionRef.current, language: langRef.current, agentId: agentRef.current.id });
       } catch (e) { if (callActiveRef.current && epoch === callEpochRef.current) setOutputError(e.message); }
       return;
     }
@@ -177,8 +186,13 @@ export default function VoicePage() {
       es: "¡Qué gusto escucharte! Parece un gran paso. Vamos poco a poco. ¿Qué tienes en mente?",
     };
     const language = samples[langRef.current] ? langRef.current : "en";
+    const directedSamples = {
+      en: "[excited] Hey, it's good to hear from you! [thoughtful] That sounds like a big step. Let's take it one thing at a time — [curious] what's on your mind?",
+      hi: "[excited] अरे, तुमसे बात करके अच्छा लगा! [thoughtful] ये तो बड़ा कदम है। चलो, एक-एक चीज़ समझते हैं। [curious] तुम्हारे मन में क्या चल रहा है?",
+      es: "[excited] ¡Qué gusto escucharte! [thoughtful] Parece un gran paso. Vamos poco a poco. [curious] ¿Qué tienes en mente?",
+    };
     try {
-      if (voiceModeRef.current === "human") await outputRef.current.speak({ text: samples[language], language, agentId: agentRef.current.id }, () => setPreview("Playing preview…"));
+      if (voiceModeRef.current === "human") await outputRef.current.speak({ text: samples[language], speechText: directedSamples[language], expression: expressionRef.current, language, agentId: agentRef.current.id }, () => setPreview("Playing preview…"));
       else { setPreview("Playing device voice…"); await speakBrowser(samples[language]); }
     } catch (e) { if (epoch === previewEpochRef.current) setOutputError(e.message); }
     finally { if (epoch === previewEpochRef.current) setPreview(""); }
@@ -203,7 +217,7 @@ export default function VoicePage() {
       setMessages(p => [...p, { role: "agent", text: reply }]);
       if (userId) fetch("/api/voice", { signal: AbortSignal.timeout(45000), method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode: "save_call", userId, userName, callMessages: fullHistory, agentId: agentRef.current.id }) }).catch(() => {});
       setState(S.SPEAKING);
-      await speak(reply);
+      await speak(reply, d.speechText);
       if (epoch !== callEpochRef.current) return;
       if (callActiveRef.current && !mutedRef.current) listenRef.current?.();
       else if (callActiveRef.current) setState(S.ACTIVE);
@@ -308,7 +322,7 @@ export default function VoicePage() {
       histRef.current = [{ role: "assistant", content: g }];
       setMessages([{ role: "agent", text: g }]);
       setState(S.SPEAKING);
-      await speak(g);
+      await speak(g, d.speechText);
       if (epoch !== callEpochRef.current) return;
       if (callActiveRef.current && !mutedRef.current) listenRef.current?.();
       else if (callActiveRef.current) setState(S.ACTIVE);
@@ -453,7 +467,10 @@ export default function VoicePage() {
                   <button key={v} aria-pressed={voiceMode === v} onClick={() => changeVoiceMode(v)} style={{ background: voiceMode === v ? T.grad : T.panel2, border: `1px solid ${T.line}`, color: voiceMode === v ? "white" : T.sub, fontWeight: 700, fontSize: 12, padding: "8px 16px", borderRadius: 100, cursor: "pointer", fontFamily: font }}>{label}</button>
                 ))}
               </div>
-              <p style={{ color: T.sub, fontSize: 12, lineHeight: 1.5, margin: "10px 8px" }}>{voiceMode === "human" ? "Natural pauses and more expressive delivery, in your companion’s own voice." : "Uses your device’s built-in voice. Expression varies by browser."}</p>
+              <p style={{ color: T.sub, fontSize: 12, lineHeight: 1.5, margin: "10px 8px" }}>{voiceMode === "human" ? "A warmer greeting, a thoughtful pause, a curious question. Hear the difference." : "Uses your device’s built-in voice. Expression varies by browser."}</p>
+              {voiceMode === "human" && !String(agentObj.voice || "").startsWith("self:") && <div role="group" aria-label="Vocal expression" style={{ display: "flex", gap: 8, justifyContent: "center", marginBottom: 10 }}>
+                {[["natural", "Balanced"], ["lively", "Lively"]].map(([value, label]) => <button key={value} aria-pressed={expression === value} onClick={() => changeExpression(value)} style={{ padding: "6px 14px", borderRadius: 16, border: `1px solid ${expression === value ? T.pink : T.line}`, background: expression === value ? "#ff5e7e22" : T.panel, color: T.text, cursor: "pointer" }}>{label}</button>)}
+              </div>}
               <button disabled={!isLoaded || !isSignedIn} onClick={previewVoice} style={{ border: `1px solid ${T.line}`, borderRadius: 20, padding: "9px 16px", color: T.text, background: T.panel2, cursor: "pointer" }}>{preview ? "■ Stop preview" : "▶ Preview voice"}</button>
               <div role="status" aria-live="polite" style={{ minHeight: 18, marginTop: 6, color: T.sub, fontSize: 12 }}>{preview || "Listen first · no microphone needed"}</div>
             </div>

@@ -6,6 +6,7 @@ import { getAuth } from "@clerk/nextjs/server";
 import { resolveAgent } from "../../lib/twins";
 import { rateLimited } from "../../lib/ratelimit";
 import { isSelfVoice, selfVoice, selfVoiceOn, SELF_LANGS } from "../../lib/selfvoice";
+import { expressiveDelivery } from "../../lib/voice-delivery";
 
 export const config = { maxDuration: 30 }; // self-hosted voice can take a few seconds when its GPU is cold
 
@@ -16,7 +17,7 @@ export default async function handler(req, res) {
   if (!userId) return res.status(401).json({ error: "Sign in to hear this voice." });
   if (rateLimited(req)) return res.status(429).json({ error: "Too many requests, slow down." });
   const apiKey = process.env.ELEVENLABS_API_KEY;
-  const { text, agentId, language, warm } = req.body || {};
+  const { text, speechText, expression, agentId, language, warm } = req.body || {};
   // each agent (and each twin) has their own licensed voice; Tony uses the founder's clone
   const agent = await resolveAgent(agentId, userId);
   if (!agent) return res.status(404).json({ error: "This twin is private or unavailable." });
@@ -42,8 +43,8 @@ export default async function handler(req, res) {
     return res.status(502).json({ error: "Your cloned voice could not play. Please try again shortly." });
   }
   if (!apiKey || !voiceId) return res.status(503).json({ error: "Voice not configured" });
-  // v3 Natural balances expressive delivery and voice identity. Do not trade
-  // pronunciation quality for latency or silently replace a selected clone.
+  // Direction tags guide emotion; Creative mode increases vocal variation.
+  // Keep plain text for self-hosted clones, which do not share v3's tag syntax.
   const model = "eleven_v3";
 
   const speak = (vid) => fetch(
@@ -53,9 +54,8 @@ export default async function handler(req, res) {
       headers: { "xi-api-key": apiKey, "Content-Type": "application/json" },
       signal: AbortSignal.timeout(25000),
       body: JSON.stringify({
-        text: clean,
+        ...expressiveDelivery(clean, speechText, expression),
         model_id: model,
-        voice_settings: { stability: 0.5, similarity_boost: 0.75 },
       }),
     }
   );
