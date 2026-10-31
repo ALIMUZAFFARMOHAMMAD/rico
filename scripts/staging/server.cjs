@@ -8,7 +8,7 @@ const secret='local-staging-fixtures-only-never-production-2026';
 const encode=x=>Buffer.from(JSON.stringify(x)).toString('base64url');
 const head=encode({alg:'HS256',typ:'JWT'}),payload=encode({role:'service_role',exp:Math.floor(Date.now()/1000)+86400});
 const token=head+'.'+payload+'.'+crypto.createHmac('sha256',secret).update(head+'.'+payload).digest('base64url');
-const env={NEXT_PUBLIC_SUPABASE_URL:'http://rest:3000',SUPABASE_SERVICE_ROLE_KEY:token,SCALE_STORAGE_ENABLED:'true',AI_DAILY_REQUEST_LIMIT:'0',AI_MAX_CONCURRENT:'0'};
+const env={NEXT_PUBLIC_SUPABASE_URL:'http://rest:3000',SUPABASE_SERVICE_ROLE_KEY:token,SCALE_STORAGE_ENABLED:'true',AI_GENERATION_DISABLED:'true',AI_DAILY_REQUEST_LIMIT:'0',AI_MAX_CONCURRENT:'0'};
 let requests=0,errors=0,blockedExternal=0;
 async function localFetch(input,options) {
   const u=new URL(input);
@@ -47,7 +47,7 @@ async function serve() {
     const u=new URL(req.url,'http://app:3380');
     res.setHeader('X-Ricomates-Staging','synthetic-only');
     res.setHeader('Cache-Control','no-store');
-    if(u.pathname==='/__staging'){res.setHeader('Content-Type','application/json');return res.end(JSON.stringify({isolated:true,auth:'synthetic Clerk adapter',providersDisabled:true,requests,errors,blockedExternal,worker:process.pid}));}
+    if(u.pathname==='/__staging'){res.setHeader('Content-Type','application/json');return res.end(JSON.stringify({isolated:true,auth:'synthetic Clerk adapter',providersDisabled:env.AI_GENERATION_DISABLED==='true',requests,errors,blockedExternal,worker:process.pid}));}
     if(!handlers[u.pathname]){res.statusCode=404;return res.end();}
     req.query=Object.fromEntries(u.searchParams);
     res.status=code=>{res.statusCode=code;return res;};

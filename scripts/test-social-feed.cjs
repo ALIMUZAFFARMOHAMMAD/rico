@@ -62,7 +62,7 @@ test('photo data is served separately and requires sign-in',async()=>{
 });
 test('social photos and activity never enter private memory or twin signal reads',async()=>{
   const queries=[];
-  const db=load('lib/db.js',{process:{env:{}},fetch:async url=>{queries.push(url);return{ok:true,text:async()=>JSON.stringify([{user_id:'user_owner',traits:{}},{user_id:'user_owner::social::post::p',traits:{image}},{user_id:'user_owner::social::like::p',traits:{}},{user_id:'user_owner::agent::tony',traits:{}},{user_id:'userXowner::agent::tony',traits:{private:true}}])};}},['getUserRows']);
+  const db=load('lib/db.js',{databaseGate:fn=>fn(),process:{env:{}},fetch:async url=>{queries.push(url);return{ok:true,text:async()=>JSON.stringify([{user_id:'user_owner',traits:{}},{user_id:'user_owner::social::post::p',traits:{image}},{user_id:'user_owner::social::like::p',traits:{}},{user_id:'user_owner::agent::tony',traits:{}},{user_id:'userXowner::agent::tony',traits:{private:true}}])};}},['getUserRows']);
   const rows=await db.getUserRows('user_owner');assert.ok(rows.length);assert.ok(rows.every(r=>!r.user_id.includes('::social::')));assert.ok(rows.every(r=>r.user_id.startsWith('user_owner')));assert.ok(queries.some(q=>q.includes('user_id=not.like.user_owner::social::*')));
 });
 const authors=Array.from({length:4},(_,i)=>({id:'ai'+i,name:'AI '+i,interests:['creativity'],bio:'A creative friend'}));

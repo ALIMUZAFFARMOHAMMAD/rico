@@ -18,7 +18,7 @@ test('operational events contain no identities, URLs or response data',()=>{
 });
 test('database failures do not expose upstream error bodies',async()=>{
  const events=[];const context={process:{env:{NEXT_PUBLIC_SUPABASE_URL:'http://local.invalid',SUPABASE_SERVICE_ROLE_KEY:'fixture'}},AbortSignal,Date,recordOperation:(...a)=>events.push(a),fetch:async()=>new Response('private customer value',{status:503})};
- const sb=vm.runInNewContext(source('lib/db.js')+';sb',context);
+ const sb=vm.runInNewContext(source('lib/db.js')+';sb',{...context,databaseGate:fn=>fn()});
  await assert.rejects(sb('/conversations'),error=>error.message==='Database request failed (503)');
  assert.equal(events.length,1);assert.equal(events[0][3],true);
 });

@@ -193,6 +193,6 @@ test('import retry does not duplicate a previously accepted large transcript',as
 });
 test('meeting records are excluded from memory even if database LIKE overmatches',async()=>{
   const rows=[{user_id:owner},{user_id:owner+'::agent::friend'},{user_id:owner+'::meeting::'+id},{user_id:'user_other::agent::friend'}];
-  const {getUserRows}=load('lib/db.js',{fetch:async()=>({ok:true,text:async()=>JSON.stringify(rows)})},['getUserRows']);
+  const {getUserRows}=load('lib/db.js',{databaseGate:fn=>fn(),fetch:async()=>({ok:true,text:async()=>JSON.stringify(rows)})},['getUserRows']);
   const result=await getUserRows(owner);assert.equal(result.some(r=>r.user_id.includes('::meeting::')),false);assert.equal(result.some(r=>r.user_id.startsWith('user_other')),false);
 });

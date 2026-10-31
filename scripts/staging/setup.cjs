@@ -4,6 +4,7 @@ function run(args,input){const r=spawnSync('docker',[...compose,...args],{cwd:ro
 fs.mkdirSync(path.join(__dirname,'results'),{recursive:true});
 run(['up','-d','--wait','db']);
 run(['exec','-T','db','psql','-v','ON_ERROR_STOP=1','-U','staging_admin','-d','rico_staging'],fs.readFileSync(path.join(root,'migrations/20261031_scale.sql'),'utf8'));
+for(const file of ['20261031_private_tables.sql','20261031_social_lookup.sql'])run(['exec','-T','db','psql','-v','ON_ERROR_STOP=1','-U','staging_admin','-d','rico_staging'],fs.readFileSync(path.join(root,'migrations',file),'utf8'));
 run(['exec','-T','db','psql','-v','ON_ERROR_STOP=1','-U','staging_admin','-d','rico_staging'],fs.readFileSync(path.join(__dirname,'seed.sql'),'utf8'));
 run(['up','-d','rest','app']);
 console.log('Local staging started; production data and AI providers are not connected.');
