@@ -7,7 +7,7 @@ const { createHash } = require('node:crypto');
 let shared = { AbortSignal };
 function load(file, bindings, names) {
   const source=fs.readFileSync(path.join(__dirname,'..',file),'utf8').replace(/^import .*;\r?\n/gm,'').replace(/export default /g,'').replace(/export /g,'');
-  const context={scaleEnabled:()=>false,getAuth:()=>({userId:null}),createHash:require("node:crypto").createHash,module:{exports:{}},console:{error(){}},Buffer,AbortController,setTimeout,clearTimeout,createHash,...shared,...bindings};
+  const context={rateLimited:async()=>false,mediaStorageEnabled:()=>false,mediaPath:()=>null,queueMediaCleanup:async()=>{},finishMediaCleanup:async()=>{},recordOperation(){},scaleEnabled:()=>false,getAuth:()=>({userId:null}),createHash:require("node:crypto").createHash,module:{exports:{}},console:{error(){}},Buffer,AbortController,setTimeout,clearTimeout,createHash,...shared,...bindings};
   vm.runInNewContext(source+'\nmodule.exports={'+names.join(',')+'};',context); return context.module.exports;
 }
 const socialContent=load('lib/social-content.js',{},['SOCIAL_MOODS','SOCIAL_ART','STORY_LIFETIME_MS','isActiveStory','isVisiblePost','dailyPresentation']);

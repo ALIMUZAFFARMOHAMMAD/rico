@@ -6,7 +6,7 @@ const vm = require('node:vm');
 const { randomUUID } = require('node:crypto');
 function load(file, bindings, names=['handler']) {
   const source=fs.readFileSync(path.join(__dirname,'..',file),'utf8').replace(/^import .*;\r?\n/gm,'').replace(/export default /g,'').replace(/export /g,'');
-  const context={scaleEnabled:()=>false,getAuth:()=>({userId:null}),createHash:require("node:crypto").createHash,module:{exports:{}},console:{error(){},log(){}},AbortSignal,randomUUID,process:{env:{ANTHROPIC_API_KEY:'test'}},rateLimited:()=>false,configured:()=>true,ownsUser:(_,id)=>id==='owner',...bindings};
+  const context={mediaStorageEnabled:()=>false,mediaPath:()=>null,queueMediaCleanup:async()=>{},finishMediaCleanup:async()=>{},scaleEnabled:()=>false,getAuth:()=>({userId:null}),createHash:require("node:crypto").createHash,module:{exports:{}},console:{error(){},log(){}},AbortSignal,randomUUID,process:{env:{ANTHROPIC_API_KEY:'test'}},rateLimited:()=>false,configured:()=>true,ownsUser:(_,id)=>id==='owner',...bindings};
   vm.runInNewContext(source+'\nmodule.exports={'+names.join(',')+'};',context);return context.module.exports;
 }
 function response(){return{code:200,status(code){this.code=code;return this;},json(data){this.body=data;return this;},end(){return this;}};}

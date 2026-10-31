@@ -5,6 +5,7 @@
 // Vercel Cron hit here (see vercel.json) resets the 7-day clock before it can
 // expire, with margin to spare.
 import { scaleEnabled, scaleRpc } from "../../../lib/scale";
+import { mediaStorageEnabled, cleanupSocialMedia } from "../../../lib/social-media";
 import { configured, sb } from "../../../lib/db";
 import { generateDailySocial } from "../../../lib/social-daily";
 
@@ -17,6 +18,7 @@ export default async function handler(req, res) {
   try {
     await sb("/conversations?select=user_id&limit=1");
     if (scaleEnabled()) await scaleRpc("cleanup", {});
+    if (mediaStorageEnabled()) await cleanupSocialMedia();
     const social = await generateDailySocial();
     res.status(200).json({ ok: true, pinged_at: new Date().toISOString(), social });
   } catch (e) {

@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  outputFileTracingRoot: __dirname,
   // Keep validation builds separate from a running desktop preview's cache.
   distDir: process.env.RICOMATES_BUILD_DIR || ".next",
   reactStrictMode: true,

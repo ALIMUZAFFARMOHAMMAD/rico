@@ -2,7 +2,7 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const crypto=require('node:crypto');
 function load(file,names,bindings={}) {
   const source=fs.readFileSync(path.join(__dirname,'..',file),'utf8').replace(/^import .*;\r?\n/gm,'').replace(/export default /g,'').replace(/export /g,'');
-  const context={console:{error(){}},process:{env:{}},Buffer,AbortSignal,URL,Response,ReadableStream,Headers,Blob,Date,...crypto,scaleEnabled:()=>false,getAuth:req=>({userId:req.userId}),...bindings};
+  const context={mediaStorageEnabled:()=>false,mediaPath:()=>null,queueMediaCleanup:async()=>{},finishMediaCleanup:async()=>{},console:{error(){},info(){}},recordOperation(){},process:{env:{}},Buffer,AbortSignal,URL,Response,ReadableStream,Headers,Blob,Date,...crypto,scaleEnabled:()=>false,getAuth:req=>({userId:req.userId}),...bindings};
   return vm.runInNewContext(source+'\n({'+names.join(',')+'})',context);
 }
 const req=(userId,route='/api/voice')=>({userId,url:route,headers:{'x-forwarded-for':'shared-office'}});

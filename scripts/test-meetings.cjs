@@ -7,7 +7,7 @@ const crypto = require('node:crypto');
 const { createWorker, validateConfig, validateMeetingLink, identity } = require('../public/ricomates-meeting-worker.cjs');
 function load(file, bindings, names) {
   const src = fs.readFileSync(path.join(__dirname, '..', file), 'utf8').replace(/^import .*;\r?\n/gm, '').replace(/export default /g, '').replace(/export /g, '');
-  const context = { module: {exports: {}}, console: {error() {}}, Buffer, URL, AbortSignal, process: {env: {}}, ...crypto, ...bindings };
+  const context = { module: {exports: {}}, recordOperation(){}, console: {error() {}}, Buffer, URL, AbortSignal, process: {env: {}}, ...crypto, ...bindings };
   vm.runInNewContext(src + '\nmodule.exports={' + names.join(',') + '}', context); return context.module.exports;
 }
 const core = load('lib/meeting-core.js', {}, ['meetingUrl', 'validMeetingId', 'transcriptText', 'MEETING_STATUS', 'MEETING_PLATFORMS', 'MAX_TRANSCRIPT', 'vexaPlatform', 'terminalMeeting']);

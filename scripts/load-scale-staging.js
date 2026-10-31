@@ -9,7 +9,13 @@ if (!/^https:\/\/[a-z0-9-]+\.vercel\.app$/.test(base) && !/^http:\/\/(localhost|
 if (__ENV.CONFIRM_ISOLATED_STAGING !== 'yes') throw new Error('Confirm this deployment uses a separate fixture database and disabled paid providers');
 const identities = new SharedArray('synthetic accounts', () => JSON.parse(open(__ENV.STAGING_IDENTITIES_FILE)));
 const vus = Math.min(100, Math.max(1, Number(__ENV.STAGING_VUS || 10)));
+if (!Number.isInteger(vus)) throw new Error('Use a whole-number virtual user count');
 if (identities.length < vus || identities.some(i => !i.userId || !i.cookie)) throw new Error('Provide a unique staging userId and Clerk cookie for each virtual user');
+if (new Set(identities.map(i => i.userId)).size !== identities.length) throw new Error('Staging identities must be unique');
+export function setup() {
+  const response = http.get(`${base}/__staging`);
+  if (response.status !== 200 || response.json().isolated !== true || response.json().providersDisabled !== true) throw new Error('Staging isolation handshake failed; no load traffic sent');
+}
 export const options = {
   stages: [{ duration: '30s', target: vus }, { duration: '2m', target: vus }, { duration: '30s', target: 0 }],
   thresholds: { http_req_failed: ['rate<0.01'], http_req_duration: ['p(95)<500','p(99)<1500'], checks: ['rate>0.99'] },
