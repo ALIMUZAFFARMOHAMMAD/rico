@@ -18,7 +18,7 @@ export default async function handler(req, res) {
       const { userId } = getAuth(req);
       if (!userId) return res.status(401).end();
       // Never rate-limit the emergency pause control.
-      if (body.enabled === true && rateLimited(req, { limit: 20 })) return res.status(429).end();
+      if (body.enabled === true && await rateLimited(req, { limit: 20 })) return res.status(429).end();
       const m = await getMeeting(userId, body.id);
       if (!m) return res.status(404).end();
       const device = (await getRow(deviceKey(userId)))?.traits;

@@ -445,11 +445,12 @@ export default function Rico() {
     if (token === chatTokenRef.current) setSaveState("saving");
     try {
       const response = await fetch("/api/conversation", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload), signal: AbortSignal.timeout(15000) });
+      if (response.status === 409) { const data = await response.json(); throw new Error(data.error); }
       if (!response.ok) throw new Error();
       if (pendingSavesRef.current[payload.agent] === payload) delete pendingSavesRef.current[payload.agent];
       if (token === chatTokenRef.current) { setSaveState("saved"); setChatError(""); }
     } catch (error) {
-      if (token === chatTokenRef.current) { setSaveState("error"); setChatError("Your reply is here, but it hasn’t saved yet. Keep this page open and retry."); }
+      if (token === chatTokenRef.current) { setSaveState("error"); setChatError(error.message || "Your reply is here, but it hasn’t saved yet. Keep this page open and retry."); }
     }
   }
 

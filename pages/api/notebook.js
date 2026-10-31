@@ -1,3 +1,4 @@
+import { providerFetch as fetch } from "../../lib/provider-fetch";
 // Rough Notebook — Rico learns your handwriting, reads photos of your handwritten notes,
 // remembers them, and answers questions from them. One row per user (notebookKey):
 //   traits.handwriting = { profile, readback, at }   ← from the A–Z / a–z calibration sheet
@@ -74,7 +75,7 @@ export default async function handler(req, res) {
 
     // everything below spends credits
     if (!process.env.ANTHROPIC_API_KEY) return res.status(503).json({ error: "AI note tools are temporarily unavailable. Your saved notes are still accessible." });
-    if (rateLimited(req, { limit: 10 })) return res.status(429).json({ error: "Too many requests, slow down." });
+    if (await rateLimited(req, { limit: 10 })) return res.status(429).json({ error: "Too many requests, slow down." });
 
     if (mode === "calibrate") {
       if (!image) return res.status(400).json({ error: "No photo received." });

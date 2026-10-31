@@ -1,3 +1,4 @@
+import { providerFetch as fetch } from "../../lib/provider-fetch";
 // Create / list AI Twins. POST distills the user's character from their chat memory
 // into a publishable agent persona; GET lists community twins for the deck.
 import { configured, getRow, getUserRows, parseKey } from "../../lib/db";
@@ -33,7 +34,7 @@ async function gatherSignal(userId) {
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
   if (!configured()) return res.status(500).json({ error: "Not configured" });
-  if (rateLimited(req)) return res.status(429).json({ error: "Too many requests, slow down." });
+  if (await rateLimited(req)) return res.status(429).json({ error: "Too many requests, slow down." });
 
   if (req.method === "GET") {
     if (req.query.readiness) {

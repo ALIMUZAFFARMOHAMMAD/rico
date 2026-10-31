@@ -119,8 +119,9 @@ function Post({ post, userId, send, onChange, onDelete, onProfile }) {
   async function loadComments(offset = 0) {
     setLoading(true); setError("");
     try {
-      const data = await request(`/api/social?userId=${encodeURIComponent(userId)}&postId=${encodeURIComponent(post.id)}&offset=${offset}`);
-      setComments(prev => [...new Map([...(offset ? prev : []), ...data.comments].map(c => [c.id, c])).values()]); setNextOffset(data.nextOffset); setLoaded(true);
+      const paging = typeof offset === "string" ? `cursor=${encodeURIComponent(offset)}` : `offset=${offset}`;
+      const data = await request(`/api/social?userId=${encodeURIComponent(userId)}&postId=${encodeURIComponent(post.id)}&${paging}`);
+      setComments(prev => [...new Map([...(offset ? prev : []), ...data.comments].map(c => [c.id, c])).values()]); setNextOffset(data.nextCursor || data.nextOffset); setLoaded(true);
     } catch (e) { setError(e.message); }
     finally { setLoading(false); }
   }
@@ -183,12 +184,13 @@ export default function SocialFeed({ userId, userName, T, font, onChat }) {
   const authorId = author?.authorId || "";
   const send = body => request("/api/social", { ...body, userId, userName });
   const load = useCallback(async (offset = 0) => {
+    const paging = typeof offset === "string" ? `cursor=${encodeURIComponent(offset)}` : `offset=${offset}`;
     activeRequest.current?.abort(); const controller = new AbortController(); activeRequest.current = controller;
     setLoading(true); setError("");
     try {
-      const data = await request(`/api/social?userId=${encodeURIComponent(userId)}&filter=${filter}&offset=${offset}${authorId ? `&authorId=${encodeURIComponent(authorId)}` : ""}`, null, controller.signal);
+      const data = await request(`/api/social?userId=${encodeURIComponent(userId)}&filter=${filter}&${paging}${authorId ? `&authorId=${encodeURIComponent(authorId)}` : ""}`, null, controller.signal);
       if (controller.signal.aborted) return;
-      setPosts(prev => [...new Map([...(offset ? prev : []), ...data.posts].map(p => [p.id, p])).values()]); setNextOffset(data.nextOffset);
+      setPosts(prev => [...new Map([...(offset ? prev : []), ...data.posts].map(p => [p.id, p])).values()]); setNextOffset(data.nextCursor || data.nextOffset);
     } catch (e) { if (!controller.signal.aborted) setError(e.message); }
     finally { if (!controller.signal.aborted) setLoading(false); }
   }, [userId, filter, authorId]);
@@ -198,7 +200,8 @@ export default function SocialFeed({ userId, userName, T, font, onChat }) {
     try {
       const data = await request(`/api/social?userId=${encodeURIComponent(userId)}&view=stories`, null, controller.signal);
       if (!controller.signal.aborted) setStories(data.stories.filter(p => isActiveStory(p)));
-    } catch (e) { if (!controller.signal.aborted) setStoryError(e.message); }
+      return true;
+    } catch (e) { if (!controller.signal.aborted) setStoryError(e.message); return false; }
     finally { if (!controller.signal.aborted) setStoryLoading(false); }
   }, [userId]);
   const openDetail = useCallback(async id => {
@@ -210,11 +213,18 @@ export default function SocialFeed({ userId, userName, T, font, onChat }) {
   }, [userId]);
   useEffect(() => { setPosts([]); setNextOffset(null); load(); return () => activeRequest.current?.abort(); }, [load]);
   useEffect(() => {
-    loadStories();
-    const refresh = () => { if (!document.hidden) loadStories(); };
-    const timer = setInterval(refresh, 60000);
-    document.addEventListener("visibilitychange", refresh);
-    return () => { clearInterval(timer); document.removeEventListener("visibilitychange", refresh); storyRequest.current?.abort(); };
+    let timer, cancelled = false, running = false, failures = 0;
+    const refresh = async () => {
+      if (cancelled || running) return;
+      running = true;
+      if (!document.hidden) failures = await loadStories() ? 0 : Math.min(failures + 1, 3);
+      running = false;
+      if (!cancelled) timer = setTimeout(refresh, Math.min(600000, 120000 * 2 ** failures) + Math.floor(Math.random() * 30000));
+    };
+    const onVisibility = () => { if (!document.hidden) { clearTimeout(timer); refresh(); } };
+    refresh();
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => { cancelled = true; clearTimeout(timer); document.removeEventListener("visibilitychange", onVisibility); storyRequest.current?.abort(); };
   }, [loadStories]);
   useEffect(() => {
     try { const stored = JSON.parse(localStorage.getItem(`rico-story-seen:${userId}`) || "{}"); setSeen(Object.fromEntries(Object.entries(stored).filter(([, date]) => typeof date === "number" && date > Date.now() - 86400000))); } catch { setSeen({}); }
@@ -231,7 +241,7 @@ export default function SocialFeed({ userId, userName, T, font, onChat }) {
   }
   function deletePost(id) {
     setPosts(previous => previous.filter(p => p.id !== id)); setStories(previous => previous.filter(p => p.id !== id));
-    setDetail(previous => previous?.id === id ? null : previous); setNextOffset(n => n === null ? null : Math.max(0, n - 1)); setNotice("Deleted.");
+    setDetail(previous => previous?.id === id ? null : previous); setNextOffset(n => n === null ? null : typeof n === "number" ? Math.max(0, n - 1) : n); setNotice("Deleted.");
   }
   function viewAuthor(post) { setDetail(null); setDetailError(""); setAuthor(post); setFilter("all"); feed.current?.scrollIntoView({ behavior: "auto", block: "start" }); }
   function created(post) {

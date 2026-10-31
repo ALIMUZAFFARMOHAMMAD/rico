@@ -14,7 +14,7 @@ export default async function handler(req, res) {
   const { userId } = getAuth(req);
   if (!userId) return res.status(401).json({ error: "Sign in to manage your twin." });
   if (!configured()) return res.status(503).json({ error: "Twin storage is unavailable." });
-  if (rateLimited(req, { limit: req.method === "GET" ? 40 : 10 })) return res.status(429).json({ error: "Give your twin a moment, then try again." });
+  if (await rateLimited(req, { limit: req.method === "GET" ? 40 : 10 })) return res.status(429).json({ error: "Give your twin a moment, then try again." });
   try {
     const row = await getRow(twinKey(userId));
     const twin = row?.traits;

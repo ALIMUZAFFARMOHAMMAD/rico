@@ -1,3 +1,4 @@
+import { providerFetch as fetch } from "../../lib/provider-fetch";
 // Weekly memory digest — a lightweight reason to open the app after a lapse, without
 // needing push/email infra. Reuses the same "extract real, honest highlights" approach
 // as remembers.js (Pillar #2), but time-boxed to the last 7 days and framed as a recap
@@ -15,7 +16,7 @@ const CACHE_MS = WEEK_MS;
 
 export default async function handler(req, res) {
   if (req.method !== "GET") return res.status(405).end();
-  if (rateLimited(req)) return res.status(429).json({ error: "Too many requests, slow down." });
+  if (await rateLimited(req)) return res.status(429).json({ error: "Too many requests, slow down." });
 
   if (!configured()) return res.status(200).json({ ok: false });
 

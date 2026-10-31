@@ -1,3 +1,4 @@
+import { providerFetch as fetch } from "../../lib/provider-fetch";
 // Living-memory moat, made visible — "What your friends remember about you".
 //
 // Pillar #2 of the product bet: the longer you use Rico, the more it knows you, and
@@ -17,7 +18,7 @@ const FRESH_WINDOW_MS = 18 * 60 * 60 * 1000;
 
 export default async function handler(req, res) {
   if (req.method !== "GET") return res.status(405).end();
-  if (rateLimited(req)) return res.status(429).json({ error: "Too many requests, slow down." });
+  if (await rateLimited(req)) return res.status(429).json({ error: "Too many requests, slow down." });
   if (!configured()) return res.status(200).json({ ok: false });
 
   const { userId, lang } = req.query;

@@ -2,12 +2,15 @@
 import { configured, getRow, upsertRow, memKey, getUserRows, parseKey } from "../../lib/db";
 import { ownsUser } from "../../lib/auth";
 import { messageText, validConversation } from "../../lib/conversation-view";
+import { scaleEnabled, scaleRpc } from "../../lib/scale";
+import { rateLimited } from "../../lib/ratelimit";
 
 const EMPTY = { messages: [], traits: { O: 0, C: 0, E: 0, A: 0, N: 0 }, riasec: "", msgCount: 0 };
 
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "private, no-store");
   if (!configured()) return res.status(500).json({ error: "Supabase not configured" });
+  if (await rateLimited(req, { limit: 60 })) return res.status(429).json({ error: "Please wait a moment and retry." });
 
   if (req.method === "GET") {
     const { userId, agent } = req.query;
@@ -48,6 +51,11 @@ export default async function handler(req, res) {
     if (!ownsUser(req, userId)) return res.status(403).json({ error: "forbidden" });
     try {
       const key = memKey(userId, agent);
+      if (scaleEnabled()) {
+        const saved = await scaleRpc("save_conversation", { p_key: key, p_fields: { messages, traits: traits || {}, riasec, msg_count: msgCount } });
+        if (!saved) return res.status(409).json({ error: "This conversation changed in another tab. Your unsaved reply is kept here; copy it before reloading the conversation.", code: "CONVERSATION_CONFLICT" });
+        return res.status(200).json({ success: true });
+      }
       // Preserve non-chat trait fields (e.g. the résumé Tony stores) — the incoming
       // `traits` is only the OCEAN scores, so merge over the existing traits instead
       // of replacing the whole column (which used to wipe the saved résumé).

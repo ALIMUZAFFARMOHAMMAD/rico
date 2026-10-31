@@ -6,15 +6,15 @@ const vm = require('node:vm');
 const { randomUUID } = require('node:crypto');
 function load(file, bindings, names=['handler']) {
   const source=fs.readFileSync(path.join(__dirname,'..',file),'utf8').replace(/^import .*;\r?\n/gm,'').replace(/export default /g,'').replace(/export /g,'');
-  const context={module:{exports:{}},console:{error(){},log(){}},AbortSignal,randomUUID,process:{env:{ANTHROPIC_API_KEY:'test'}},rateLimited:()=>false,configured:()=>true,ownsUser:(_,id)=>id==='owner',...bindings};
+  const context={scaleEnabled:()=>false,getAuth:()=>({userId:null}),createHash:require("node:crypto").createHash,module:{exports:{}},console:{error(){},log(){}},AbortSignal,randomUUID,process:{env:{ANTHROPIC_API_KEY:'test'}},rateLimited:()=>false,configured:()=>true,ownsUser:(_,id)=>id==='owner',...bindings};
   vm.runInNewContext(source+'\nmodule.exports={'+names.join(',')+'};',context);return context.module.exports;
 }
 function response(){return{code:200,status(code){this.code=code;return this;},json(data){this.body=data;return this;},end(){return this;}};}
-test('busy social activity does not consume voice or translator rate limits',()=>{
+test('busy social activity does not consume voice or translator rate limits',async()=>{
   const {rateLimited}=load('lib/ratelimit.js',{},['rateLimited']);
   const req=url=>({url,headers:{'x-forwarded-for':'127.0.0.1'}});
-  for(let i=0;i<20;i++)assert.equal(rateLimited(req('/api/social?filter=all')),false);
-  assert.equal(rateLimited(req('/api/social?filter=ai')),true);assert.equal(rateLimited(req('/api/voice')),false);assert.equal(rateLimited(req('/api/translate')),false);
+  for(let i=0;i<20;i++)assert.equal(await rateLimited(req('/api/social?filter=all')),false);
+  assert.equal(await rateLimited(req('/api/social?filter=ai')),true);assert.equal(await rateLimited(req('/api/voice')),false);assert.equal(await rateLimited(req('/api/translate')),false);
 });
 test('saved notebook notes load and delete without an AI provider key',async()=>{
   let saved;const handler=load('pages/api/notebook.js',{process:{env:{}},notebookKey:id=>id,getRow:async()=>({traits:{notes:[{id:'n1',text:'My note'}]}}),upsertRow:async(_,d)=>saved=d}).handler;

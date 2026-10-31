@@ -1,3 +1,4 @@
+import { providerFetch as fetch } from "../../lib/provider-fetch";
 import { getAuth } from "@clerk/nextjs/server";
 import { languagePrompt, LANGS } from "../../lib/i18n";
 import { resolveAgent } from "../../lib/twins";
@@ -164,7 +165,7 @@ Use this to give deeply personalised, grounded responses. You know this person.`
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
-  if (rateLimited(req)) return res.status(429).json({ error: "Too many requests, slow down." });
+  if (await rateLimited(req)) return res.status(429).json({ error: "Too many requests, slow down." });
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;

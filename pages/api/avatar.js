@@ -1,3 +1,4 @@
+import { providerFetch as fetch } from "../../lib/provider-fetch";
 // Only the cartoon palette is saved. Photos are sent to vision for analysis.
 import { configured, getRow, upsertRow } from "../../lib/db";
 import { twinKey } from "../../lib/twins";
@@ -16,7 +17,7 @@ export default async function handler(req, res) {
   const { userId, image, mime, action = "apply", look } = req.body || {};
   if (!userId) return res.status(401).json({ error: "Sign in to update your twin." });
   if (!ownsUser(req, userId)) return res.status(403).json({ error: "Sign in to your own account to update this twin." });
-  if (rateLimited(req)) return res.status(429).json({ error: "Too many attempts. Wait a moment and try again." });
+  if (await rateLimited(req)) return res.status(429).json({ error: "Too many attempts. Wait a moment and try again." });
   if (!["preview", "save", "apply"].includes(action)) return res.status(400).json({ error: "Unknown avatar action." });
   if (!configured()) return res.status(503).json({ error: "Twin settings are temporarily unavailable. Please try again." });
   let timer;

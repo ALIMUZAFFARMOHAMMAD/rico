@@ -5,7 +5,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "node scripts/run-scale-tests.cjs",
+    "test:scale:sql": "node scripts/test-scale-sql.cjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.0",

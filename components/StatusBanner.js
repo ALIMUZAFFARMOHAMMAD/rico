@@ -14,13 +14,14 @@ export default function StatusBanner() {
   useEffect(() => {
     let alive = true;
     const check = () => {
-      fetch("/api/health")
+      if (document.hidden) return;
+      fetch("/api/health", { signal: AbortSignal.timeout(12000) })
         .then(r => r.json())
         .then(d => { if (alive) setDown(!d?.ok); })
         .catch(() => {});
     };
     check();
-    const id = setInterval(check, POLL_MS);
+    const id = setInterval(check, POLL_MS + Math.floor(Math.random() * 15000));
     return () => { alive = false; clearInterval(id); };
   }, []);
 
@@ -43,3 +44,4 @@ export default function StatusBanner() {
     </div>
   );
 }
+

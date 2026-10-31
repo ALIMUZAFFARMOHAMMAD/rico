@@ -17,7 +17,7 @@ export default async function handler(req, res) {
   const { userId } = getAuth(req);
   if (!userId) return res.status(401).json({ error: "Sign in first" });
   if (!configured()) return res.status(503).json({ error: "Not configured" });
-  if (rateLimited(req, { limit: 3 })) return res.status(429).json({ error: "slow down" });
+  if (await rateLimited(req, { limit: 3 })) return res.status(429).json({ error: "slow down" });
 
   try {
     const twin = await getRow(twinKey(userId));

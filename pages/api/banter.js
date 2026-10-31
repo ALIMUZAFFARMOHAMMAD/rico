@@ -1,3 +1,4 @@
+import { providerFetch as fetch } from "../../lib/provider-fetch";
 import { getAuth } from "@clerk/nextjs/server";
 // In-character game banter — one short, funny, warm line reacting to a game moment,
 // in the voice of whichever character (or twin) you're playing. Uses fast Haiku.
@@ -6,7 +7,7 @@ import { rateLimited } from "../../lib/ratelimit";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
-  if (rateLimited(req)) return res.status(429).json({ error: "Too many requests, slow down." });
+  if (await rateLimited(req)) return res.status(429).json({ error: "Too many requests, slow down." });
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return res.status(200).json({ line: "" });
   const { agentId, game, situation, language } = req.body || {};

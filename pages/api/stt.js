@@ -1,3 +1,4 @@
+import { providerFetch as fetch } from "../../lib/provider-fetch";
 // Speech-to-text via ElevenLabs Scribe — reliable for languages the browser can't
 // transcribe (Telugu, etc.). Takes a recorded audio turn, returns the text.
 import { rateLimited } from "../../lib/ratelimit";
@@ -9,7 +10,7 @@ export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
   res.setHeader("Cache-Control", "no-store");
   if (!getAuth(req).userId) return res.status(401).json({ error: "Sign in again to use the microphone." });
-  if (rateLimited(req)) return res.status(429).json({ error: "Too many requests, slow down." });
+  if (await rateLimited(req)) return res.status(429).json({ error: "Too many requests, slow down." });
   const apiKey = process.env.ELEVENLABS_API_KEY;
   if (!apiKey) return res.status(503).json({ error: "Speech recognition is not configured. You can type your message meanwhile." });
   const { audio, mime, language } = req.body || {};

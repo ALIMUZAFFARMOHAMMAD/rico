@@ -1,3 +1,4 @@
+import { providerFetch as fetch } from "../../lib/provider-fetch";
 // Clone the user's real voice for their AI twin (consent-gated Instant Voice Cloning).
 // POST: take a recorded sample → self-hosted voice server (RICO_VOICE_URL, unlimited clones) or,
 // if that isn't configured, ElevenLabs IVC → store the voice id on the twin.
@@ -15,7 +16,7 @@ const EL = "https://api.elevenlabs.io/v1";
 
 export default async function handler(req, res) {
   if (!configured()) return res.status(500).json({ error: "Not configured" });
-  if (rateLimited(req)) return res.status(429).json({ error: "Too many requests, slow down." });
+  if (await rateLimited(req)) return res.status(429).json({ error: "Too many requests, slow down." });
   const apiKey = process.env.ELEVENLABS_API_KEY;
   if (!apiKey && !selfVoiceOn()) return res.status(503).json({ error: "Voice cloning isn't available right now." });
 

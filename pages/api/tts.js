@@ -1,3 +1,4 @@
+import { providerFetch as fetch } from "../../lib/provider-fetch";
 import { getAuth } from "@clerk/nextjs/server";
 // Tony's real voice — server-side ElevenLabs TTS proxy, streaming.
 // Keys never reach the client. Audio is piped chunk-by-chunk so the
@@ -15,7 +16,7 @@ export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
   const userId = getAuth(req).userId;
   if (!userId) return res.status(401).json({ error: "Sign in to hear this voice." });
-  if (rateLimited(req)) return res.status(429).json({ error: "Too many requests, slow down." });
+  if (await rateLimited(req)) return res.status(429).json({ error: "Too many requests, slow down." });
   const apiKey = process.env.ELEVENLABS_API_KEY;
   const { text, speechText, expression, agentId, language, warm } = req.body || {};
   // each agent (and each twin) has their own licensed voice; Tony uses the founder's clone
@@ -24,7 +25,7 @@ export default async function handler(req, res) {
   const voiceId = agent.voice || process.env.ELEVENLABS_VOICE_ID;
   const self = isSelfVoice(voiceId);
   // the call page pings this on open so a self-hosted twin's GPU is awake by the first reply
-  if (warm) { if (self && selfVoiceOn()) selfVoice("/warm", {}, 3000).catch(() => {}); return res.status(204).end(); }
+  if (warm) { if (self && selfVoiceOn()) selfVoice("/warm", {}, 3000).then(r => r.body?.cancel()).catch(() => {}); return res.status(204).end(); }
   if (!text || typeof text !== "string" || !text.trim()) return res.status(400).json({ error: "No text" });
   const clean = text.slice(0, 600); // cost guard — voice replies are 1-3 sentences anyway
 

@@ -1,3 +1,4 @@
+import { providerFetch as fetch } from "../../lib/provider-fetch";
 import { createHash } from "crypto";
 import { configured, getRow, upsertRow } from "../../lib/db";
 import { twinKey } from "../../lib/twins";
@@ -14,7 +15,7 @@ export default async function handler(req, res) {
   if (!userId || !ownsUser(req, userId)) return res.status(403).json({ error: "Sign in to your own account to update this twin." });
   if (req.method === "GET") return res.status(200).json({ available: !!process.env.OPENAI_API_KEY });
   if (!["generate", "save", "remove"].includes(action)) return res.status(400).json({ error: "Unknown portrait action." });
-  if (rateLimited(req, { limit: action === "generate" ? 3 : 20, windowMs: 60000 })) return res.status(429).json({ error: "Please wait a minute before trying again." });
+  if (await rateLimited(req, { limit: action === "generate" ? 3 : 20, windowMs: 60000 })) return res.status(429).json({ error: "Please wait a minute before trying again." });
   if (!configured()) return res.status(503).json({ error: "Twin settings are temporarily unavailable." });
   if (action !== "remove" && consent !== true) return res.status(400).json({ error: "Confirm that this is your photo before continuing." });
   let timer;

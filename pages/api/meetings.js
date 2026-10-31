@@ -17,7 +17,7 @@ export default async function handler(req, res) {
   const { userId } = getAuth(req);
   if (!userId) return res.status(401).json({ error: "Sign in first." });
   if (!configured()) return res.status(503).json({ error: "Meeting storage is unavailable." });
-  if (rateLimited(req, { limit: req.method === "GET" ? 100 : 30 })) return res.status(429).json({ error: "Please wait a moment before trying again." });
+  if (await rateLimited(req, { limit: req.method === "GET" ? 100 : 30 })) return res.status(429).json({ error: "Please wait a moment before trying again." });
   try {
     if (req.method === "GET") {
       if (req.query.id) {

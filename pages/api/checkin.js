@@ -1,3 +1,4 @@
+import { providerFetch as fetch } from "../../lib/provider-fetch";
 // Flagship #1 — "Rico texts you first": proactive, memory-grounded check-ins.
 //
 // When a returning user opens the app, the friend they last talked to greets them
@@ -33,7 +34,7 @@ export function computeStreak(days) {
 
 export default async function handler(req, res) {
   if (req.method !== "GET") return res.status(405).end();
-  if (rateLimited(req)) return res.status(429).json({ error: "Too many requests, slow down." });
+  if (await rateLimited(req)) return res.status(429).json({ error: "Too many requests, slow down." });
   if (!configured()) return res.status(200).json({ ok: false });
 
   const { userId, lang } = req.query;

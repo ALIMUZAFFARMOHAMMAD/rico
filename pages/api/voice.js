@@ -1,3 +1,4 @@
+import { providerFetch as fetch } from "../../lib/provider-fetch";
 import { getAuth } from "@clerk/nextjs/server";
 import { languagePrompt, LANGS } from "../../lib/i18n";
 import { splitVoiceReply } from "../../lib/voice-delivery";
@@ -68,7 +69,7 @@ RULES: 1-3 sentences MAX. Natural casual speech. Ask at most ONE question when u
 
 export default async function handler(req,res){
   if(req.method!=="POST")return res.status(405).end();
-  if (rateLimited(req)) return res.status(429).json({ error: "Too many requests, slow down." });
+  if (await rateLimited(req)) return res.status(429).json({ error: "Too many requests, slow down." });
   const apiKey=process.env.ANTHROPIC_API_KEY;
   if(!apiKey)return res.status(500).json({error:"No API key"});
   const{messages,mode,userName,userId,callMessages,language,agentId,build}=req.body;

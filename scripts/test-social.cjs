@@ -6,7 +6,7 @@ const vm = require('node:vm');
 const root = path.resolve(__dirname, '..');
 function load(file, bindings = {}, names = ['handler']) {
   const source = fs.readFileSync(path.join(root, file), 'utf8').replace(/^import .*;\r?\n/gm, '').replace(/export default /g, '').replace(/export /g, '');
-  const context = { module: { exports: {} }, console: { error() {} }, Buffer, FormData, Blob, Date, ...bindings };
+  const context={scaleEnabled:()=>false,rateLimited:async()=>false,getAuth:()=>({userId:null}),createHash:require("node:crypto").createHash, module: { exports: {} }, console: { error() {} }, Buffer, FormData, Blob, Date, ...bindings };
   vm.runInNewContext(source + '\nmodule.exports = {' + names.join(',') + '};', context);
   return context.module.exports;
 }

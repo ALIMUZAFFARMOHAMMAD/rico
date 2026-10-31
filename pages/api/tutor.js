@@ -1,3 +1,4 @@
+import { providerFetch as fetch } from "../../lib/provider-fetch";
 // AI Tutor — ROLE REVERSAL: the user is the teacher, AI characters are the students.
 // Supports multi-student COURSES: a class of characters learns a subject together,
 // studies together (Combined Studies), sits weekly exams set by the AI examiner, and
@@ -74,7 +75,7 @@ const mergeConcepts = (base, add) => {
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
-  if (rateLimited(req)) return res.status(429).json({ error: "Too many requests, slow down." });
+  if (await rateLimited(req)) return res.status(429).json({ error: "Too many requests, slow down." });
   const apiKey = process.env.ANTHROPIC_API_KEY;
 
   const { mode, userId, subject, students, durationWeeks, resources, teacher, language, messages, week, doubt, image } = req.body || {};

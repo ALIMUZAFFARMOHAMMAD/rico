@@ -1,3 +1,4 @@
+import { providerFetch as fetch } from "../../lib/provider-fetch";
 // Club Feed / Character Profiles — persistent, shared, asynchronous social content
 // (AGENTCONNECT-SPEC §4, extended). Two kinds of "space" share the same storage,
 // generation, and API shape:
@@ -17,6 +18,7 @@ import { CLUBS, AGENTS, AGENT_LIST } from "../../lib/agents";
 import { languagePrompt, LANGS } from "../../lib/i18n";
 import { configured, getRow, upsertRow } from "../../lib/db";
 import { rateLimited } from "../../lib/ratelimit";
+import { scaleEnabled, acquireLease, releaseLease, mutateClub } from "../../lib/scale";
 import { ownsUser } from "../../lib/auth";
 
 const FAST = "claude-haiku-4-5-20251001";
@@ -175,6 +177,12 @@ async function getOrGenerateSpaceItems(apiKey, resolved, language) {
 
   let items = existing;
   if (!fresh) {
+    const leaseKey = `club:${key}`;
+    const lease = scaleEnabled() ? await acquireLease(leaseKey) : null;
+    if (scaleEnabled() && !lease) return { items: existing, fresh: false };
+    try {
+    const current = await getRow(key);
+    if (Date.now() - Date.parse(current?.traits?.lastGeneratedAt || "") < FRESH_WINDOW_MS) return { items: current.messages || [], fresh: true };
     const batch = await generateBatch(apiKey, space, members, reactorPool, language);
     // Only stamp lastGeneratedAt on an actual success — generateBatch swallows its own
     // errors and returns [] on total failure (e.g. Anthropic API down), and stamping
@@ -182,29 +190,30 @@ async function getOrGenerateSpaceItems(apiKey, resolved, language) {
     // FRESH_WINDOW_MS window even though nothing new was produced.
     if (batch.length) {
       items = [...existing, ...batch].slice(-MAX_ITEMS);
-      await upsertRow(key, { messages: items, traits: { ...(row?.traits || {}), lastGeneratedAt: new Date().toISOString() } });
+      if (scaleEnabled()) items = await mutateClub(key, { action: "append", items: batch }, lease);
+      else await upsertRow(key, { messages: items, traits: { ...(row?.traits || {}), lastGeneratedAt: new Date().toISOString() } });
     }
+    } finally { if (lease) await releaseLease(leaseKey, lease); }
   }
   return { items, fresh };
 }
 
 export default async function handler(req, res) {
-  if (rateLimited(req)) return res.status(429).json({ error: "Too many requests, slow down." });
+  if (await rateLimited(req)) return res.status(429).json({ error: "Too many requests, slow down." });
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return res.status(500).json({ error: "No API key" });
   if (!configured()) return res.status(200).json({ ok: false, items: [], club: null });
 
   if (req.method === "GET" && req.query.all) {
-    // Unified Social feed: every character's own profile, fetch-or-generated in
-    // parallel, tagged with who posted it, merged + sorted by time.
-    const language = LANGS[req.query.lang] ? req.query.lang : "en";
+    // Aggregate browsing reads cached profiles; it never fans out into paid
+    // generation for every character. Individual profiles refresh under a lease.
     try {
       const results = await Promise.all(
         AGENT_LIST.map(async (agent) => {
           const resolved = resolveSpace(`profile-${agent.id}`);
           if (!resolved) return [];
           try {
-            const { items } = await getOrGenerateSpaceItems(apiKey, resolved, language);
+            const items = (await getRow(feedKey(resolved.space.id)))?.messages || [];
             return items.map((it) => ({ ...it, clubId: resolved.space.id, clubName: agent.archetype, clubEmoji: agent.emoji }));
           } catch (e) {
             console.error(`club-feed all: profile-${agent.id} failed:`, e.message);
@@ -289,7 +298,8 @@ export default async function handler(req, res) {
         } catch (e) { /* comment still lands even if the agent reply fails */ }
 
         items = items.slice(-MAX_ITEMS);
-        await upsertRow(key, { messages: items });
+        if (scaleEnabled()) await mutateClub(key, { action: "append", items: added, parentId });
+        else await upsertRow(key, { messages: items });
         return res.status(200).json({ ok: true, added });
       }
 
@@ -304,7 +314,8 @@ export default async function handler(req, res) {
           reactions[emoji] = list.includes(reactorId) ? list.filter((r) => r !== reactorId) : [...list, reactorId];
           return { ...it, reactions };
         });
-        await upsertRow(key, { messages: items });
+        if (scaleEnabled()) await mutateClub(key, { action: "react", itemId, emoji, reactorId });
+        else await upsertRow(key, { messages: items });
         return res.status(200).json({ ok: true });
       }
 
@@ -313,7 +324,8 @@ export default async function handler(req, res) {
         const d = await generateDebate(apiKey, space, reactorPool, language, fixedAuthor);
         if (!d) return res.status(400).json({ error: "Needs 2+ people to debate" });
         items = [...items, d].slice(-MAX_ITEMS);
-        await upsertRow(key, { messages: items });
+        if (scaleEnabled()) await mutateClub(key, { action: "append", items: [d] });
+        else await upsertRow(key, { messages: items });
         return res.status(200).json({ ok: true, added: [d] });
       }
 
