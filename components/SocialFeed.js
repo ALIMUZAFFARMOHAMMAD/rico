@@ -249,7 +249,7 @@ export default function SocialFeed({ userId, userName, T, font, onChat }) {
     if (isActiveStory(post)) setStories(previous => [post, ...previous.filter(p => p.id !== post.id)]);
     if (post.format === "story") { load(); return; }
     if (filter === "ai" || filter === "saved" || author) { setAuthor(null); setFilter("all"); }
-    else { setPosts(previous => [post, ...previous.filter(p => p.id !== post.id)]); setNextOffset(n => n === null ? null : n + 1); }
+    else { setPosts(previous => [post, ...previous.filter(p => p.id !== post.id)]); setNextOffset(n => typeof n === "number" ? n + 1 : n); }
   }
   const visibleStories = stories.filter(p => isActiveStory(p));
   const closeDetail = () => { detailRequest.current?.abort(); setDetail(null); setDetailError(""); setDetailLoading(false); };

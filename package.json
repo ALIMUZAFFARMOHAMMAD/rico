@@ -39,6 +39,7 @@
     "node": "24.x"
   },
   "overrides": {
+    "minimatch@^10.2.2": "11.0.3",
     "next": { "postcss": "8.5.32" },
     "brace-expansion@^1.0.0": "1.1.21",
     "js-yaml@^4.0.0": "4.3.2",

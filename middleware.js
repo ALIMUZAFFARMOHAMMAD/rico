@@ -33,6 +33,9 @@ export default function middleware(req, event) {
 }
 
 export const config = {
+  // Next 15.5 supports Node middleware; keep Clerk on the same server runtime
+  // as the authenticated Pages APIs instead of the Edge React-server bundle.
+  runtime: "nodejs",
   matcher: ["/((?!_next|[^?]*\\.(?:html?|css|js|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)"],
 };
 
