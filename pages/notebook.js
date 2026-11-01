@@ -1,10 +1,11 @@
 // Rough Notebook — teach Rico your handwriting once, then snap photos of your handwritten
 // notes. Rico transcribes + remembers them and answers questions from them. Pages also
 // feed your AI twin (see pages/api/notebook.js). Photos are never stored, only the text.
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Head from "next/head";
 import { useUser } from "@clerk/nextjs";
 import { resizeImage } from "../lib/resizeImage";
+import { requestJson } from "../lib/client-request";
 
 const T = { bg: "#0f0e17", panel: "rgba(255,255,255,0.06)", panel2: "rgba(255,255,255,0.09)", line: "rgba(255,255,255,0.1)", text: "#f5f3ff", sub: "#a9a5c0", grad: "#d6365e", pink: "#ff5e7e", violet: "#8b5cf6" };
 const font = "'DM Sans',system-ui,-apple-system,sans-serif";
@@ -14,17 +15,19 @@ const ghost = { ...btn, background: T.panel2, border: `1px solid ${T.line}`, col
 
 // a styled <label> around a hidden native file input — opens the camera on phones
 function PhotoButton({ label, multiple, onFiles, style, disabled }) {
+  const input = useRef(null);
   return (
-    <label style={{ ...style, opacity: disabled ? 0.5 : 1, pointerEvents: disabled ? "none" : "auto" }}>
-      {label}
-      <input type="file" accept="image/*" capture={multiple ? undefined : "environment"} multiple={multiple} hidden
+    <>
+      <button type="button" disabled={disabled} onClick={() => input.current?.click()} style={{ ...style, opacity: disabled ? 0.5 : 1 }}>{label}</button>
+      <input ref={input} type="file" accept="image/*" capture={multiple ? undefined : "environment"} multiple={multiple} hidden disabled={disabled}
         onChange={e => { const f = [...e.target.files]; e.target.value = ""; if (f.length) onFiles(f); }} />
-    </label>
+    </>
   );
 }
 
 export default function Notebook() {
   const { user, isLoaded, isSignedIn } = useUser();
+  const userId = user?.id;
   useEffect(() => { if (isLoaded && !isSignedIn) window.location.href = "/"; }, [isLoaded, isSignedIn]);
 
   const [data, setData] = useState(null); // { handwriting, notes, sample }
@@ -36,13 +39,15 @@ export default function Notebook() {
   const [recalibrate, setRecalibrate] = useState(false);
 
   const call = useCallback(async (body) => {
-    const r = await fetch("/api/notebook", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: user.id, ...body }) });
-    const d = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(d.error || "Something went wrong — try again.");
-    return d;
-  }, [user]);
+    return requestJson("/api/notebook", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, ...body }), timeoutMs: 60000 });
+  }, [userId]);
 
-  useEffect(() => { if (user) call({ mode: "get" }).then(setData).catch(e => setErr(e.message)); }, [user, call]);
+  useEffect(() => {
+    let active = true;
+    setData(null); setErr("");
+    if (userId) call({ mode: "get" }).then(result => { if (active) setData(result); }).catch(e => { if (active) setErr(e.message); });
+    return () => { active = false; };
+  }, [userId, call]);
 
   const calibrate = async ([file]) => {
     setErr(""); setBusy("Studying your handwriting…");
@@ -153,3 +158,4 @@ export default function Notebook() {
     <style>{`* { box-sizing: border-box; margin: 0; padding: 0; } html, body { background: ${T.bg}; }`}</style>
   </>);
 }
+
