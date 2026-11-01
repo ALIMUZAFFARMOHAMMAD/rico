@@ -5,23 +5,28 @@ $config=Get-Content -LiteralPath $ConfigPath -Raw | ConvertFrom-Json
 $output=[IO.Path]::GetFullPath($config.outputDirectory)
 [IO.Directory]::CreateDirectory($output) | Out-Null
 $lock=$null
+$stage='locking backup directory'
 try {
   $lock=[IO.File]::Open((Join-Path $output 'backup.lock'),[IO.FileMode]::OpenOrCreate,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)
   if ($FixturePath) { $json=[IO.File]::ReadAllText((Resolve-Path -LiteralPath $FixturePath).Path) }
   else {
     if ($config.credentialFile -and (Test-Path -LiteralPath $config.credentialFile)) {
-      $secret=Get-Content -LiteralPath $config.credentialFile -Raw | ConvertTo-SecureString
+      $stage='unlocking the locally encrypted credential'
+      $secret=(Get-Content -LiteralPath $config.credentialFile -Raw).Trim() | ConvertTo-SecureString
       $pointer=[Runtime.InteropServices.Marshal]::SecureStringToBSTR($secret)
       try { $env:RICO_BACKUP_SERVICE_KEY=[Runtime.InteropServices.Marshal]::PtrToStringBSTR($pointer) }
       finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($pointer) }
     }
     $env:RICO_ENCRYPTED_BACKUP_WRAPPER='1'
+    $stage='collecting the private snapshot'
     $json=(& $config.nodePath (Join-Path $PSScriptRoot 'collect.cjs') $ConfigPath | Out-String).Trim()
     if ($LASTEXITCODE -ne 0) { throw 'Collection failed; previous backups retained.' }
   }
+  $stage='validating the snapshot'
   $data=$json | ConvertFrom-Json
   if ($data.format -ne 'ricomates-application-data-v2' -or $null -eq $data.tables.conversations) { throw 'Invalid backup format.' }
   $bytes=[Text.Encoding]::UTF8.GetBytes($json)
+  $stage='encrypting and verifying the snapshot'
   $encrypted=[Security.Cryptography.ProtectedData]::Protect($bytes,$null,[Security.Cryptography.DataProtectionScope]::CurrentUser)
   $check=[Security.Cryptography.ProtectedData]::Unprotect($encrypted,$null,[Security.Cryptography.DataProtectionScope]::CurrentUser)
   $sha=[Security.Cryptography.SHA256]::Create()
@@ -29,6 +34,7 @@ try {
   if ($hash -ne [BitConverter]::ToString($sha.ComputeHash($check)).Replace('-','').ToLowerInvariant()) { throw 'Encrypted round-trip failed.' }
   $prefix=if($FixturePath){'fixture-'}else{'asktony-'}
   $target=Join-Path $output ($prefix+[DateTime]::UtcNow.ToString('yyyyMMdd-HHmmssfff')+'.dpapi')
+  $stage='saving the encrypted snapshot'
   [IO.File]::WriteAllBytes($target+'.partial',$encrypted)
   [IO.File]::Move($target+'.partial',$target)
   $receipt=@{createdAt=[DateTime]::UtcNow.ToString('o');file=[IO.Path]::GetFileName($target);sha256=$hash;verified=$true;encryptedBytes=$encrypted.Length;conversations=@($data.tables.conversations).Count;careerResults=@($data.tables.career_results).Count;users=@($data.tables.users).Count;photos=@($data.files).Count;encryption='Windows DPAPI CurrentUser';fixture=[bool]$FixturePath;scope=$data.scope}
@@ -47,7 +53,7 @@ try {
   }
   $receipt | ConvertTo-Json -Compress
 } catch {
-  throw 'Encrypted backup failed; previous snapshots were retained. Check login, permissions, snapshot RPC and free disk space. Private source data was not logged.'
+  throw ('Encrypted backup failed at '+$stage+'. Previous snapshots were retained. Private source data was not logged.')
 } finally {
   if ($lock) { $lock.Dispose() }
   Remove-Item Env:RICO_ENCRYPTED_BACKUP_WRAPPER -ErrorAction SilentlyContinue
