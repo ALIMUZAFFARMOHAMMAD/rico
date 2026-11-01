@@ -1,0 +1,57 @@
+name: Security and behavior checks
+on:
+  pull_request:
+  push:
+    branches: [main, feature/checkin-first]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  behavior:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm test
+      - run: npm run lint
+  dependencies:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+      - run: npm audit --audit-level=low
+  secrets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Build pinned upstream Gitleaks
+        env:
+          GOTOOLCHAIN: auto
+        run: |
+          git init "$RUNNER_TEMP/gitleaks-src"
+          git -C "$RUNNER_TEMP/gitleaks-src" remote add origin https://github.com/gitleaks/gitleaks.git
+          git -C "$RUNNER_TEMP/gitleaks-src" fetch --depth 1 origin b58d3f102cf3a2c84cb7f923d05c25c9b1aed84b
+          git -C "$RUNNER_TEMP/gitleaks-src" checkout --detach FETCH_HEAD
+          cd "$RUNNER_TEMP/gitleaks-src"
+          go build -o "$RUNNER_TEMP/gitleaks" .
+      - name: Scan Git history without printing secret values
+        run: '"$RUNNER_TEMP/gitleaks" git --redact --no-banner .'

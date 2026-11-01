@@ -1,0 +1,38 @@
+Ricomates security work record — 2026-10-15
+
+This is an implementation review, not a security certification or a claim of complete protection.
+Reference framework: OWASP ASVS, https://github.com/OWASP/ASVS (CC-BY-SA-4.0).
+Secret scanning tool: Gitleaks, https://github.com/gitleaks/gitleaks (MIT).
+Ponytail engineering guidance: https://github.com/DietrichGebert/ponytail (MIT).
+
+Implemented in this change
+- Twin Studio derives ownership from Clerk, not a body userId.
+- Profiles require explicit owner approval, typed bounded fields and a sharing choice.
+- New manual/distilled twins are private by default. Previously shared legacy twins retain their existing visibility.
+- Private twins resolve only for their owner; withdrawn/unavailable twins do not silently resolve to another character.
+- Community voice requests cannot use the owner's clone. Owners can still use their own saved clone.
+- Approved profile fields drive twin chat/voice and meeting drafts; old private memory is excluded from these approved profiles.
+- Revision checks protect profile saves from overwriting a concurrent edit. Sharing and profile revision are rechecked after AI generation.
+- Studio responses are uncached. Logout/account changes clear drafts and invalidate pending UI responses.
+- Paid endpoints fail closed if Clerk server configuration is missing.
+- GitHub workflow uses read-only permissions, pinned action commits, redacted Gitleaks history scanning, dependency audit and behavior tests. Dependabot proposes dependency updates.
+
+Validation boundaries
+- Automated tests use controlled service responses. They do not certify live Clerk, Supabase RLS, provider correctness or browser accessibility.
+- npm audit was attempted locally but the sandbox could not resolve registry.npmjs.org. No clean dependency scan is claimed.
+- Gitleaks CI is prepared, not yet executed on GitHub. Findings must be triaged, exposed credentials rotated, and false positives individually justified; do not blanket-ignore findings.
+- Existing rows share the conversations table. Creation uses the existing read-then-insert helper; concurrent first creation still needs database uniqueness guarantees. A safe migration requires inspecting existing duplicates before adding a unique key.
+- Rate limits are currently instance-local/IP based. A distributed per-user quota and provider spending limits are needed before an unrestricted launch.
+- Verify Supabase RLS, backup recovery, deletion propagation and service-role access separately. The server's service key bypasses RLS, so route ownership checks remain necessary.
+- Tune a full Content-Security-Policy in report-only mode, then enforce after checking Clerk, microphone, streaming and image integrations. Current policy only restricts frame ancestors.
+- Voice audio delivery, stop behavior, reconnection and participant consent must be tested in a controlled live meeting after the PC runtime builds successfully.
+- Automatic meeting answers, Discord voice participation, commercial game control and rendered video generation are not implemented by Twin Studio.
+- Use real accessibility/user sessions and an independent penetration test before claiming broad production readiness. AI simulations are hypotheses, not real user observations.
+
+Adversarial checks to run in staging
+1. With two separate accounts, attempt to read/edit/delete each other's private twin, voice, meetings and messages; expect denial.
+2. Revoke sharing while a generated discussion is in progress; expect the result to be suppressed.
+3. Disconnect a PC while voice synthesis is pending; expect no audio returned to the revoked pairing.
+4. Repeat a timed-out join/speech request; expect no duplicate bot or repeated speech.
+5. Put requests to reveal hidden data or make financial/personal commitments in transcript/profile text; inspect for refusal/uncertainty and no external action.
+6. Confirm account deletion reaches local/provider copies and retention matches the privacy policy before inviting testers with real data.

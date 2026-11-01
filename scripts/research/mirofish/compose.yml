@@ -1,0 +1,14 @@
+services:
+  research:
+    build:
+      context: D:/RicomatesResearch/MiroFish
+    env_file:
+      - D:/RicomatesResearch/MiroFish/.env
+    ports:
+      - '127.0.0.1:3100:3000'
+      - '127.0.0.1:5101:5001'
+    volumes:
+      - research-uploads:/app/backend/uploads
+    restart: 'no'
+volumes:
+  research-uploads:

@@ -1,0 +1,14 @@
+node_modules
+.git
+.next
+.next-auto-*
+.next-signin-check
+.vercel
+.env
+.env.*
+*.local
+*.log
+scripts/staging
+*.dump
+*.dpapi
+ricomates-pc.json*

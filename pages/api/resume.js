@@ -1,3 +1,4 @@
+import { providerFetch as fetch } from "../../lib/provider-fetch";
 // Résumé feature for Tony — the user shares their résumé (PDF, image, or pasted text);
 // Claude extracts a structured professional profile and stores it in Tony's memory
 // (the user's tony row, traits.resume) so Tony grounds career advice in their real
@@ -79,7 +80,7 @@ Return ONLY strict JSON, no prose:
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
-  if (rateLimited(req)) return res.status(429).json({ error: "Too many requests, slow down." });
+  if (await rateLimited(req)) return res.status(429).json({ error: "Too many requests, slow down." });
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return res.status(500).json({ error: "No API key" });
 
@@ -198,3 +199,4 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "Couldn't process the résumé" });
   }
 }
+

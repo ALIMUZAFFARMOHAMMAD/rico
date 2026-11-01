@@ -6,6 +6,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import Head from "next/head";
 import { useUser } from "@clerk/nextjs";
 import { LANGS } from "../lib/i18n";
+import { requestJson, requestTranslation, beginTranslationTurn } from "../lib/client-request";
 
 const T = { bg: "#0f0e17", panel: "rgba(255,255,255,0.06)", panel2: "rgba(255,255,255,0.09)", line: "rgba(255,255,255,0.1)", text: "#f5f3ff", sub: "#a9a5c0", grad: "#d6365e", pink: "#ff5e7e", violet: "#8b5cf6", teal: "#2dd4bf" };
 const font = "'DM Sans',system-ui,-apple-system,sans-serif";
@@ -62,13 +63,23 @@ export default function Translate() {
   const audioRef = useRef(null);
   const scribeStopRef = useRef(null);
   const panelRef = useRef(null);
+  const sessionRef = useRef(0);
+  const pendingRef = useRef(false);
+  const requestRef = useRef(null);
 
   useEffect(() => { if (panelRef.current) panelRef.current.scrollTop = panelRef.current.scrollHeight; }, [turns, interim, phase]);
   useEffect(() => () => { stopAll(); }, []); // eslint-disable-line
 
   const langName = (c) => LANGS[c]?.name || c;
   const stopAll = () => {
-    try { recRef.current?.stop(); } catch (e) {}
+    sessionRef.current += 1;
+    pendingRef.current = false;
+    requestRef.current?.abort(); requestRef.current = null;
+    if (recRef.current) {
+      recRef.current.onend = null; recRef.current.onresult = null; recRef.current.onerror = null;
+      try { recRef.current.abort(); } catch (e) {}
+      recRef.current = null;
+    }
     try { scribeStopRef.current && scribeStopRef.current(); } catch (e) {}
     mediaRef.current?.getTracks().forEach(t => t.stop());
     window.speechSynthesis?.cancel();
@@ -76,30 +87,33 @@ export default function Translate() {
   };
 
   // play synthesized speech in a given language via ElevenLabs (fallback: browser)
-  const speak = useCallback(async (text, langCode) => {
-    if (!text) return;
+  const speak = useCallback(async (text, langCode, token = sessionRef.current) => {
+    if (!text || token !== sessionRef.current) return;
     window.speechSynthesis?.cancel();
     if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
     try {
-      const r = await fetch("/api/tts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, language: langCode, agentId: "tony" }) });
+      const deadline = AbortSignal.timeout(30000);
+      const signal = requestRef.current ? AbortSignal.any([requestRef.current.signal, deadline]) : deadline;
+      const r = await fetch("/api/tts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, language: langCode, agentId: "tony" }), signal });
+      if (token !== sessionRef.current) return;
       if (r.ok) {
         const url = URL.createObjectURL(await r.blob());
+        if (token !== sessionRef.current) { URL.revokeObjectURL(url); return; }
         const a = new Audio(url); audioRef.current = a;
         await new Promise(res => { a.onended = res; a.onerror = res; a.play().catch(res); setTimeout(res, text.length * 95 + 3500); });
-        URL.revokeObjectURL(url); audioRef.current = null; return;
+        URL.revokeObjectURL(url); if (audioRef.current === a) audioRef.current = null; return;
       }
     } catch (e) {}
+    if (token !== sessionRef.current) return;
+    if (!window.speechSynthesis || !window.SpeechSynthesisUtterance) throw new Error("Audio is unavailable. Switch to captions only.");
     await new Promise(res => { const u = new SpeechSynthesisUtterance(text); u.lang = LANGS[langCode]?.speech || "en-US"; u.onend = res; u.onerror = res; window.speechSynthesis.speak(u); setTimeout(res, text.length * 80 + 2500); });
   }, []);
 
-  const translate = async (text, from, to) => {
-    const r = await fetch("/api/translate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text, from, to }) });
-    const d = await r.json();
-    return d.text || "";
-  };
+  const translate = (text, from, to) => requestTranslation(text, from, to, requestRef.current?.signal);
 
   // process one finished spoken turn
-  const handleTurn = useCallback(async (side, text) => {
+  const handleTurn = useCallback(async (side, text, token = sessionRef.current) => {
+    if (token !== sessionRef.current) return;
     const t = (text || "").trim();
     setInterim("");
     if (!t) { setPhase("idle"); return; }
@@ -108,10 +122,11 @@ export default function Translate() {
     setPhase("translating");
     try {
       const out = await translate(t, from, to);
+      if (token !== sessionRef.current) return;
       setTurns(p => [...p, { side, src: t, dst: out }]);
-      if (speakRef.current && out) { setPhase("speaking"); await speak(out, to); }
-    } catch (e) { setErr("Translation hiccup — try again."); }
-    setPhase("idle");
+      if (speakRef.current && out) { setPhase("speaking"); await speak(out, to, token); }
+    } catch (e) { if (token === sessionRef.current) setErr(e.message || "Translation hiccup — try again."); }
+    if (token === sessionRef.current) setPhase("idle");
   }, [speak]);
 
   // ---- Web Speech recognizer (fast path) ----
@@ -119,20 +134,25 @@ export default function Translate() {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) return false;
     const rec = new SR();
+    const token = sessionRef.current;
     rec.lang = LANGS[langCode]?.speech || "en-US";
     rec.continuous = false; rec.interimResults = true;
     let final = "";
-    rec.onresult = e => { final = Array.from(e.results).map(r => r[0].transcript).join(""); setInterim(final); };
-    rec.onerror = () => {};
-    rec.onend = () => { recRef.current = null; handleTurn(side, final); };
+    rec.onresult = e => { if (token !== sessionRef.current) return; final = Array.from(e.results).map(r => r[0].transcript).join(""); setInterim(final); };
+    rec.onerror = e => { if (token === sessionRef.current) setErr(e.error === "not-allowed" ? "Allow microphone access in your browser, then try again." : "Could not hear you. Check your microphone and try again."); };
+    rec.onend = () => { if (token !== sessionRef.current) return; recRef.current = null; handleTurn(side, final, token); };
     recRef.current = rec;
     try { rec.start(); setPhase(side === "them" ? "listen-them" : "listen-you"); return true; } catch (e) { return false; }
   }, [handleTurn]);
 
   // ---- Scribe recognizer (record → STT; tap again or 15s to stop) ----
   const listenScribe = useCallback(async (side, langCode) => {
+    const token = sessionRef.current;
+    let stream;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+      setPhase(side === "them" ? "listen-them" : "listen-you");
+      stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+      if (token !== sessionRef.current) { stream.getTracks().forEach(t => t.stop()); return; }
       mediaRef.current = stream;
       const mime = MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "";
       const mr = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
@@ -144,19 +164,20 @@ export default function Translate() {
       const cap = setTimeout(finalize, 15000);
       mr.onstop = async () => {
         clearTimeout(cap);
-        mediaRef.current?.getTracks().forEach(t => t.stop());
+        stream.getTracks().forEach(t => t.stop());
+        if (token !== sessionRef.current) return;
         scribeStopRef.current = null;
         setPhase("translating");
         try {
           const blob = new Blob(chunks, { type: mr.mimeType || "audio/webm" });
           const b64 = await new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = rej; fr.readAsDataURL(blob); });
-          const r = await fetch("/api/stt", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ audio: b64, mime: blob.type, language: STT3[langCode] }) });
-          const { text } = await r.json();
-          await handleTurn(side, text);
-        } catch (e) { setErr("Couldn't hear that — try again."); setPhase("idle"); }
+          if (token !== sessionRef.current) return;
+          const { text } = await requestJson("/api/stt", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ audio: b64, mime: blob.type, language: STT3[langCode] }), signal: requestRef.current?.signal });
+          await handleTurn(side, text, token);
+        } catch (e) { if (token === sessionRef.current) { setErr(e.message || "Couldn't hear that — try again."); setPhase("idle"); } }
       };
       mr.start(); setPhase(side === "them" ? "listen-them" : "listen-you");
-    } catch (e) { setErr("Microphone unavailable."); setPhase("idle"); }
+    } catch (e) { stream?.getTracks().forEach(t => t.stop()); if (token === sessionRef.current) { setErr("Microphone unavailable. Check browser permissions and try again."); setPhase("idle"); } }
   }, [handleTurn]);
 
   const startListen = (side) => {
@@ -170,24 +191,29 @@ export default function Translate() {
     try { scribeStopRef.current && scribeStopRef.current(); } catch (e) {}
   };
 
-  const tapMic = (side) => {
+  const tapMic = async (side) => {
     const listening = (side === "them" && phase === "listen-them") || (side === "you" && phase === "listen-you");
     if (listening) { stopListen(); return; }
-    if (phase !== "idle") return; // busy translating/speaking
-    if (!announced) { announce(); setAnnounced(true); }
-    startListen(side);
+    if (phase !== "idle" || pendingRef.current) return;
+    pendingRef.current = true;
+    const token = sessionRef.current;
+    requestRef.current = new AbortController();
+    try {
+      await beginTranslationTurn({ needsNotice: !announced, notice: () => announce(token), current: () => token === sessionRef.current, listen: () => { setAnnounced(true); startListen(side); } });
+    } finally { if (token === sessionRef.current) pendingRef.current = false; }
   };
 
   // mandatory courtesy notice, spoken in THEIR language
-  const announce = useCallback(async () => {
+  const announce = useCallback(async (token = sessionRef.current) => {
     const lc = theirLangRef.current;
     setPhase("speaking");
     try {
       const en = "Hello! This call is being translated in real time. Please speak clearly, and pause for a moment after each sentence so I can translate. Thank you!";
       const localized = await translate(en, "en", lc);
-      await speak(localized || en, lc);
-    } catch (e) {}
-    setPhase("idle");
+      if (token !== sessionRef.current) return;
+      await speak(localized || en, lc, token);
+    } catch (e) { if (token === sessionRef.current) { setErr(e.message || "Could not play the translation notice."); setPhase("idle"); } return false; }
+    if (token === sessionRef.current) setPhase("idle");
   }, [speak]);
 
   const reset = () => { stopAll(); setTurns([]); setInterim(""); setPhase("idle"); setAnnounced(false); setErr(""); };
@@ -223,11 +249,11 @@ export default function Translate() {
         {/* controls bar */}
         <div style={{ display: "flex", gap: 8, alignItems: "center", padding: "10px 14px", borderBottom: `1px solid ${T.line}`, flexWrap: "wrap" }}>
           <span style={{ color: T.sub, fontSize: 11, fontWeight: 700 }}>Their language:</span>
-          <select value={theirLang} onChange={e => setTheirLang(e.target.value)} disabled={listening} style={{ background: T.panel2, color: T.text, border: `1px solid ${T.line}`, borderRadius: 100, padding: "6px 12px", fontSize: 13, fontWeight: 600, outline: "none", fontFamily: font }}>
+          <select value={theirLang} onChange={e => { setTheirLang(e.target.value); setAnnounced(false); }} disabled={phase !== "idle"} style={{ background: T.panel2, color: T.text, border: `1px solid ${T.line}`, borderRadius: 100, padding: "6px 12px", fontSize: 13, fontWeight: 600, outline: "none", fontFamily: font }}>
             {THEIR_LANGS.map(c => <option key={c} value={c} style={{ color: "#000" }}>{LANGS[c].native} · {LANGS[c].name}</option>)}
           </select>
           <button onClick={() => setSpeakAloud(s => !s)} style={{ background: speakAloud ? T.violet : T.panel2, border: `1px solid ${T.line}`, color: speakAloud ? "#fff" : T.sub, fontSize: 12, fontWeight: 700, padding: "6px 11px", borderRadius: 100, cursor: "pointer", fontFamily: font }}>{speakAloud ? "🔊 Voice on" : "🔇 Captions only"}</button>
-          <button onClick={announce} disabled={phase !== "idle"} title="Play the translation notice in their language" style={{ background: T.panel2, border: `1px solid ${T.line}`, color: T.text, fontSize: 12, fontWeight: 700, padding: "6px 11px", borderRadius: 100, cursor: phase === "idle" ? "pointer" : "default", fontFamily: font, opacity: phase === "idle" ? 1 : 0.5 }}>📢 Notice</button>
+          <button onClick={() => announce()} disabled={phase !== "idle"} title="Play the translation notice in their language" style={{ background: T.panel2, border: `1px solid ${T.line}`, color: T.text, fontSize: 12, fontWeight: 700, padding: "6px 11px", borderRadius: 100, cursor: phase === "idle" ? "pointer" : "default", fontFamily: font, opacity: phase === "idle" ? 1 : 0.5 }}>📢 Notice</button>
         </div>
 
         {/* bro + status */}
@@ -260,7 +286,7 @@ export default function Translate() {
           })}
         </div>
 
-        {err && <div style={{ color: T.pink, fontSize: 12, fontWeight: 600, textAlign: "center", padding: "2px 16px 4px" }}>{err}</div>}
+        {err && <div role="alert" style={{ color: T.pink, fontSize: 12, fontWeight: 600, textAlign: "center", padding: "2px 16px 4px" }}>{err}</div>}
 
         {/* mic buttons */}
         <div style={{ display: "flex", gap: 10, padding: "10px 14px 20px" }}>
@@ -275,7 +301,7 @@ export default function Translate() {
         </div>
 
         <div style={{ display: "flex", justifyContent: "center", gap: 16, paddingBottom: 14 }}>
-          {turns.length > 0 && <button onClick={reset} style={{ background: "transparent", border: "none", color: T.sub, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: font }}>Clear conversation</button>}
+          {(turns.length > 0 || phase !== "idle" || err) && <button onClick={reset} style={{ background: "transparent", border: "none", color: T.sub, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: font }}>{phase !== "idle" ? "Cancel translation" : "Clear conversation"}</button>}
           <span style={{ color: T.sub, fontSize: 10.5, opacity: 0.7 }}>🔒 Audio isn't stored.</span>
         </div>
       </div>
@@ -289,3 +315,4 @@ export default function Translate() {
     `}</style>
   </>);
 }
+

@@ -1,8 +1,12 @@
+import { createGameTimers } from "../lib/game-timers";
 // Interactive game boards vs a Rico character: Chess (minimax engine), Connect 4,
 // Checkers, Tic-Tac-Toe. Each with IN-CHARACTER banter via /api/banter.
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Chess } from "chess.js";
 import TonyCharacter from "./TonyCharacter";
+import Dialog from "./Dialog";
+import { GAME_GUIDE } from "../lib/game-guide";
+import w from "./Workspace.module.css";
 
 const T = { bg: "#0f0e17", panel: "rgba(255,255,255,0.06)", panel2: "rgba(255,255,255,0.09)", line: "rgba(255,255,255,0.1)", text: "#f5f3ff", sub: "#a9a5c0", grad: "#d6365e", pink: "#ff5e7e", violet: "#8b5cf6" };
 const font = "'DM Sans',system-ui,-apple-system,sans-serif";
@@ -21,7 +25,16 @@ function minimax(g, depth, alpha, beta, maxing) {
   if (maxing) { let v = -1e9; for (const m of moves) { g.move({ from: m.from, to: m.to, promotion: "q" }); v = Math.max(v, minimax(g, depth - 1, alpha, beta, false)); g.undo(); alpha = Math.max(alpha, v); if (alpha >= beta) break; } return v; }
   let v = 1e9; for (const m of moves) { g.move({ from: m.from, to: m.to, promotion: "q" }); v = Math.min(v, minimax(g, depth - 1, alpha, beta, true)); g.undo(); beta = Math.min(beta, v); if (alpha >= beta) break; } return v;
 }
+
+function useGameTimers() {
+  const ref = useRef(null);
+  if (!ref.current) ref.current = createGameTimers();
+  const timers = ref.current;
+  useEffect(() => () => timers.cancel(), [timers]);
+  return timers;
+}
 function ChessGame({ say, friendName, onWin }) {
+  const timers = useGameTimers();
   const gameRef = useRef(new Chess());
   const [, setTick] = useState(0); const force = () => setTick((t) => t + 1);
   const [sel, setSel] = useState(null); const [targets, setTargets] = useState([]);
@@ -45,17 +58,19 @@ function ChessGame({ say, friendName, onWin }) {
       if (g.isGameOver()) return finish(); setStatus("Thinking…");
       if (mv && mv.captured) say(`your friend just captured your ${PNAME[mv.captured]} in chess`, `Hey! My ${PNAME[mv.captured]}! 😤`);
       else if (g.isCheck()) say("your friend just put YOU in check in chess", "Ooh, check on me? Bold. 😏");
-      setTimeout(botMove, 600); return; }
+      timers.schedule(botMove, 600); return; }
     const p = g.get(sq); if (p && p.color === "w") { setSel(sq); setTargets(g.moves({ square: sq, verbose: true }).map((m) => m.to)); } else { setSel(null); setTargets([]); } };
-  const reset = () => { gameRef.current = new Chess(); setSel(null); setTargets([]); setOver(false); setStatus("New game — your move."); say("starting a fresh game of chess", "Rematch! Bring it. ♟️"); force(); };
+  const reset = () => { timers.cancel(); gameRef.current = new Chess(); setSel(null); setTargets([]); setOver(false); setStatus("New game — your move."); say("starting a fresh game of chess", "Rematch! Bring it. ♟️"); force(); };
   const board = gameRef.current.board();
   return (<>
-    <div style={{ width: "min(88vw, 360px)", aspectRatio: "1", display: "grid", gridTemplateColumns: "repeat(8,1fr)", borderRadius: 12, overflow: "hidden", border: `1px solid ${T.line}`, boxShadow: "0 18px 50px rgba(0,0,0,0.5)" }}>
+    <div className={w.chessBoard} role="group" aria-label="Chess board">
       {board.map((row, r) => row.map((cell, c) => { const sq = "abcdefgh"[c] + (8 - r); const light = (r + c) % 2 === 0; const isTarget = targets.includes(sq);
-        return (<div key={sq} onClick={() => onSquare(sq)} style={{ position: "relative", background: sel === sq ? T.violet : light ? "#ded3ef" : "#6f5d99", display: "flex", alignItems: "center", justifyContent: "center", cursor: over ? "default" : "pointer", userSelect: "none" }}>
-          {cell && <span style={{ fontSize: "min(7vw, 30px)", lineHeight: 1, color: cell.color === "w" ? "#fff" : "#160e26", textShadow: cell.color === "w" ? "0 1px 2px rgba(0,0,0,0.55)" : "none" }}>{GLYPH[cell.color + cell.type]}</span>}
-          {isTarget && <span style={{ position: "absolute", width: cell ? "82%" : "30%", height: cell ? "82%" : "30%", borderRadius: "50%", border: cell ? `3px solid ${T.pink}` : "none", background: cell ? "transparent" : `${T.violet}cc` }} />}
-        </div>); }))}
+        return (<button key={sq} className={w.chessSquare} data-light={light} data-selected={sel === sq} aria-label={`${sq}${cell ? `, ${cell.color === "w" ? "white" : "black"} ${PNAME[cell.type]}` : ", empty"}${isTarget ? ", available move" : ""}`} aria-pressed={sel === sq} onClick={() => onSquare(sq)}>
+          {c === 0 && <span className={w.rankLabel} aria-hidden="true">{8 - r}</span>}
+          {r === 7 && <span className={w.fileLabel} aria-hidden="true">{"abcdefgh"[c]}</span>}
+          {cell && <span className={w.chessPiece} data-color={cell.color} aria-hidden="true">{GLYPH["b" + cell.type]}</span>}
+          {isTarget && <span className={w.moveTarget} data-capture={!!cell} aria-hidden="true" />}
+        </button>); }))}
     </div>
     <div style={{ color: over ? "#4ade80" : T.sub, fontSize: 12.5, fontWeight: 600, marginTop: 10, minHeight: 16 }}>{status}</div>
     <button onClick={reset} style={btn}>New game</button>
@@ -80,8 +95,8 @@ function TicTacToe({ say, friendName, onWin }) {
     else { setStatus("Your move ❌"); if (threat || Math.random() < 0.5) say("mid-game in tic-tac-toe, your turn", "Your move, friend. 👀"); } };
   const reset = () => { setB(Array(9).fill(null)); setOver(false); setStatus("You're ❌ — tap a square."); say("starting a fresh game of tic-tac-toe", "Round two! 🎯"); };
   return (<>
-    <div style={{ width: "min(78vw, 300px)", aspectRatio: "1", display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>
-      {b.map((v, i) => (<div key={i} onClick={() => tap(i)} style={{ background: T.panel2, border: `1px solid ${T.line}`, borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "min(14vw, 54px)", cursor: over || v ? "default" : "pointer", color: v === "X" ? T.pink : T.violet, fontWeight: 800 }}>{v}</div>))}
+    <div style={{ width: "min(78vw, 360px)", aspectRatio: "1", display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gridTemplateRows: "repeat(3,minmax(0,1fr))", gap: 8 }}>
+      {b.map((v, i) => (<button key={i} aria-label={`Row ${Math.floor(i / 3) + 1}, column ${i % 3 + 1}: ${v || "empty"}`} disabled={over || !!v} onClick={() => tap(i)} style={{ background: T.panel2, border: `1px solid ${T.line}`, borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "min(14vw, 54px)", cursor: over || v ? "default" : "pointer", color: v === "X" ? T.pink : T.violet, fontWeight: 800 }}>{v}</button>))}
     </div>
     <div style={{ color: over ? "#4ade80" : T.sub, fontSize: 12.5, fontWeight: 600, marginTop: 12, minHeight: 16 }}>{status}</div>
     <button onClick={reset} style={btn}>New game</button>
@@ -109,10 +124,10 @@ function Connect4({ say, friendName, onWin }) {
   const reset = () => { setG(Array.from({ length: C4R }, () => Array(C4C).fill(null))); setOver(false); setStatus("You're 🔴 — tap a column."); say("starting a fresh game of Connect 4", "Fresh board! 🔴"); };
   return (<>
     <div style={{ background: "#3a2f63", padding: 8, borderRadius: 14, boxShadow: "0 18px 50px rgba(0,0,0,0.5)" }}>
-      <div style={{ width: "min(86vw, 340px)", display: "grid", gridTemplateColumns: `repeat(${C4C},1fr)`, gap: 6 }}>
-        {Array.from({ length: C4C }).map((_, c) => (<div key={c} onClick={() => drop(c)} style={{ display: "grid", gridTemplateRows: `repeat(${C4R},1fr)`, gap: 6, cursor: over || g[0][c] ? "default" : "pointer" }}>
+      <div style={{ width: "min(86vw, 340px)", maxWidth: "100%", display: "grid", gridTemplateColumns: `repeat(${C4C},1fr)`, gap: 6 }}>
+        {Array.from({ length: C4C }).map((_, c) => (<button type="button" key={c} aria-label={`Drop in column ${c + 1}`} disabled={over || !!g[0][c]} onClick={() => drop(c)} style={{ background: "transparent", border: 0, padding: 0, minWidth: 0, display: "grid", gridTemplateRows: `repeat(${C4R},1fr)`, gap: 6, cursor: over || g[0][c] ? "default" : "pointer" }}>
           {Array.from({ length: C4R }).map((_, r) => { const v = g[r][c]; return (<div key={r} style={{ aspectRatio: "1", borderRadius: "50%", background: v === "R" ? "#ff5e7e" : v === "Y" ? "#f5c84b" : "#1a1530" }} />); })}
-        </div>))}
+        </button>))}
       </div>
     </div>
     <div style={{ color: over ? "#4ade80" : T.sub, fontSize: 12.5, fontWeight: 600, marginTop: 12, minHeight: 16 }}>{status}</div>
@@ -135,27 +150,30 @@ function ckAll(b, side) { const out = []; for (let r = 0; r < 8; r++) for (let c
 function ckBotTurn(b) { let moves = ckAll(b, "b"); if (!moves.length) return b; const jumps = moves.filter((m) => m.jump); let mv = pick(jumps.length ? jumps : moves); let nb = ckApply(b, mv.from, mv.to, mv.cap);
   if (mv.jump) { let cur = mv.to; while (true) { const { jumps: js } = ckPieceMoves(nb, cur[0], cur[1]); if (!js.length) break; const j = pick(js); nb = ckApply(nb, cur, j.to, j.cap); cur = j.to; } } return nb; }
 function Checkers({ say, friendName, onWin }) {
+  const timers = useGameTimers();
   const [b, setB] = useState(ckInit); const [sel, setSel] = useState(null); const [opts, setOpts] = useState([]); const [status, setStatus] = useState("You're red — tap a piece."); const [over, setOver] = useState(false); const chainRef = useRef(false);
+  const busy = useRef(false);
+  const optionsFor = (r, c) => { const options = ckPieceMoves(b, r, c); return ckAll(b, "r").some(move => move.jump) ? options.jumps : [...options.jumps, ...options.moves]; };
   const eq = (a, x) => a && x && a[0] === x[0] && a[1] === x[1];
   const endIf = (nb) => { const r = ckAll(nb, "r").length, bl = ckAll(nb, "b").length;
     if (bl === 0) { setOver(true); setStatus("You win — all my pieces gone!"); say("your friend captured ALL your checkers pieces and won", "You cleaned me out! GG 👏"); if (onWin) onWin("You"); return true; }
     if (r === 0) { setOver(true); setStatus("I win — you're out of pieces!"); say("you captured all your friend's checkers pieces and won", "Wiped the board! 😏"); if (onWin) onWin(friendName || "Rico"); return true; } return false; };
-  const botGo = (nb) => { const after = ckBotTurn(nb); setB(after); if (endIf(after)) return; setStatus("Your move."); if (Math.random() < 0.5) say("mid-game in checkers, your turn", "Your move. 👀"); };
-  const tap = (r, c) => { if (over) return; const p = b[r][c];
+  const botGo = (nb) => { busy.current = false; const after = ckBotTurn(nb); setB(after); if (endIf(after)) return; setStatus("Your move."); if (Math.random() < 0.5) say("mid-game in checkers, your turn", "Your move. 👀"); };
+  const tap = (r, c) => { if (over || busy.current) return; const p = b[r][c];
     if (sel) { const o = opts.find((m) => eq(m.to, [r, c])); if (o) { let nb = ckApply(b, sel, o.to, o.cap);
         if (o.cap) { const { jumps } = ckPieceMoves(nb, o.to[0], o.to[1]); if (jumps.length) { setB(nb); setSel(o.to); setOpts(jumps); chainRef.current = true; setStatus("Keep jumping!"); say("your friend is on a multi-jump capture streak in checkers", "Whoa, combo! 😳"); return; } }
-        setB(nb); setSel(null); setOpts([]); chainRef.current = false; if (endIf(nb)) return; setStatus("Thinking…"); if (o.cap) say("your friend just captured one of your checkers", "Hey, my piece! 😤"); setTimeout(() => botGo(nb), 600); return; }
-      if (!chainRef.current && p && p.s === "r") { const { moves, jumps } = ckPieceMoves(b, r, c); setSel([r, c]); setOpts([...jumps, ...moves]); return; }
+        setB(nb); setSel(null); setOpts([]); chainRef.current = false; if (endIf(nb)) return; setStatus("Thinking…"); if (o.cap) say("your friend just captured one of your checkers", "Hey, my piece! 😤"); busy.current = true; timers.schedule(() => botGo(nb), 600); return; }
+      if (!chainRef.current && p && p.s === "r") { const options = optionsFor(r, c); setSel([r, c]); setOpts(options); return; }
       return; }
-    if (p && p.s === "r") { const { moves, jumps } = ckPieceMoves(b, r, c); if (!moves.length && !jumps.length) return; setSel([r, c]); setOpts([...jumps, ...moves]); } };
-  const reset = () => { setB(ckInit()); setSel(null); setOpts([]); setOver(false); chainRef.current = false; setStatus("You're red — tap a piece."); say("starting a fresh game of checkers", "Rematch! 🔴"); };
+    if (p && p.s === "r") { const options = optionsFor(r, c); if (!options.length) return; setSel([r, c]); setOpts(options); } };
+  const reset = () => { timers.cancel(); busy.current = false; setB(ckInit()); setSel(null); setOpts([]); setOver(false); chainRef.current = false; setStatus("You're red — tap a piece."); say("starting a fresh game of checkers", "Rematch! 🔴"); };
   return (<>
-    <div style={{ width: "min(88vw, 360px)", aspectRatio: "1", display: "grid", gridTemplateColumns: "repeat(8,1fr)", borderRadius: 12, overflow: "hidden", border: `1px solid ${T.line}`, boxShadow: "0 18px 50px rgba(0,0,0,0.5)" }}>
+    <div style={{ width: "min(88vw, 440px)", aspectRatio: "1", display: "grid", gridTemplateColumns: "repeat(8,minmax(0,1fr))", gridTemplateRows: "repeat(8,minmax(0,1fr))", borderRadius: 12, overflow: "hidden", border: `1px solid ${T.line}`, boxShadow: "0 18px 50px rgba(0,0,0,0.5)" }}>
       {b.map((row, r) => row.map((cell, c) => { const light = (r + c) % 2 === 0; const isSel = eq(sel, [r, c]); const isOpt = opts.some((m) => eq(m.to, [r, c]));
-        return (<div key={`${r}-${c}`} onClick={() => tap(r, c)} style={{ position: "relative", background: isSel ? T.violet : light ? "#ded3ef" : "#6f5d99", display: "flex", alignItems: "center", justifyContent: "center", cursor: over ? "default" : "pointer" }}>
+        return (<button type="button" key={`${r}-${c}`} aria-label={`Row ${r+1}, column ${c+1}: ${cell ? (cell.s === "r" ? "red" : "black") + (cell.k ? " king" : " piece") : "empty"}${isOpt ? ", available move" : ""}`} aria-pressed={isSel} disabled={over || busy.current} onClick={() => tap(r, c)} style={{ border: 0, padding: 0, minWidth: 0, minHeight: 0, position: "relative", background: isSel ? T.violet : light ? "#ded3ef" : "#6f5d99", display: "flex", alignItems: "center", justifyContent: "center", cursor: over ? "default" : "pointer" }}>
           {cell && <div style={{ width: "72%", height: "72%", borderRadius: "50%", background: cell.s === "r" ? "radial-gradient(circle at 35% 30%, #ff8aa3, #d63d5f)" : "radial-gradient(circle at 35% 30%, #4a4458, #15101f)", border: "2px solid rgba(255,255,255,0.25)", display: "flex", alignItems: "center", justifyContent: "center", color: "#ffd95e", fontSize: "min(4.5vw,20px)" }}>{cell.k ? "♛" : ""}</div>}
           {isOpt && <span style={{ position: "absolute", width: "30%", height: "30%", borderRadius: "50%", background: `${T.pink}cc` }} />}
-        </div>); }))}
+        </button>); }))}
     </div>
     <div style={{ color: over ? "#4ade80" : T.sub, fontSize: 12.5, fontWeight: 600, marginTop: 10, minHeight: 16 }}>{status}</div>
     <button onClick={reset} style={btn}>New game</button>
@@ -230,6 +248,7 @@ function aiPickLudo(tokens, p, d, lm) { let best = lm[0], bestS = -1;
     if (s > bestS) { bestS = s; best = t; } } return best; }
 
 function Ludo({ say, friendName, players, onWin }) {
+  const timers = useGameTimers();
   const names = crew(players, friendName);
   const init = () => [[-1,-1,-1,-1],[-1,-1,-1,-1],[-1,-1,-1,-1],[-1,-1,-1,-1]];
   const [tokens, setTokens] = useState(init); const tokRef = useRef(tokens);
@@ -237,18 +256,18 @@ function Ludo({ say, friendName, players, onWin }) {
   const [turn, setTurn] = useState(0); const [dice, setDice] = useState(null);
   const [phase, setPhase] = useState("roll"); const [winner, setWinner] = useState(null);
   const [msg, setMsg] = useState("Your turn — roll the dice! 🎲"); const lock = useRef(false);
-  const reset = () => { lock.current = false; setTok(init()); setTurn(0); setDice(null); setPhase("roll"); setWinner(null); setMsg("Your turn — roll the dice! 🎲"); say("starting a fresh game of Ludo with the whole crew", "New game! May the best friend win 🎲"); };
+  const reset = () => { timers.cancel(); lock.current = false; setTok(init()); setTurn(0); setDice(null); setPhase("roll"); setWinner(null); setMsg("Your turn — roll the dice! 🎲"); say("starting a fresh game of Ludo with the whole crew", "New game! May the best friend win 🎲"); };
   const finish = (p) => { setWinner(p); setPhase("over");
     if (p === 0) { setMsg("🎉 You won!"); say("your friend just WON the whole game of Ludo, getting all four tokens home", "You won it all! Incredible 🏆"); if (onWin) onWin("You"); }
     else { setMsg(`${names[p]} won this one!`); say(`${names[p]} just won the game of Ludo — playfully congratulate your friend on a good game anyway`, `${names[p]} takes it! GG all 🎲`); if (onWin) onWin(names[p]); } };
   const endTurn = (p) => { setDice(null); setPhase("roll"); const np = (p + 1) % 4; setTurn(np);
     setMsg(np === 0 ? "Your turn — roll! 🎲" : `${names[np]}'s turn…`); };
   // human roll
-  const roll = () => { if (winner || turn !== 0 || phase !== "roll") return; const d = d6(); setDice(d);
+  const roll = () => { if (winner != null || turn !== 0 || phase !== "roll") return; const d = d6(); setDice(d);
     const lm = legalLudo(tokRef.current, 0, d);
-    if (!lm.length) { setMsg(d === 6 ? "Rolled a 6 but nothing to move 😅" : `Rolled ${d} — no moves`); setTimeout(() => endTurn(0), 850); }
+    if (!lm.length) { setPhase("waiting"); setMsg(d === 6 ? "Rolled a 6 but nothing to move 😅" : `Rolled ${d} — no moves`); timers.schedule(() => endTurn(0), 850); }
     else { setPhase("move"); setMsg(`You rolled ${d} — tap a token`); } };
-  const tapToken = (t) => { if (winner || turn !== 0 || phase !== "move") return;
+  const tapToken = (t) => { if (winner != null || turn !== 0 || phase !== "move") return;
     if (!legalLudo(tokRef.current, 0, dice).includes(t)) return;
     const { nt, captured, finished } = applyLudo(tokRef.current, 0, 0 + t, dice); setTok(nt);
     if (captured) say("your friend just landed on and sent one of the AI players' tokens back to start in Ludo", "Sent you home! 😏");
@@ -257,19 +276,19 @@ function Ludo({ say, friendName, players, onWin }) {
     if (dice === 6) { setDice(null); setPhase("roll"); setMsg("Six! Roll again 🎲"); }
     else endTurn(0); };
   // AI driver
-  useEffect(() => { if (winner) return; if (turn === 0) return; if (phase !== "roll") return; if (lock.current) return;
+  useEffect(() => { if (winner != null) return; if (turn === 0) return; if (phase !== "roll") return; if (lock.current) return;
     lock.current = true;
     const p = turn;
     const rollOnce = () => { const d = d6(); setDice(d); setMsg(`${names[p]} rolled ${d}`);
-      setTimeout(() => { const tk = tokRef.current; const lm = legalLudo(tk, p, d);
+      timers.schedule(() => { const tk = tokRef.current; const lm = legalLudo(tk, p, d);
         if (lm.length) { const t = aiPickLudo(tk, p, d, lm); const { nt, captured, finished } = applyLudo(tk, p, t, d); setTok(nt);
           if (captured) say(`${names[p]} just captured one of your tokens in Ludo and sent it back to start`, `${names[p]} got you! 😈`);
           else if (finished) say(`${names[p]} just got a token home in Ludo`, `${names[p]} scores! 🎯`);
           if (ludoWin(nt, p)) { lock.current = false; return finish(p); }
-          if (d === 6) { setTimeout(rollOnce, 750); return; } }
-        setTimeout(() => { lock.current = false; endTurn(p); }, 650);
+          if (d === 6) { timers.schedule(rollOnce, 750); return; } }
+        timers.schedule(() => { lock.current = false; endTurn(p); }, 650);
       }, 720); };
-    setTimeout(rollOnce, 550);
+    timers.schedule(rollOnce, 550);
   }, [turn, phase, winner]); // eslint-disable-line
   // render
   const occ = {}; for (let p = 0; p < 4; p++) for (let t = 0; t < 4; t++) { const [r,c] = tokenCoord(p, tokens[p][t], t); (occ[lkey(r,c)] = occ[lkey(r,c)] || []).push({ p, t }); }
@@ -283,23 +302,23 @@ function Ludo({ say, friendName, players, onWin }) {
     else { const li = LOOPMAP[lkey(r,c)]; if (STARTCOLOR[li] != null) { bg = LCOL[STARTCOLOR[li]]; } else { bg = "#efeaff"; dot = LSAFE.has(li); } }
     const here = occ[lkey(r,c)] || [];
     cells.push(<div key={`${r}-${c}`} style={{ position: "relative", background: bg, borderRight: c<14?"1px solid rgba(20,12,30,0.10)":"none", borderBottom: r<14?"1px solid rgba(20,12,30,0.10)":"none", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      {here.length > 0 && <div onClick={() => { if (here[0].p === 0 && movable.includes(here[0].t)) tapToken(here[0].t); }} style={{ width: "74%", height: "74%", borderRadius: "50%", background: `radial-gradient(circle at 34% 30%, #ffffffcc, ${LCOL[here[0].p]})`, border: movable.includes(here[0].t) && here[0].p === 0 ? "2.5px solid #fff" : "1.5px solid rgba(0,0,0,0.35)", boxShadow: movable.includes(here[0].t) && here[0].p === 0 ? "0 0 0 3px rgba(255,255,255,0.5)" : "0 2px 4px rgba(0,0,0,0.4)", cursor: (here[0].p === 0 && movable.includes(here[0].t)) ? "pointer" : "default", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "min(2.4vw,11px)", fontWeight: 800, color: "#160e26" }}>{here.length > 1 ? here.length : ""}</div>}
+      {here.length > 0 && <button type="button" aria-label={`${names[here[0].p]} token ${here[0].t + 1}`} disabled={here[0].p !== 0 || !movable.includes(here[0].t)} onClick={() => { if (here[0].p === 0 && movable.includes(here[0].t)) tapToken(here[0].t); }} style={{ padding: 0, width: "74%", height: "74%", borderRadius: "50%", background: `radial-gradient(circle at 34% 30%, #ffffffcc, ${LCOL[here[0].p]})`, border: movable.includes(here[0].t) && here[0].p === 0 ? "2.5px solid #fff" : "1.5px solid rgba(0,0,0,0.35)", boxShadow: movable.includes(here[0].t) && here[0].p === 0 ? "0 0 0 3px rgba(255,255,255,0.5)" : "0 2px 4px rgba(0,0,0,0.4)", cursor: (here[0].p === 0 && movable.includes(here[0].t)) ? "pointer" : "default", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "min(2.4vw,11px)", fontWeight: 800, color: "#160e26" }}>{here.length > 1 ? here.length : ""}</button>}
       {dot && here.length === 0 && <span style={{ position: "absolute", fontSize: "min(2.6vw,12px)", opacity: 0.45 }}>★</span>}
     </div>);
   }
   return (<>
     <div style={{ display: "flex", gap: 8, marginBottom: 9, flexWrap: "wrap", justifyContent: "center" }}>
       {names.map((n, p) => { const home = tokens[p].filter((x) => x === 56).length;
-        return <span key={p} style={{ fontSize: 11, fontWeight: 700, padding: "3px 9px", borderRadius: 100, background: turn === p && !winner ? LCOL[p] : T.panel2, color: turn === p && !winner ? "#160e26" : LCOL[p], border: `1px solid ${LCOL[p]}66` }}>{n} · {home}/4</span>; })}
+        return <span key={p} style={{ fontSize: 11, fontWeight: 700, padding: "3px 9px", borderRadius: 100, background: turn === p && winner == null ? LCOL[p] : T.panel2, color: turn === p && winner == null ? "#160e26" : LCOL[p], border: `1px solid ${LCOL[p]}66` }}>{n} · {home}/4</span>; })}
     </div>
-    <div style={{ width: "min(92vw, 420px)", aspectRatio: "1", display: "grid", gridTemplateColumns: "repeat(15,1fr)", borderRadius: 12, overflow: "hidden", border: `2px solid ${T.line}`, boxShadow: "0 18px 50px rgba(0,0,0,0.5)", background: "#0f0e17" }}>{cells}</div>
+    <div style={{ width: "min(92vw, 420px)", aspectRatio: "1", display: "grid", gridTemplateColumns: "repeat(15,minmax(0,1fr))", gridTemplateRows: "repeat(15,minmax(0,1fr))", borderRadius: 12, overflow: "hidden", border: `2px solid ${T.line}`, boxShadow: "0 18px 50px rgba(0,0,0,0.5)", background: "#0f0e17" }}>{cells}</div>
     <div style={{ color: winner != null ? "#4ade80" : T.sub, fontSize: 13, fontWeight: 700, marginTop: 11, minHeight: 18 }}>{msg}</div>
     <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
-      {!winner && turn === 0 && phase === "roll" && <button onClick={roll} style={{ ...btn, marginTop: 0, background: T.grad, border: "none", fontSize: 15, padding: "11px 26px" }}>🎲 Roll {dice ? `(${dice})` : ""}</button>}
+      {winner == null && turn === 0 && phase === "roll" && <button onClick={roll} style={{ ...btn, marginTop: 0, background: T.grad, border: "none", fontSize: 15, padding: "11px 26px" }}>🎲 Roll {dice ? `(${dice})` : ""}</button>}
       {(winner != null) && <button onClick={reset} style={{ ...btn, marginTop: 0 }}>New game</button>}
-      {!winner && (turn !== 0 || phase === "move") && <div style={{ fontSize: 22, alignSelf: "center" }}>{dice ? ["","⚀","⚁","⚂","⚃","⚄","⚅"][dice] : "🎲"}</div>}
+      {winner == null && (turn !== 0 || phase === "move") && <div style={{ fontSize: 22, alignSelf: "center" }}>{dice ? ["","⚀","⚁","⚂","⚃","⚄","⚅"][dice] : "🎲"}</div>}
     </div>
-    {!winner && <button onClick={reset} style={{ ...btn, fontSize: 11, padding: "6px 14px", opacity: 0.6 }}>Restart</button>}
+    {winner == null && <button onClick={reset} style={{ ...btn, fontSize: 11, padding: "6px 14px", opacity: 0.6 }}>Restart</button>}
   </>);
 }
 
@@ -357,6 +376,7 @@ function ubuildDeck() { const d = [];
 const uPlayable = (card, color, topVal) => card.c === null || card.c === color || card.v === topVal;
 const uLabel = (v) => (UGLYPH[v] != null ? UGLYPH[v] : String(v));
 function Uno({ say, friendName, players, onWin }) {
+  const timers = useGameTimers();
   const names = crew(players, friendName);
   const setup = () => { const deck = ubuildDeck(); const hands = [[], [], [], []];
     for (let k = 0; k < 7; k++) for (let p = 0; p < 4; p++) hands[p].push(deck.pop());
@@ -366,7 +386,7 @@ function Uno({ say, friendName, players, onWin }) {
   const set = (s) => { stRef.current = s; setSt(s); };
   const [msg, setMsg] = useState("Your turn — play a card or draw"); const [pick, setPick] = useState(null); const lock = useRef(false);
   const top = st.discard[st.discard.length - 1];
-  const reset = () => { lock.current = false; setPick(null); const s = setup(); set(s); setMsg("Your turn — play a card or draw"); say("starting a fresh game of a UNO-style card game with the crew", "New round! Match colors or numbers 🎴"); };
+  const reset = () => { timers.cancel(); lock.current = false; setPick(null); const s = setup(); set(s); setMsg("Your turn — play a card or draw"); say("starting a fresh game of a UNO-style card game with the crew", "New round! Match colors or numbers 🎴"); };
   const nextAfter = (s, p, card, chosenColor) => { let dir = s.dir; let color = card.c === null ? chosenColor : card.c;
     let skip = false, drawN = 0;
     if (card.v === "rev") dir = -dir; if (card.v === "skip") skip = true;
@@ -401,7 +421,7 @@ function Uno({ say, friendName, players, onWin }) {
   // AI
   useEffect(() => { if (st.over) return; if (st.turn === 0) return; if (lock.current) return; lock.current = true;
     const p = st.turn;
-    setTimeout(() => { const s = stRef.current; const hand = s.hands[p];
+    timers.schedule(() => { const s = stRef.current; const hand = s.hands[p];
       let idx = hand.findIndex((c) => c.c === s.color && c.c !== null);
       if (idx < 0) idx = hand.findIndex((c) => uPlayable(c, s.color, top.v) && c.c !== null);
       if (idx < 0) idx = hand.findIndex((c) => uPlayable(c, s.color, top.v));
@@ -423,7 +443,7 @@ function Uno({ say, friendName, players, onWin }) {
     }, 850);
   }, [st.turn, st.over]); // eslint-disable-line
   const cardEl = (card, key, onClick, playable) => (
-    <div key={key} onClick={onClick} style={{ width: 42, height: 60, flexShrink: 0, borderRadius: 8, background: card.c ? UCOL[card.c] : "linear-gradient(135deg,#ff5e7e,#8b5cf6,#2dd4bf)", border: playable ? "2.5px solid #fff" : "2px solid rgba(0,0,0,0.3)", boxShadow: playable ? "0 0 0 2px rgba(255,255,255,0.45), 0 4px 10px rgba(0,0,0,0.4)" : "0 3px 8px rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", color: card.c === "A" ? "#160e26" : "#fff", fontWeight: 800, fontSize: card.v === "+2" || card.v === "wild4" ? 16 : 20, cursor: onClick ? "pointer" : "default", transform: playable ? "translateY(-6px)" : "none", transition: "transform 0.15s" }}>{uLabel(card.v)}</div>);
+    <button type="button" key={key} aria-label={`${({R:"Red",V:"Purple",A:"Yellow",T:"Teal"})[card.c] || "Wild"} ${uLabel(card.v)} card`} disabled={!onClick || !playable} onClick={onClick} style={{ padding: 0, width: 42, height: 60, flexShrink: 0, borderRadius: 8, background: card.c ? UCOL[card.c] : "linear-gradient(135deg,#ff5e7e,#8b5cf6,#2dd4bf)", border: playable ? "2.5px solid #fff" : "2px solid rgba(0,0,0,0.3)", boxShadow: playable ? "0 0 0 2px rgba(255,255,255,0.45), 0 4px 10px rgba(0,0,0,0.4)" : "0 3px 8px rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", color: card.c === "A" ? "#160e26" : "#fff", fontWeight: 800, fontSize: card.v === "+2" || card.v === "wild4" ? 16 : 20, cursor: onClick ? "pointer" : "default", transform: playable ? "translateY(-6px)" : "none", transition: "transform 0.15s" }}>{uLabel(card.v)}</button>);
   return (<>
     <div style={{ display: "flex", gap: 7, marginBottom: 10, flexWrap: "wrap", justifyContent: "center" }}>
       {names.map((n, p) => (<span key={p} style={{ fontSize: 11, fontWeight: 700, padding: "3px 9px", borderRadius: 100, background: st.turn === p && !st.over ? UCOL[UCOLS[p]] : T.panel2, color: st.turn === p && !st.over ? (UCOLS[p] === "A" ? "#160e26" : "#fff") : UCOL[UCOLS[p]], border: `1px solid ${UCOL[UCOLS[p]]}66` }}>{n} · {st.hands[p].length}🎴</span>))}
@@ -439,16 +459,16 @@ function Uno({ say, friendName, players, onWin }) {
       </div>
     </div>
     {pick !== null && <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-      {UCOLS.map((c) => (<button key={c} onClick={() => finalizePlay(pick, c)} style={{ width: 34, height: 34, borderRadius: 8, background: UCOL[c], border: "2px solid rgba(255,255,255,0.5)", cursor: "pointer" }} />))}
+      {UCOLS.map((c) => (<button key={c} aria-label={`Choose ${({R:"red",V:"purple",A:"yellow",T:"teal"})[c]}`} onClick={() => finalizePlay(pick, c)} style={{ width: 34, height: 34, borderRadius: 8, background: UCOL[c], border: "2px solid rgba(255,255,255,0.5)", cursor: "pointer" }} />))}
     </div>}
     <div style={{ fontSize: 9.5, color: T.sub, fontWeight: 700, marginBottom: 5 }}>YOUR HAND</div>
     <div style={{ display: "flex", gap: 5, flexWrap: "wrap", justifyContent: "center", maxWidth: "min(92vw,430px)", paddingTop: 6 }}>
-      {st.hands[0].map((card, i) => { const pl = !st.over && st.turn === 0 && !pick && uPlayable(card, st.color, top.v);
+      {st.hands[0].map((card, i) => { const pl = !st.over && st.turn === 0 && pick === null && uPlayable(card, st.color, top.v);
         return cardEl(card, i, () => onCard(i), pl); })}
     </div>
     <div style={{ color: st.over ? "#4ade80" : T.sub, fontSize: 13, fontWeight: 700, marginTop: 12, minHeight: 18 }}>{msg}</div>
     <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
-      {!st.over && st.turn === 0 && !pick && <button onClick={drawCard} style={{ ...btn, marginTop: 0 }}>Draw a card</button>}
+      {!st.over && st.turn === 0 && pick === null && <button onClick={drawCard} style={{ ...btn, marginTop: 0 }}>Draw a card</button>}
       {st.over && <button onClick={reset} style={{ ...btn, marginTop: 0 }}>New game</button>}
     </div>
     {!st.over && <button onClick={reset} style={{ ...btn, fontSize: 11, padding: "6px 14px", opacity: 0.6 }}>Restart</button>}
@@ -469,25 +489,16 @@ export default function GameBoard({ game, agent, onClose, friends, onGameEnd }) 
   useEffect(() => { say(`you and your friend are starting a friendly game of ${TITLES[game] || game} — kick it off with a fun challenge`, "Let's play! 🎮"); /* eslint-disable-next-line */ }, []);
   const Game = game === "chess" ? ChessGame : game === "c4" ? Connect4 : game === "checkers" ? Checkers : game === "ludo" ? Ludo : game === "racing" ? Race : game === "uno" ? Uno : TicTacToe;
   return (
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 120, background: "rgba(8,7,14,0.93)", backdropFilter: "blur(8px)", display: "flex", justifyContent: "center", alignItems: "center", fontFamily: font, overflowY: "auto" }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 430, padding: "18px", display: "flex", flexDirection: "column", alignItems: "center" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", marginBottom: 12 }}>
-          <div style={{ color: T.text, fontWeight: 800, fontSize: 17 }}>{TITLES[game] || "Game"} <span style={{ color: T.sub, fontWeight: 600, fontSize: 13 }}>vs {name}</span></div>
-          <button onClick={onClose} style={{ background: T.panel2, border: `1px solid ${T.line}`, color: T.text, width: 34, height: 34, borderRadius: "50%", cursor: "pointer", fontSize: 16 }}>✕</button>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 11, width: "100%", marginBottom: 16 }}>
-          <div style={{ width: 46, height: 46, borderRadius: "50%", padding: 2, background: T.grad, flexShrink: 0 }}>
-            <div style={{ width: "100%", height: "100%", borderRadius: "50%", overflow: "hidden", background: "#161226", display: "flex", justifyContent: "center" }}>
-              <div style={{ marginTop: 2 }}><TonyCharacter size={66} look={agent?.look || {}} float="none" animated={false} pose="down" expr="😄" /></div>
-            </div>
-          </div>
-          <div style={{ flex: 1, background: T.panel2, border: `1px solid ${T.line}`, borderRadius: 16, borderTopLeftRadius: 4, padding: "11px 15px" }}>
-            <div style={{ color: T.violet, fontSize: 10.5, fontWeight: 800, letterSpacing: 0.4, marginBottom: 2 }}>{name.toUpperCase()}</div>
-            <div style={{ color: T.text, fontSize: 14.5, lineHeight: 1.4, fontWeight: 500 }}>{banter}</div>
-          </div>
-        </div>
-        <Game say={say} friendName={name} players={friends} onWin={notifyEnd} />
+    <Dialog title={TITLES[game] || "Game room"} onClose={onClose} wide>
+      <div className={w.room}>
+        <div className={w.boardStage}><Game say={say} friendName={name} players={friends} onWin={notifyEnd} /></div>
+        <aside className={w.roomInfo} aria-label="Game information">
+          <div className={w.opponent}><div style={{ width: 42, height: 42, overflow: "hidden", borderRadius: 12, background: "#34463a", display: "flex", justifyContent: "center" }}>{agent?.avatar ? <img src={agent.avatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <TonyCharacter size={64} look={agent?.look || {}} float="none" animated={false} pose="down" />}</div><div><strong>{name}</strong><small>{agent?.isTwin ? "AI twin" : "AI opponent"}</small></div></div>
+          <h3>How to play</h3><p>{GAME_GUIDE[game]?.rules}</p>
+          <h3>From {name}</h3><p className={w.roomNote} role="status">{banter}</p>
+          <p>Use the controls below the board to start a new round. Closing this room ends the current game.</p>
+        </aside>
       </div>
-    </div>
+    </Dialog>
   );
 }

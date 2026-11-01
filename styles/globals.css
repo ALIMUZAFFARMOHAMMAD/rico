@@ -20,6 +20,10 @@ textarea {
   font-family: inherit;
 }
 
+.rm-chat-status { padding: 8px 18px; font-size: 11px; color: #bcb0cd; text-align: center; }
+.rm-chat-notice { margin: 8px 14px; padding: 12px 15px; border-radius: 14px; background: #30271f; border: 1px solid #665244; color: #ffe0b6; font-size: 13px; line-height: 1.5; }
+.rm-chat-notice button { display: block; margin-top: 8px; background: transparent; border: 0; color: #e5d8ff; text-decoration: underline; cursor: pointer; padding: 6px 0; }
+
 button {
   font-family: inherit;
 }
@@ -60,3 +64,4 @@ button:not(:disabled):active, a[href]:active, summary:active, [role="button"]:ac
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+

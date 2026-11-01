@@ -73,10 +73,10 @@ export default async function handler(req, res) {
   const { userId } = getAuth(req);
   if (!userId) return res.status(401).json({ error: "Sign in first" });
   if (!process.env.CLERK_DEV_SECRET_KEY || !configured()) return res.status(503).json({ error: "migration not configured" });
-  if (rateLimited(req, { limit: 5 })) return res.status(429).json({ error: "slow down" });
+  if (await rateLimited(req, { limit: 5 })) return res.status(429).json({ error: "slow down" });
 
   try {
-    const me = await clerkClient.users.getUser(userId);
+    const me = await (await clerkClient()).users.getUser(userId);
     let oldId = null;
     for (const email of verifiedEmails(me.emailAddresses, "emailAddress")) {
       oldId = await findDevUserId(email);
@@ -112,3 +112,4 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "Migration failed — your data is safe; try again." });
   }
 }
+

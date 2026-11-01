@@ -1,0 +1,66 @@
+name: ricomates-staging
+services:
+  db:
+    image: postgres:17-alpine@sha256:266d3c257594e195b309ae9d1805e54c788f1d7b375f56bf6c367aac6c917e7b
+    environment:
+      POSTGRES_DB: rico_staging
+      POSTGRES_USER: staging_admin
+      POSTGRES_PASSWORD: local-synthetic-only
+    command: [postgres, -c, shared_buffers=128MB, -c, max_connections=60, -c, log_min_duration_statement=500]
+    mem_limit: 768m
+    cpus: 2
+    volumes:
+      - staging-data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    networks: [isolated]
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U staging_admin -d rico_staging]
+      interval: 2s
+      timeout: 3s
+      retries: 40
+  rest:
+    image: postgrest/postgrest:v12.2.3@sha256:729bf65c733b73f5b52777f0e4b853f22ed73aa67a22d38269d289779b0a8401
+    environment:
+      PGRST_DB_URI: postgres://staging_admin:local-synthetic-only@db:5432/rico_staging
+      PGRST_DB_SCHEMAS: public
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: local-staging-fixtures-only-never-production-2026
+      PGRST_DB_POOL: 20
+      PGRST_DB_POOL_ACQUISITION_TIMEOUT: 5
+      PGRST_DB_MAX_ROWS: 1000
+    depends_on:
+      db: {condition: service_healthy}
+    mem_limit: 256m
+    cpus: 1
+    networks: [isolated]
+  app:
+    image: node:24-alpine@sha256:8a32c8cf649a49915a66e81e7a609223c708d0adabf288ee3f4077d765542f85
+    command: [node, --experimental-vm-modules, /app/scripts/staging/server.cjs]
+    environment:
+      RICO_ISOLATED_STAGING: synthetic-only
+      STAGING_WORKERS: 2
+    volumes:
+      - ../../lib:/app/lib:ro
+      - ../../pages/api:/app/pages/api:ro
+      - ./:/app/scripts/staging:ro
+    ports: ["127.0.0.1:3380:3380"]
+    depends_on: [rest]
+    mem_limit: 512m
+    cpus: 2
+    networks: [isolated]
+  load:
+    image: grafana/k6@sha256:3e4186aea62e11a45560bfc51e19eeafe82fc07ce069c78aff44b7ff893d9a5e
+    profiles: [tests]
+    volumes: ["./:/tests:ro", "./results:/results"]
+    environment:
+      STAGING_VUS: ${STAGING_VUS:-10}
+      STAGING_DURATION: ${STAGING_DURATION:-90s}
+    command: [run, /tests/load.js]
+    mem_limit: 256m
+    cpus: 1
+    networks: [isolated]
+networks:
+  isolated:
+    internal: true
+volumes:
+  staging-data:
