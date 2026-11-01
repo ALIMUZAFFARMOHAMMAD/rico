@@ -1,0 +1,62 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": [
+    "react",
+    "nextjs",
+    "jsx-a11y",
+    "import"
+  ],
+  "categories": {
+    "correctness": "warn"
+  },
+  "env": {
+    "browser": true,
+    "node": true,
+    "es2022": true
+  },
+  "rules": {
+    "react/rules-of-hooks": "error",
+    "react/exhaustive-deps": "warn",
+    "react/jsx-key": "error",
+    "react/jsx-no-undef": "error",
+    "react/react-in-jsx-scope": "off",
+    "react/no-unescaped-entities": "off",
+    "nextjs/no-html-link-for-pages": "off",
+    "nextjs/no-img-element": "off",
+    "jsx-a11y/alt-text": "warn",
+    "no-unused-vars": [
+      "warn",
+      {
+        "args": "none",
+        "ignoreRestSiblings": true,
+        "varsIgnorePattern": "^_"
+      }
+    ],
+    "no-eval": "error",
+    "no-implied-eval": "error",
+    "react/jsx-no-duplicate-props": "error",
+    "react/no-danger-with-children": "error",
+    "react/no-direct-mutation-state": "error",
+    "react/no-children-prop": "error",
+    "react/no-string-refs": "error",
+    "react/require-render-return": "error",
+    "react/no-render-return-value": "error",
+    "nextjs/inline-script-id": "error",
+    "nextjs/no-assign-module-variable": "error",
+    "nextjs/no-document-import-in-page": "error",
+    "nextjs/no-head-import-in-document": "error",
+    "nextjs/no-script-component-in-head": "error",
+    "nextjs/no-sync-scripts": "error",
+    "nextjs/no-duplicate-head": "off"
+  },
+  "overrides": [
+    {
+      "files": [
+        "pages/_document.js"
+      ],
+      "rules": {
+        "nextjs/no-duplicate-head": "error"
+      }
+    }
+  ]
+}

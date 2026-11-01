@@ -5,7 +5,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "oxlint components lib pages middleware.js next.config.js",
     "test": "node scripts/run-scale-tests.cjs",
     "test:scale:sql": "node scripts/test-scale-sql.cjs",
     "test:staging:setup": "node scripts/staging/setup.cjs",
@@ -32,18 +32,25 @@
   },
   "devDependencies": {
     "@capacitor/cli": "^8.4.0",
-    "eslint": "^8.57.1",
-    "eslint-config-next": "15.5.28"
+    "oxlint": "1.90.0"
   },
   "engines": {
     "node": "24.x"
   },
   "overrides": {
     "minimatch@^10.2.2": "11.0.3",
-    "next": { "postcss": "8.5.32" },
+    "next": {
+      "postcss": "8.5.32"
+    },
     "brace-expansion@^1.0.0": "1.1.21",
     "js-yaml@^4.0.0": "4.3.2",
-    "@vercel/cli-config": { "zod": "4.6.7" },
-    "@capacitor/cli": { "rimraf": { "glob": "14.0.3" } }
+    "@vercel/cli-config": {
+      "zod": "4.6.7"
+    },
+    "@capacitor/cli": {
+      "rimraf": {
+        "glob": "14.0.3"
+      }
+    }
   }
 }
