@@ -21,7 +21,7 @@ function fixture(overrides = {}) {
     claimMeeting: async (m, operation) => { if (meeting.operation !== 'idle') return false; meeting = { ...meeting, operation }; return true; },
     compareUpdate: async (key, field, expected, next) => { if (rows.get(key)?.[field] !== expected) return false; rows.set(key, structuredClone(next)); return true; },
     meetingAI: async () => '{"reply":"I would start with a small, friendly prototype."}', ...overrides,
-  }, ['configureAuto', 'automaticTurn', 'getAuto', 'pauseAuto', 'automaticSpeechAllowed', 'addressedQuestion', 'parseAutomaticReply', 'transcriptFingerprint']);
+  }, ['configureAuto', 'automaticTurn', 'getAuto', 'pauseAuto', 'automaticSpeechAllowed', 'addressedQuestion', 'parseAutomaticReply', 'transcriptFingerprint', 'completeLocalTurn']);
   async function enable(extra = {}) { return auto.configureAuto(meeting, device, { enabled: true, consent: true, callName: 'Rico', ...extra }); }
   function hear(text, order = 1, speaker = 'Muzaffar') { const s = rows.get('meeting::snapshot'); s.segments.push({ id: 's' + order, order, speaker, text }); return { fingerprint: auto.transcriptFingerprint(s.segments), quietSince: Date.now() - 7000 }; }
   return { auto, rows, device, enable, hear, get meeting() { return meeting; }, changeMeeting: patch => { meeting = { ...meeting, ...patch }; } };
@@ -182,4 +182,34 @@ test('automatic endpoint isolates owner configuration and PC bearer actions', as
   assert.equal((await call(api(), 'turn')).code, 401);
   assert.equal((await call(api({ authenticateDevice: async () => ({ owner: 'owner', tokenHash: 'different' }) }), 'turn')).code, 404);
   assert.equal(configured, 0); assert.equal(turns, 0);
+});
+
+test('local automatic replies reserve work without calling a paid model and reject stale completions', async () => {
+  let paid=0;const f=fixture({meetingAI:async()=>{paid++;throw Error('Paid call forbidden');}});
+  f.rows.get('twin').voice='owned_clone';Object.assign(f.device,{localOnly:true,localVersion:1,localStatus:'ready',localVoiceHash:hash('owned_clone')});
+  await f.enable();const result=await f.auto.automaticTurn(f.meeting,f.device,f.hear('Rico, what can you help me with?'));
+  assert.equal(paid,0);assert.ok(result.localTask);assert.equal(f.meeting.operation,'idle');
+  const body={...result.localTask,reply:'I can help discuss the approved briefing.'};
+  assert.equal((await f.auto.completeLocalTurn(f.meeting,f.device,{...body,revision:'stale'})).queued,false);
+  assert.equal((await f.auto.completeLocalTurn(f.meeting,f.device,body)).queued,true);
+  assert.equal((await f.auto.completeLocalTurn(f.meeting,f.device,body)).queued,false);
+  assert.equal(paid,0);
+});
+test('local mode refuses missing models and does not fall back after a local failure', async () => {
+  let paid=0;const f=fixture({meetingAI:async()=>{paid++;}});f.rows.get('twin').voice='owned_clone';Object.assign(f.device,{localOnly:true,localVersion:1,localStatus:'unavailable',localVoiceHash:hash('owned_clone')});
+  await assert.rejects(f.enable(),/local reply/);f.device.localStatus='ready';await f.enable();
+  const result=await f.auto.automaticTurn(f.meeting,f.device,f.hear('Rico, what is next?'));
+  await f.auto.completeLocalTurn(f.meeting,f.device,{...result.localTask,failed:true,reply:null});
+  assert.equal((await f.auto.getAuto(f.meeting)).enabled,false);assert.equal(paid,0);
+});
+test('pause and voice changes invalidate a pending local reply', async () => {
+  const f=fixture();f.rows.get('twin').voice='owned_clone';Object.assign(f.device,{localOnly:true,localVersion:1,localStatus:'ready',localVoiceHash:hash('owned_clone')});await f.enable();
+  const result=await f.auto.automaticTurn(f.meeting,f.device,f.hear('Rico, what is next?'));await f.auto.pauseAuto(f.meeting);
+  assert.equal((await f.auto.completeLocalTurn(f.meeting,f.device,{...result.localTask,reply:'Hello'})).queued,false);
+});
+test('strict local worker refuses a cloud protocol without local-only support', async () => {
+  let voices=0;const worker=createWorker({...config,localOnly:true,localUrl:'http://127.0.0.1:18662',localToken:'a'.repeat(64)},{fetch:async(url,opts)=>{
+    if(url.endsWith('/auth/me'))return ok({scopes:['bot','tx']});if(url.endsWith('/voice-capabilities'))return ok({version:1,platforms:['google_meet']});if(url.endsWith('/health'))return ok({ready:true,voiceHash:'v'});
+    const body=JSON.parse(opts.body||'{}');if(body.action==='poll')return ok({jobs:[{type:'speak'}],meetings:[]});voices++;return ok({});
+  }});await assert.rejects(worker.tick(),/strict local mode/);assert.equal(voices,0);
 });

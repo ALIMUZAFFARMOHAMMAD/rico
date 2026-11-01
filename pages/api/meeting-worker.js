@@ -6,6 +6,7 @@ import { getMeeting, listMeetings, meetingKey, deleteMeetingData, claimMeeting, 
 import { validMeetingId, terminalMeeting } from "../../lib/meeting-core";
 import { generateMeetingNotes } from "../../lib/meeting-ai";
 import { clonedMeetingAudio } from "../../lib/meeting-voice";
+import { digest } from "../../lib/meeting-store";
 import { twinKey } from "../../lib/twins";
 import { getAuto, autoActive, automaticSpeechAllowed, updateAuto } from "../../lib/meeting-auto";
 
@@ -21,20 +22,20 @@ export default async function handler(req, res) {
     if (body.action === "poll") {
       const ready = body.ready === true;
       const serviceStatus = value => ["ready", "unavailable"].includes(value) ? value : "unknown";
-      if (!await compareUpdate(deviceKey(device.owner), "tokenHash", device.tokenHash, { ...device, ready, speechStatus: serviceStatus(body.speechStatus), runtimeStatus: serviceStatus(body.runtimeStatus), voiceVersion: body.voiceVersion === 1 ? 1 : 0, autoVersion: body.autoVersion === 1 ? 1 : 0, lastSeen: new Date().toISOString() })) return res.status(401).end();
+      if (!await compareUpdate(deviceKey(device.owner), "tokenHash", device.tokenHash, { ...device, ready, localOnly: body.localOnly === true, localVersion: body.localVersion === 1 ? 1 : 0, localStatus: serviceStatus(body.localStatus), localVoiceHash: /^[a-f0-9]{64}$/.test(body.localVoiceHash || "") ? body.localVoiceHash : null, speechStatus: serviceStatus(body.speechStatus), runtimeStatus: serviceStatus(body.runtimeStatus), voiceVersion: body.voiceVersion === 1 ? 1 : 0, autoVersion: body.autoVersion === 1 ? 1 : 0, lastSeen: new Date().toISOString() })) return res.status(401).end();
       const meetings = (await listMeetings(device.owner)).filter(m => m.deviceHash === device.tokenHash);
       const jobs = [];
       if (ready) for (const meeting of meetings.filter(m => m.jobState === "pending")) {
         const jobLease = randomUUID();
         const claimed = { ...meeting, jobState: "running", jobLease };
-        if (await compareUpdate(meetingKey(device.owner, meeting.id), "jobState", "pending", claimed)) jobs.push({ id: meeting.id, jobId: meeting.jobId, lease: jobLease, type: meeting.jobType, platform: meeting.platform, url: meeting.url, twinName: meeting.twinName, providerId: meeting.providerId, nativeId: meeting.nativeId, voiceEnabled: meeting.voiceEnabled === true, automatic: !!meeting.autoGeneration, autoFingerprint: meeting.autoFingerprint });
+        if (await compareUpdate(meetingKey(device.owner, meeting.id), "jobState", "pending", claimed)) jobs.push({ id: meeting.id, jobId: meeting.jobId, lease: jobLease, type: meeting.jobType, platform: meeting.platform, url: meeting.url, twinName: meeting.twinName, providerId: meeting.providerId, nativeId: meeting.nativeId, voiceEnabled: meeting.voiceEnabled === true, automatic: !!meeting.autoGeneration, autoFingerprint: meeting.autoFingerprint, localOnly: meeting.localOnly === true || body.localOnly === true });
       }
       const tracked = meetings.filter(m => m.providerId && (!terminalMeeting(m.state) || Date.now() - Date.parse(m.finishedAt || "") < 120000));
       const sessions = await Promise.all(tracked.map(async m => {
         const a = body.autoVersion === 1 ? await getAuto(m) : null;
         return { id: m.id, platform: m.platform, providerId: m.providerId, nativeId: m.nativeId, auto: a ? { enabled: autoActive(a) && m.state === "active", generation: a.generation, stopId: a.stopId } : null };
       }));
-      return res.status(200).json({ jobs, meetings: sessions });
+      return res.status(200).json({ localProtocol: 1, jobs, meetings: sessions });
     }
     if (!validMeetingId(body.id)) return res.status(400).json({ error: "Invalid meeting." });
     const meeting = await getMeeting(device.owner, body.id);
@@ -47,7 +48,9 @@ export default async function handler(req, res) {
       if (!await compareUpdate(meetingKey(device.owner, meeting.id), "jobState", "running", { ...meeting, jobState: "synthesizing", voiceSynthesisJob: body.jobId })) return res.status(409).end();
       try {
         const twin = (await getRow(twinKey(device.owner)))?.traits;
-        const audio = await clonedMeetingAudio(twin, meeting.speechText);
+        const localOnly = meeting.localOnly === true || device.localOnly === true;
+        if (localOnly && (!twin?.voiceCloned || device.localVersion !== 1 || device.localStatus !== "ready" || device.localVoiceHash !== digest(twin.voice))) throw new Error("Local voice is not ready.");
+        const audio = localOnly ? { local: true, voiceHash: digest(twin.voice), text: `I am ${String(twin.name || "the owner").slice(0,35)}’s AI twin. ${meeting.speechText}` } : await clonedMeetingAudio(twin, meeting.speechText);
         if (!await authenticateDevice(req.headers.authorization)) return res.status(401).end();
         const current = await getMeeting(device.owner, meeting.id);
         if (!current || current.deviceHash !== device.tokenHash || !current.voiceEnabled || current.jobId !== body.jobId || current.jobLease !== body.lease || current.state !== "active") return res.status(409).end();
@@ -99,7 +102,7 @@ export default async function handler(req, res) {
       if (previous && terminalMeeting(previous.status) && !terminalMeeting(snapshot.status)) return res.status(200).json({ accepted: true });
       await upsertRow(key, { traits: { ...snapshot, owner: device.owner, meetingId: meeting.id, kind: "meeting-snapshot", providerId: meeting.providerId, receivedAt: new Date().toISOString() } });
       release = { ...meeting, state: snapshot.status, ...(terminalMeeting(snapshot.status) ? { finishedAt: meeting.finishedAt || new Date().toISOString() } : {}) };
-      if (meeting.important && terminalMeeting(snapshot.status) && !terminalMeeting(previous?.status) && snapshot.segments.length) {
+      if (!meeting.localOnly && !device.localOnly && meeting.important && terminalMeeting(snapshot.status) && !terminalMeeting(previous?.status) && snapshot.segments.length) {
         // Persist/release before scheduling notes so deletion and manual requests
         // use the same database lock as automatic generation.
         await saveMeeting({ ...release, operation: "idle" });

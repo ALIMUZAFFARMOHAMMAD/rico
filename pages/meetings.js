@@ -65,6 +65,7 @@ export default function Meetings() {
         {error && <div className={s.error} role="alert">{error} <button onClick={() => run(refresh)}>Refresh</button></div>}
         {notice && <div className={s.notice} role="status">{notice}</div>}
         <div className={s.connection}><span className={index?.device.online ? s.online : s.offline}>●</span><div><strong>{index?.device.online ? "Your PC is connected" : "Meeting notes are ready. Connect your PC for live calls."}</strong><p>{index?.device.online ? "Keep Vexa and the worker running. Transcripts sync while your PC is awake." : "Paste a transcript now, or set up the open-source meeting bot on your PC."}</p></div><button className={s.secondary} onClick={() => setModal("setup")}>Set up PC ↗</button></div>
+        {index?.device.localOnly && <p className={s.notice}>Strict local mode · {index.device.localStatus === "ready" ? "reply and voice models ready" : "local models unavailable"}. Meeting replies use no AI API credits. Paid notes and drafts are disabled for this PC.</p>}
         <MeetingReadiness device={index?.device} hasClone={index?.twin?.voiceCloned} meeting={m} events={detail?.events} onRecover={() => setModal("setup")} />
         <div className={s.workspace}>
           <aside className={s.sidebar}><div className={s.row}><h2>Your meetings</h2><span className={s.count}>{index?.meetings.length || 0}</span></div><button className={s.primary} disabled={busy} onClick={() => { createId.current = crypto.randomUUID(); setModal("new"); }}>＋ Prepare a meeting</button>

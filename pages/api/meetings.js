@@ -27,7 +27,7 @@ export default async function handler(req, res) {
       }
       const twin = (await getRow(twinKey(userId)))?.traits;
       const device = (await getRow(deviceKey(userId)))?.traits;
-      return res.status(200).json({ meetings: await listMeetings(userId), device: { paired: !!device && !device.revoked, online: deviceOnline(device), lastSeen: device?.lastSeen, speechStatus: device?.speechStatus || "unknown", runtimeStatus: device?.runtimeStatus || "unknown", expiresAt: device?.expiresAt, voiceVersion: device?.voiceVersion || 0, autoVersion: device?.autoVersion || 0 }, capabilities: { notes: !!process.env.ANTHROPIC_API_KEY, liveReplies: deviceOnline(device) && device?.voiceVersion === 1 && !!twin?.voiceCloned }, twin: twin?.persona ? { name: twin.name, voiceCloned: !!twin.voiceCloned } : null });
+      return res.status(200).json({ meetings: await listMeetings(userId), device: { paired: !!device && !device.revoked, online: deviceOnline(device), lastSeen: device?.lastSeen, speechStatus: device?.speechStatus || "unknown", runtimeStatus: device?.runtimeStatus || "unknown", expiresAt: device?.expiresAt, voiceVersion: device?.voiceVersion || 0, autoVersion: device?.autoVersion || 0, localOnly: device?.localOnly === true, localStatus: device?.localStatus || "unknown", localVersion: device?.localVersion || 0 }, capabilities: { notes: !!process.env.ANTHROPIC_API_KEY, liveReplies: deviceOnline(device) && device?.voiceVersion === 1 && !!twin?.voiceCloned }, twin: twin?.persona ? { name: twin.name, voiceCloned: !!twin.voiceCloned } : null });
     }
     const body = req.body || {};
     const { action, id } = body;
@@ -68,6 +68,8 @@ export default async function handler(req, res) {
       await saveMeeting({ ...resolved, jobState: "done", operation: "idle" });
       return res.status(200).json(await meetingDetail(await getMeeting(userId, id)));
     }
+    const currentDevice = (await getRow(deviceKey(userId)))?.traits;
+    if (["notes", "draft"].includes(action) && (meeting.localOnly || currentDevice?.localOnly)) return res.status(409).json({ error: "Paid notes and drafts are disabled while this PC is in strict local-only mode." });
     if (action === "draft") {
       if (typeof body.question !== "string" || !body.question.trim() || body.question.length > 1500) return res.status(400).json({ error: "Enter a reply instruction of up to 1,500 characters." });
       const twin = (await getRow(twinKey(userId)))?.traits;
@@ -87,7 +89,7 @@ export default async function handler(req, res) {
         await saveMeetingEvent(meeting, `import:${body.importId}`, { type: "transcript", speaker: "Imported transcript", text: body.text.trim(), occurredAt: new Date().toISOString(), order: Date.now() });
         meeting.state = "completed";
         await saveMeeting({ ...meeting, operation: "import" });
-        if (meeting.important) { try { await generateMeetingNotes(meeting); } catch { /* Detail exposes a retryable notes error. */ } }
+        if (meeting.important && !meeting.localOnly && !currentDevice?.localOnly) { try { await generateMeetingNotes(meeting); } catch { /* Detail exposes a retryable notes error. */ } }
       }
       if (action === "notes") await generateMeetingNotes(meeting);
       if (["join", "leave", "delete", "speak", "stop_speaking"].includes(action)) {
@@ -113,6 +115,7 @@ export default async function handler(req, res) {
           }
         }
         if (action === "join") {
+          if (device.localOnly) { meeting.localOnly = true; meeting.important = false; }
           if (device.speechStatus === "unavailable" || device.runtimeStatus === "unavailable") return res.status(409).json({ error: "Your PC is connected, but its meeting or speech service is unavailable. Run the connection check before joining." });
           if (!["zoom", "teams", "meet"].includes(meeting.platform) || meeting.state !== "draft" || meeting.deviceHash) return res.status(409).json({ error: "Create a new Zoom, Teams or Meet session to join." });
           if (body.consent !== true) return res.status(400).json({ error: "Confirm participants know an AI twin will transcribe this meeting." });

@@ -9,7 +9,7 @@ export default function MeetingVoiceControls({ meeting, capable, hasClone, draft
   const ready = capable && meeting.voiceEnabled && active && meeting.platform === "meet";
   return <section className={s.noteBlock} aria-label="Speak with my cloned voice">
     <h3>Speak with my voice</h3>
-    <p>Your twin introduces itself as AI and speaks the reply you approve. English, Google Meet; up to 240 characters per reply. Voice generation uses your configured service credits.</p>
+    <p>Your twin introduces itself as AI and speaks the reply you approve. English, Google Meet; up to 240 characters per reply. {meeting.localOnly ? "Voice generation runs on your PC without API credits." : "Voice generation uses your configured service credits."}</p>
     {!hasClone && <p className={s.notice}>Add your own voice recording in the You tab first.</p>}
     {hasClone && !capable && <p className={s.notice}>Your PC needs the Ricomates voice extension and updated connector before speaking is available.</p>}
     {capable && !meeting.voiceEnabled && <p className={s.notice}>Enable cloned speech when joining a new Google Meet session.</p>}

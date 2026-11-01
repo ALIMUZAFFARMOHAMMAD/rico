@@ -4,7 +4,7 @@ import { rateLimited } from "../../lib/ratelimit";
 import { validMeetingId } from "../../lib/meeting-core";
 import { getMeeting } from "../../lib/meeting-store";
 import { authenticateDevice, deviceKey } from "../../lib/meeting-device";
-import { getAuto, configureAuto, automaticTurn, automaticSpeechAllowed, updateAuto } from "../../lib/meeting-auto";
+import { getAuto, configureAuto, automaticTurn, completeLocalTurn, automaticSpeechAllowed, updateAuto } from "../../lib/meeting-auto";
 
 export const config = { maxDuration: 60, api: { bodyParser: { sizeLimit: "8kb" } } };
 export default async function handler(req, res) {
@@ -28,6 +28,7 @@ export default async function handler(req, res) {
     if (!device) return res.status(401).end();
     const m = await getMeeting(device.owner, body.id);
     if (!m || m.deviceHash !== device.tokenHash) return res.status(404).end();
+    if (body.action === "complete-local") return res.status(200).json(await completeLocalTurn(m, device, body));
     if (body.action === "turn") return res.status(200).json(await automaticTurn(m, device, body));
     if (body.action === "authorize") {
       const allowed = m.jobId === body.jobId && m.jobLease === body.lease && m.jobType === "speak" && m.jobState === "running" && m.state === "active" && m.voiceEnabled && await automaticSpeechAllowed(m);

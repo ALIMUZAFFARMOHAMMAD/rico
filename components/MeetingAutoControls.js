@@ -7,7 +7,8 @@ export default function MeetingAutoControls({ meeting, automatic, device, hasClo
   useEffect(() => { setCallName(automatic?.callName || "Rico"); setConsent(false); setError(""); }, [meeting.id, automatic?.callName]);
   const active = automatic?.enabled && Date.parse(automatic.expiresAt) > Date.now() && automatic.count < 40 && meeting.status === "active";
   const servicesReady = device?.speechStatus !== "unavailable" && device?.runtimeStatus !== "unavailable";
-  const ready = device?.online && servicesReady && device.autoVersion === 1 && device.voiceVersion === 1 && hasClone && meeting.voiceEnabled && meeting.status === "active" && meeting.platform === "meet";
+  const localReady = !device?.localOnly || (device.localVersion === 1 && device.localStatus === "ready");
+  const ready = localReady && device?.online && servicesReady && device.autoVersion === 1 && device.voiceVersion === 1 && hasClone && meeting.voiceEnabled && meeting.status === "active" && meeting.platform === "meet";
   const status = !automatic?.enabled ? "Automatic replies off" : !device?.online ? "PC offline" : !servicesReady ? "Listening service unavailable" : !active ? "Session paused or expired" : automatic.status === "thinking" ? "Thinking…" : automatic.status === "queued" ? "Preparing voice…" : hasTranscript ? "Listening for your call name" : "Waiting for first speech";
   async function configure(enabled) {
     setBusy(true); setError("");
@@ -19,6 +20,7 @@ export default function MeetingAutoControls({ meeting, automatic, device, hasClo
   }
   return <section className={a.panel} aria-label="Automatic meeting replies">
     <div className={s.row}><h3>Let your twin answer</h3><span className={s.pill} role="status">{status}</span></div>
+    {device?.localOnly && <p className={s.notice}>Free local mode · {localReady ? "models ready" : "start your local models"}. Replies and your cloned voice run on your PC. No paid API fallback.</p>}
     <p>Your twin listens for its call name, waits for a pause and replies in your cloned voice and personality. No approval needed for each answer. Every reply identifies it as your AI twin.</p>
     {automatic?.enabled ? <>
       <p>Say <strong>“{automatic.callName}, what do you think?”</strong> to ask a question. {automatic.count}/40 replies this session.</p>
@@ -33,6 +35,6 @@ export default function MeetingAutoControls({ meeting, automatic, device, hasClo
       {automatic?.stopId && <p role="status">Stop requested. Waiting for the PC to confirm; allow a few seconds.</p>}
     </>}
     {(error || automatic?.error) && <p className={s.error} role="alert">{error || automatic.error}</p>}
-    <p className={s.muted}>English · Google Meet · short answers, at least 45 seconds apart · pauses after 1 hour or 40 replies. Uses your AI and voice service credits. Transcription can mishear words; review important answers.</p>
+    <p className={s.muted}>English · Google Meet · short answers, at least 45 seconds apart · pauses after 1 hour or 40 replies. {device?.localOnly ? "No AI or voice API credits used. Keep your PC awake; response speed depends on it." : "Uses your AI and voice service credits."} Transcription can mishear words; review important answers.</p>
   </section>;
 }

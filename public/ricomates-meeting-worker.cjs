@@ -51,6 +51,7 @@ function validateConfig(c) {
   if (app.origin !== 'https://ricomates.si' || app.username || app.password || app.pathname !== '/') throw new Error('appUrl must be https://ricomates.si');
   if (!['127.0.0.1', 'localhost', '[::1]'].includes(vexa.hostname) || !['http:', 'https:'].includes(vexa.protocol) || vexa.username || vexa.password || vexa.pathname !== '/') throw new Error('Vexa must be a loopback URL on this PC.');
   if (typeof c.pairToken !== 'string' || !/^[\w-]+\.[a-f0-9]{64}$/.test(c.pairToken) || typeof c.vexaApiKey !== 'string' || !c.vexaApiKey.trim()) throw new Error('Add the PC pairing token and local Vexa API key to the config file.');
+  if (c.localOnly === true && (c.localUrl !== 'http://127.0.0.1:18662' || !/^[a-f0-9]{64}$/.test(c.localToken || ''))) throw new Error('Configure the private loopback local model service first.');
   return { ...c, appUrl: app.origin, vexaUrl: vexa.origin };
 }
 function validateMeetingLink(value, p) {
@@ -75,7 +76,7 @@ function createWorker(config, dependencies = {}) {
   const now = dependencies.now || Date.now;
   const speechTasks = new Map(), autoTasks = new Map(), activity = new Map(), autoSessions = new Map();
   async function json(url, method, headers, body) {
-    const r = await request(url, { method, headers: { ...headers, 'Content-Type': 'application/json' }, ...(body === undefined ? {} : { body: JSON.stringify(body) }), signal: AbortSignal.timeout(45000), redirect: 'error' });
+    const r = await request(url, { method, headers: { ...headers, 'Content-Type': 'application/json' }, ...(body === undefined ? {} : { body: JSON.stringify(body) }), signal: AbortSignal.timeout(url.startsWith('http://127.0.0.1:18662/') ? 120000 : 45000), redirect: 'error' });
     if (!r.ok) { const e = new Error(`Request failed (${r.status}).`); e.status = r.status; throw e; }
     if (r.status === 204) return null;
     return r.json();
@@ -83,6 +84,10 @@ function createWorker(config, dependencies = {}) {
   const local = (route, method = 'GET', body) => json(config.vexaUrl + route, method, { 'X-API-Key': config.vexaApiKey }, body);
   const cloud = body => json(config.appUrl + '/api/meeting-worker', 'POST', { Authorization: 'Bearer ' + config.pairToken }, body);
   const autoCloud = body => json(config.appUrl + '/api/meeting-auto', 'POST', { Authorization: 'Bearer ' + config.pairToken }, body);
+  const inference = (route, body) => {
+    if (config.localOnly !== true || config.localUrl !== 'http://127.0.0.1:18662' || !/^[a-f0-9]{64}$/.test(config.localToken || '')) throw new Error('Local-only model configuration is invalid.');
+    return json(config.localUrl + route, body ? 'POST' : 'GET', { Authorization: 'Bearer ' + config.localToken }, body);
+  };
   async function stop(m) {
     const current = identity(await local('/meetings/' + m.providerId), m);
     if (!terminal(current.status)) await local(`/bots/${platform(m.platform)}/${encodeURIComponent(m.nativeId)}`, 'DELETE');
@@ -109,7 +114,11 @@ function createWorker(config, dependencies = {}) {
         const route = `/bots/${platform(job.platform)}/${encodeURIComponent(job.nativeId)}/speak`;
         if (job.type === 'stop_speaking') await local(route + '?meeting_id=' + job.providerId, 'DELETE');
         else {
-          const audio = await cloud({ action: 'voice', id: job.id, jobId: job.jobId, lease: job.lease });
+          let audio = await cloud({ action: 'voice', id: job.id, jobId: job.jobId, lease: job.lease });
+          if (config.localOnly || job.localOnly) {
+            if (audio?.local !== true || config.localOnly !== true) throw new Error('Paid voice fallback is disabled.');
+            audio = await inference('/speech', { text: audio.text, voiceHash: audio.voiceHash });
+          } else if (audio?.local) throw new Error('This meeting requires local models.');
           if (!['mp3', 'wav'].includes(audio?.format) || typeof audio.audio_base64 !== 'string' || audio.audio_base64.length > 1400000) throw new Error('Invalid cloned audio.');
           // The meeting may have ended while the voice provider was working.
           const fresh = identity(await local('/meetings/' + job.providerId), job);
@@ -154,7 +163,10 @@ function createWorker(config, dependencies = {}) {
       try { const capabilities = await local('/bots/ricomates/voice-capabilities'); if (capabilities?.version === 1 && capabilities.platforms?.includes('google_meet')) voiceVersion = 1; } catch { /* Old Vexa still supports notes. */ }
     }
     const health = dependencies.health ? await dependencies.health() : { speechStatus: 'unknown', runtimeStatus: 'unknown' };
-    const data = await cloud({ action: 'poll', ready, voiceVersion, autoVersion: 1, ...health });
+    let localHealth = { ready: false };
+    if (config.localOnly) { try { localHealth = await inference('/health'); } catch { /* No paid fallback. */ } }
+    const data = await cloud({ action: 'poll', ready, voiceVersion, autoVersion: 1, ...health, localOnly: config.localOnly === true, localVersion: config.localOnly ? 1 : 0, localStatus: localHealth.ready ? 'ready' : 'unavailable', localVoiceHash: localHealth.voiceHash });
+    if (config.localOnly && data.localProtocol !== 1) throw new Error('Server does not support strict local mode.');
     if (!ready) return { ready: false };
     for (const m of data.meetings || []) {
       autoSessions.set(m.id, m.auto);
@@ -191,7 +203,17 @@ function createWorker(config, dependencies = {}) {
         if (m.auto?.enabled && record.status === 'active' && quiet.observedChange && now() - quiet.since >= 6000 && !record.segments.some(s => s.completed !== true) && !autoTasks.has(m.id)) {
           const fingerprint = speechFingerprint(segments);
           // Generation must not block heartbeats, pause requests or transcription.
-          const task = autoCloud({ action: 'turn', id: m.id, fingerprint, quietSince: quiet.since }).then(() => { quiet.observedChange = false; }).catch(() => { quiet.observedChange = false; }).finally(() => autoTasks.delete(m.id));
+          const task = autoCloud({ action: 'turn', id: m.id, fingerprint, quietSince: quiet.since }).then(async result => {
+            if (result?.localTask) {
+              if (!config.localOnly) throw new Error('Local mode not configured.');
+              const task = result.localTask;
+              let answer;
+              try { answer = await inference('/reply', { system: task.system, content: task.content, voiceHash: task.voiceHash }); }
+              catch { answer = { reply: null, failed: true }; }
+              await autoCloud({ action: 'complete-local', id: m.id, revision: task.revision, turnId: task.turnId, generation: task.generation, fingerprint: task.fingerprint, reply: answer.reply, failed: answer.failed === true });
+            }
+            quiet.observedChange = false;
+          }).catch(() => { quiet.observedChange = false; }).finally(() => autoTasks.delete(m.id));
           autoTasks.set(m.id, task);
         }
         if (terminal(record.status)) delete state.active[m.id];
