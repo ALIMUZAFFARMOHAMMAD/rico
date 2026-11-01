@@ -52,6 +52,29 @@ test('local readiness checks verify model and runtime separately and cache succe
   const malformed = createHealthProbe(async () => ({ stdout: 'unexpected' }));
   assert.deepEqual(await malformed(), { speechStatus: 'unavailable', runtimeStatus: 'unavailable' });
 });
+test('health probe supports split services and falls back for legacy installations', async () => {
+  const { createHealthProbe } = require('../public/ricomates-meeting-worker.cjs');
+  const seen = [];
+  const probe = createHealthProbe(async (_, args) => {
+    seen.push(args[1]);
+    if (['ricomates-stt-transcription-worker-1-1', 'vexa-v012-meeting-api-1'].includes(args[1])) throw new Error('No such container');
+    return { stdout: args[0] === 'exec' ? '{"status":"healthy"}' : 'healthy' };
+  });
+  assert.deepEqual(await probe(), { speechStatus: 'ready', runtimeStatus: 'ready' });
+  assert.deepEqual(new Set(seen), new Set(['ricomates-stt-transcription-worker-1-1', 'vexa-v012-meeting-api-1', 'ricomates-stt-transcription-api-1', 'vexa-v012-runtime-1']));
+});
+
+test('explicit unhealthy split services cannot be masked by a healthy legacy service', async () => {
+  const { createHealthProbe } = require('../public/ricomates-meeting-worker.cjs');
+  let calls = 0;
+  const probe = createHealthProbe(async (_, args) => {
+    calls++;
+    return { stdout: args[0] === 'exec' ? '{"status":"loading"}' : 'unhealthy' };
+  });
+  assert.deepEqual(await probe(), { speechStatus: 'unavailable', runtimeStatus: 'unavailable' });
+  assert.equal(calls, 2);
+});
+
 test('question gate rejects other people, name substrings, self voice and oversized utterances', () => {
   const { auto } = fixture(); const q = (text, speaker = 'Person') => auto.addressedQuestion([{ text, speaker }], 'Rico');
   assert.equal(q('What do you think?'), null); assert.equal(q('Ricomates, what is next?'), null);

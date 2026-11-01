@@ -17,13 +17,29 @@ function createHealthProbe(run = executeFile) {
   return async () => {
     if (cached && Date.now() - checkedAt < 20000) return cached;
     const check = args => run(docker, args, { windowsHide: true, timeout: 7000, maxBuffer: 16000 });
-    const [speech, runtime] = await Promise.allSettled([
-      check(['exec', 'ricomates-stt-transcription-api-1', 'wget', '-qO-', 'http://127.0.0.1/health']),
-      check(['inspect', 'vexa-v012-runtime-1', '--format', '{{.State.Health.Status}}']),
+    // Prefer the current split services; keep compatibility with the older bundle.
+    // Only a missing/unreachable candidate falls back. An explicit unhealthy
+    // response must stay unavailable rather than being hidden by another service.
+    const probe = async (candidates, healthy) => {
+      for (const args of candidates) {
+        let result;
+        try { result = await check(args); } catch { continue; }
+        try { return healthy(result.stdout) ? 'ready' : 'unavailable'; }
+        catch { return 'unavailable'; }
+      }
+      return 'unavailable';
+    };
+    const [speechStatus, runtimeStatus] = await Promise.all([
+      probe([
+        ['exec', 'ricomates-stt-transcription-worker-1-1', 'curl', '-fsS', 'http://127.0.0.1:8000/health'],
+        ['exec', 'ricomates-stt-transcription-api-1', 'wget', '-qO-', 'http://127.0.0.1/health'],
+      ], output => JSON.parse(output).status === 'healthy'),
+      probe([
+        ['inspect', 'vexa-v012-meeting-api-1', '--format', '{{.State.Health.Status}}'],
+        ['inspect', 'vexa-v012-runtime-1', '--format', '{{.State.Health.Status}}'],
+      ], output => output.trim() === 'healthy'),
     ]);
-    let speechStatus = 'unavailable';
-    try { if (speech.status === 'fulfilled' && JSON.parse(speech.value.stdout).status === 'healthy') speechStatus = 'ready'; } catch { /* Fail closed on malformed health. */ }
-    cached = { speechStatus, runtimeStatus: runtime.status === 'fulfilled' && runtime.value.stdout.trim() === 'healthy' ? 'ready' : 'unavailable' };
+    cached = { speechStatus, runtimeStatus };
     checkedAt = Date.now();
     return cached;
   };
