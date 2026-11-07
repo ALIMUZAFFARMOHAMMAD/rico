@@ -1,3 +1,5 @@
+import { providerFetch as fetch } from "../../lib/provider-fetch";
+import { getAuth } from "@clerk/nextjs/server";
 import { languagePrompt, LANGS } from "../../lib/i18n";
 import { resolveAgent } from "../../lib/twins";
 import { ownsUser } from "../../lib/auth";
@@ -163,7 +165,7 @@ Use this to give deeply personalised, grounded responses. You know this person.`
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
-  if (rateLimited(req)) return res.status(429).json({ error: "Too many requests, slow down." });
+  if (await rateLimited(req)) return res.status(429).json({ error: "Too many requests, slow down." });
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -174,7 +176,8 @@ export default async function handler(req, res) {
   const { messages, mode, traitsData, userName, userId, language, agentId } = req.body;
   if (userId && !ownsUser(req, userId)) return res.status(403).json({ error: "forbidden" });
   const lang = LANGS[language] ? language : "en";
-  const agent = await resolveAgent(agentId);
+  const agent = await resolveAgent(agentId, getAuth(req).userId);
+  if (!agent) return res.status(404).json({ error: "This twin is private or unavailable." });
 
   // Per-agent namespaced memory (Phase 1) — tony keeps the plain key, others get composite keys
   const memUserId = userId ? (agent.id === "tony" ? userId : `${userId}::agent::${agent.id}`) : null;
@@ -222,3 +225,4 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: err.message });
   }
 }
+

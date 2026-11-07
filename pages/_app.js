@@ -4,6 +4,8 @@ import { useEffect } from 'react'
 import { getStoredLang, isRTL } from '../lib/i18n'
 import StatusBanner from '../components/StatusBanner'
 import '../styles/globals.css'
+import '../styles/visual-experience.css'
+import { VisualExperience } from '../components/VisualExperience'
 
 // Flip the document to right-to-left when the active language is RTL (Arabic).
 function DirManager() {
@@ -83,13 +85,14 @@ function FreshApiToken() {
 
 export default function App({ Component, pageProps }) {
   return (
-    <ClerkProvider {...pageProps} signInUrl="/sign-in" signUpUrl="/sign-up">
+    <ClerkProvider {...pageProps} signInUrl="/sign-in" signUpUrl="/sign-up" signInFallbackRedirectUrl="/" signUpFallbackRedirectUrl="/" afterSignOutUrl="/landing">
       <Head><link rel="icon" href="/favicon.svg" type="image/svg+xml" /><link rel="apple-touch-icon" href="/favicon.svg" /></Head>
       <NativeBridge />
       <FreshApiToken />
       <DirManager />
       <StatusBanner />
-      <Component {...pageProps} />
+      <VisualExperience><Component {...pageProps} /></VisualExperience>
     </ClerkProvider>
   )
 }
+

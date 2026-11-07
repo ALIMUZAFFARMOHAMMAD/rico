@@ -1,148 +1,96 @@
-// Record ~30s of the user's voice and clone it onto their AI twin (consent-gated).
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
+import Dialog from "./Dialog";
+import s from "./SocialUI.module.css";
 
-const T = { panel2: "rgba(255,255,255,0.09)", line: "rgba(255,255,255,0.1)", text: "#f5f3ff", sub: "#a9a5c0", grad: "#d6365e", pink: "#ff5e7e", violet: "#8b5cf6" };
-const font = "'DM Sans',system-ui,-apple-system,sans-serif";
-const MAX = 45, MIN = 20;
-
-const SCRIPT = "Hey, it's me — this is my real voice for my Rico twin. I like good conversations, the people I care about, and a bit of fun along the way. If we match, I'd love to actually talk. So tell me — what's something good that happened to you this week?";
+const MIN = 20, MAX = 45;
+const SCRIPT = "Hey, it’s me. I like good conversations, the people I care about, and a bit of fun along the way. Something that always makes me smile is catching up with a friend. Today I’m making a little time to try something new. So tell me—what’s something good that happened to you this week?";
 
 export default function TwinVoiceRecorder({ userId, userName, cloned, onClose, onDone }) {
-  const [phase, setPhase] = useState("intro"); // intro | recording | recorded | uploading | done | error
-  const [secs, setSecs] = useState(0);
+  const [phase, setPhase] = useState("intro");
+  const [seconds, setSeconds] = useState(0);
   const [consent, setConsent] = useState(false);
-  const [err, setErr] = useState("");
-  const [level, setLevel] = useState(0);
-  const recRef = useRef(null);
-  const chunksRef = useRef([]);
-  const blobRef = useRef(null);
-  const streamRef = useRef(null);
-  const timerRef = useRef(null);
-  const rafRef = useRef(null);
-  const audioElRef = useRef(null);
-
-  const cleanup = useCallback(() => {
-    clearInterval(timerRef.current);
-    cancelAnimationFrame(rafRef.current);
-    if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
+  const [error, setError] = useState("");
+  const [preview, setPreview] = useState("");
+  const recorder = useRef(null), stream = useRef(null), timer = useRef(null), sample = useRef(null), previewUrl = useRef("");
+  const alive = useRef(true), started = useRef(0), openingMic = useRef(false);
+  const busy = ["uploading", "removing"].includes(phase);
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false; clearInterval(timer.current);
+      if (recorder.current?.state === "recording") recorder.current.stop();
+      stream.current?.getTracks().forEach(track => track.stop());
+      if (previewUrl.current) URL.revokeObjectURL(previewUrl.current);
+    };
   }, []);
-  useEffect(() => cleanup, [cleanup]);
-
-  async function start() {
-    setErr("");
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
-      streamRef.current = stream;
-      // level meter
-      const ac = new (window.AudioContext || window.webkitAudioContext)();
-      const src = ac.createMediaStreamSource(stream);
-      const an = ac.createAnalyser(); an.fftSize = 256; src.connect(an);
-      const data = new Uint8Array(an.frequencyBinCount);
-      const tick = () => { an.getByteFrequencyData(data); setLevel(data.reduce((a, b) => a + b, 0) / data.length / 255); rafRef.current = requestAnimationFrame(tick); };
-      tick();
-
-      const mime = MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "";
-      const rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
-      chunksRef.current = [];
-      rec.ondataavailable = e => { if (e.data.size) chunksRef.current.push(e.data); };
-      rec.onstop = () => { blobRef.current = new Blob(chunksRef.current, { type: rec.mimeType || "audio/webm" }); setPhase("recorded"); cancelAnimationFrame(rafRef.current); };
-      recRef.current = rec; rec.start();
-      setPhase("recording"); setSecs(0);
-      timerRef.current = setInterval(() => setSecs(s => { if (s + 1 >= MAX) stop(); return s + 1; }), 1000);
-    } catch (e) { setErr("Microphone access denied. Allow the mic to record your voice."); }
-  }
-
   function stop() {
-    clearInterval(timerRef.current);
-    if (recRef.current && recRef.current.state !== "inactive") recRef.current.stop();
-    if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
+    clearInterval(timer.current);
+    if (recorder.current?.state === "recording") recorder.current.stop();
+    stream.current?.getTracks().forEach(track => track.stop());
   }
-
-  function playback() {
-    if (!blobRef.current) return;
-    const url = URL.createObjectURL(blobRef.current);
-    const a = new Audio(url); audioElRef.current = a;
-    a.onended = () => URL.revokeObjectURL(url); a.play();
-  }
-
-  async function upload() {
-    if (!blobRef.current || !consent) return;
-    setPhase("uploading"); setErr("");
+  async function start() {
+    if (openingMic.current) return;
+    openingMic.current = true; setError(""); setPhase("permission"); setConsent(false);
     try {
-      const b64 = await new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = rej; fr.readAsDataURL(blobRef.current); });
-      const r = await fetch("/api/twin-voice", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, userName, audio: b64, mime: blobRef.current.type, consent: true }) });
-      const d = await r.json();
-      if (d.ok) { setPhase("done"); onDone && onDone(); }
-      else { setErr(d.error || "Failed"); setPhase("recorded"); }
-    } catch (e) { setErr("Upload failed — try again."); setPhase("recorded"); }
+      if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) throw new Error("unsupported");
+      const media = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+      if (!alive.current) { media.getTracks().forEach(track => track.stop()); return; }
+      stream.current = media;
+      const mime = ["audio/webm;codecs=opus", "audio/mp4", "audio/webm"].find(type => MediaRecorder.isTypeSupported(type));
+      const rec = new MediaRecorder(media, mime ? { mimeType: mime } : undefined);
+      const chunks = [];
+      rec.ondataavailable = event => { if (event.data.size) chunks.push(event.data); };
+      rec.onstop = () => {
+        if (!alive.current) return;
+        sample.current = new Blob(chunks, { type: rec.mimeType || "audio/webm" });
+        if (previewUrl.current) URL.revokeObjectURL(previewUrl.current);
+        previewUrl.current = URL.createObjectURL(sample.current);
+        setPreview(previewUrl.current); setSeconds(Math.min(MAX, Math.floor((Date.now() - started.current) / 1000))); setPhase("recorded");
+      };
+      recorder.current = rec; started.current = Date.now(); rec.start(); setSeconds(0); setPhase("recording");
+      timer.current = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - started.current) / 1000);
+        setSeconds(Math.min(MAX, elapsed)); if (elapsed >= MAX) stop();
+      }, 250);
+    } catch (err) {
+      stream.current?.getTracks().forEach(track => track.stop());
+      if (alive.current) { setPhase("intro"); setError(err.message === "unsupported" ? "Recording isn’t supported here. Try a current browser on your phone or computer." : "We couldn’t access your microphone. Check its permission and try again."); }
+    } finally { openingMic.current = false; }
   }
-
-  async function removeClone() {
-    setPhase("uploading");
-    try { await fetch("/api/twin-voice", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId }) }); onDone && onDone(); } catch (e) {}
-    onClose();
+  async function upload() {
+    if (!sample.current || !consent || seconds < MIN || busy) return;
+    setPhase("uploading"); setError("");
+    try {
+      const audio = await new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(sample.current); });
+      const response = await fetch("/api/twin-voice", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, userName, audio, mime: sample.current.type, consent: true }) });
+      const data = await response.json();
+      if (!response.ok || !data.ok) throw new Error(data.error || "Couldn’t save that voice. Please try again.");
+      if (alive.current) { setPhase("done"); onDone?.(); }
+    } catch (err) { if (alive.current) { setError(err.message || "Upload failed. Your recording is still here to retry."); setPhase("recorded"); } }
   }
-
-  return (
-    <div onClick={onClose} style={{ position: "absolute", inset: 0, zIndex: 50, background: "rgba(0,0,0,0.66)", backdropFilter: "blur(10px)", display: "flex", alignItems: "flex-end" }}>
-      <div onClick={e => e.stopPropagation()} style={{ width: "100%", background: "#1a1626", borderRadius: "24px 24px 0 0", border: `1px solid ${T.line}`, padding: "22px 20px 28px", fontFamily: font }}>
-        <div style={{ width: 40, height: 4, borderRadius: 100, background: T.line, margin: "0 auto 16px" }} />
-        <div style={{ color: T.text, fontWeight: 800, fontSize: 18 }}>🎙 Clone your real voice</div>
-        <div style={{ color: T.sub, fontSize: 12.5, lineHeight: 1.55, marginTop: 4 }}>
-          Your twin will speak in your actual voice on calls. Record ~30 seconds of natural speech — read the line below or just talk.
-        </div>
-
-        {phase === "intro" && cloned && (
-          <div style={{ margintop: 12, marginTop: 12, color: "#4ade80", fontSize: 12.5, fontWeight: 600 }}>✓ Your voice is already cloned. Re-record to replace it, or remove it.</div>
-        )}
-
-        {(phase === "intro" || phase === "recorded") && (
-          <div style={{ background: T.panel2, border: `1px solid ${T.line}`, borderRadius: 14, padding: "12px 14px", marginTop: 14, color: T.text, fontSize: 13, lineHeight: 1.6, fontStyle: "italic" }}>"{SCRIPT}"</div>
-        )}
-
-        {phase === "recording" && (
-          <div style={{ textAlign: "center", margin: "22px 0" }}>
-            <div style={{ width: 110, height: 110, borderRadius: "50%", margin: "0 auto", background: T.grad, display: "flex", alignItems: "center", justifyContent: "center", transform: `scale(${1 + level * 0.4})`, transition: "transform 0.08s" }}>
-              <div style={{ fontSize: 30 }}>🎙</div>
-            </div>
-            <div style={{ color: T.text, fontWeight: 800, fontSize: 26, marginTop: 14, fontVariantNumeric: "tabular-nums" }}>0:{String(secs).padStart(2, "0")}</div>
-            <div style={{ color: secs >= MIN ? "#4ade80" : T.sub, fontSize: 12, marginTop: 2 }}>{secs >= MIN ? "Good — you can stop now" : `Keep going… (${MIN - secs}s more)`}</div>
-          </div>
-        )}
-
-        {err && <div style={{ color: T.pink, fontSize: 12.5, fontWeight: 600, marginTop: 12 }}>{err}</div>}
-
-        {(phase === "intro") && (
-          <button onClick={start} style={{ width: "100%", marginTop: 16, background: T.grad, border: "none", color: "white", fontWeight: 800, fontSize: 15, padding: "14px 0", borderRadius: 100, cursor: "pointer", fontFamily: font }}>● Start recording</button>
-        )}
-        {phase === "recording" && (
-          <button onClick={stop} disabled={secs < 3} style={{ width: "100%", background: T.panel2, border: `1px solid ${T.line}`, color: T.text, fontWeight: 700, fontSize: 15, padding: "14px 0", borderRadius: 100, cursor: "pointer", fontFamily: font, opacity: secs < 3 ? 0.5 : 1 }}>■ Stop</button>
-        )}
-        {phase === "recorded" && (<>
-          <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
-            <button onClick={playback} style={{ flex: 1, background: T.panel2, border: `1px solid ${T.line}`, color: T.text, fontWeight: 700, fontSize: 13.5, padding: "11px 0", borderRadius: 100, cursor: "pointer", fontFamily: font }}>▶ Play back</button>
-            <button onClick={start} style={{ flex: 1, background: T.panel2, border: `1px solid ${T.line}`, color: T.text, fontWeight: 700, fontSize: 13.5, padding: "11px 0", borderRadius: 100, cursor: "pointer", fontFamily: font }}>↻ Re-record</button>
-          </div>
-          <label style={{ display: "flex", gap: 9, alignItems: "flex-start", marginTop: 14, cursor: "pointer" }}>
-            <input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)} style={{ marginTop: 2, accentColor: T.violet, width: 16, height: 16 }} />
-            <span style={{ color: T.sub, fontSize: 11.5, lineHeight: 1.5 }}>This is <b style={{ color: T.text }}>my own voice</b>, and I'm okay with my twin using a clone of it on calls with people who match with it.</span>
-          </label>
-          <button onClick={upload} disabled={!consent} style={{ width: "100%", marginTop: 14, background: T.grad, border: "none", color: "white", fontWeight: 800, fontSize: 15, padding: "14px 0", borderRadius: 100, cursor: consent ? "pointer" : "not-allowed", opacity: consent ? 1 : 0.5, fontFamily: font }}>Use this as my twin's voice</button>
-        </>)}
-        {phase === "uploading" && (
-          <div style={{ textAlign: "center", color: T.sub, fontSize: 13.5, padding: "18px 0", fontWeight: 600 }}>Cloning your voice…</div>
-        )}
-        {phase === "done" && (
-          <div style={{ textAlign: "center", padding: "16px 0" }}>
-            <div style={{ fontSize: 32 }}>✨</div>
-            <div style={{ color: T.text, fontWeight: 800, fontSize: 16, marginTop: 6 }}>Your twin now sounds like you</div>
-            <button onClick={onClose} style={{ width: "100%", marginTop: 16, background: T.grad, border: "none", color: "white", fontWeight: 800, fontSize: 15, padding: "13px 0", borderRadius: 100, cursor: "pointer", fontFamily: font }}>Done</button>
-          </div>
-        )}
-        {cloned && phase === "intro" && (
-          <button onClick={removeClone} style={{ width: "100%", marginTop: 10, background: "transparent", border: `1px solid ${T.line}`, color: T.sub, fontWeight: 600, fontSize: 13, padding: "11px 0", borderRadius: 100, cursor: "pointer", fontFamily: font }}>Remove my cloned voice</button>
-        )}
-      </div>
-    </div>
-  );
+  async function remove() {
+    setPhase("removing"); setError("");
+    try {
+      const response = await fetch("/api/twin-voice", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId }) });
+      const data = await response.json();
+      if (!response.ok || !data.ok) throw new Error(data.error || "Couldn’t remove your voice. Try again.");
+      if (alive.current) { onDone?.(); setPhase("removed"); }
+    } catch (err) { if (alive.current) { setError(err.message); setPhase("intro"); } }
+  }
+  const step = ["intro","permission","recording"].includes(phase) ? 0 : ["done","removed"].includes(phase) ? 2 : 1;
+  return <Dialog title="Your voice studio" onClose={onClose} busy={busy}>
+    <p className={s.muted}>Give your AI twin a familiar voice. Record in a quiet spot, then listen before you decide.</p>
+    <ol className={s.steps}>{["01 Record", "02 Review", "03 Ready"].map((label,index) => <li key={label} aria-current={index === step ? "step" : undefined}>{label}</li>)}</ol>
+    {cloned && phase === "intro" && <p className={s.notice}>Your cloned voice is active. You can replace it or return to the standard voice.</p>}
+    {["intro","permission","recording"].includes(phase) && <blockquote className={s.script}>{SCRIPT}</blockquote>}
+    {phase === "intro" && <><p className={s.muted}>Aim for 20–45 seconds. Speak naturally; no need to perform.</p><div className={s.actions}><button className={s.primary} onClick={start}>● Record my voice</button></div></>}
+    {phase === "permission" && <p role="status" className={s.notice}>Allow microphone access in your browser to begin.</p>}
+    {phase === "recording" && <><div className={s.row}><strong className={s.timer}>0:{String(seconds).padStart(2,"0")}</strong><span className={s.muted}>{seconds < MIN ? `${MIN-seconds}s until ready` : "Great. You can stop now."}</span></div><div className={s.meter}><span style={{ width: `${seconds/MAX*100}%` }} /></div><button className={s.secondary} onClick={stop}>■ Stop recording</button></>}
+    {phase === "recorded" && <><p className={s.muted}>Your recording · {seconds} seconds</p><audio aria-label="Listen to your voice recording" controls src={preview} style={{ width: "100%", marginTop: 14 }} />{seconds < MIN && <p className={s.notice}>A little more speech will help. Record at least {MIN} seconds to continue.</p>}<label className={s.consent}><input type="checkbox" checked={consent} onChange={event => setConsent(event.target.checked)} /><span>This is my own voice. I agree to let my AI twin use a clone of it on calls. I can remove it here later.</span></label><div className={s.actions}><button className={s.secondary} onClick={start}>Record again</button><button className={s.primary} disabled={!consent || seconds < MIN} onClick={upload}>Save my voice →</button></div></>}
+    {busy && <p role="status" className={s.notice}>{phase === "removing" ? "Removing your cloned voice…" : "Creating your voice. This can take about a minute. Keep this window open."}</p>}
+    {phase === "done" && <div className={s.card}><h2>A little more like you. ✨</h2><p>Your AI twin is ready to use your voice on English calls. Other languages use a standard voice.</p><button className={s.primary} onClick={onClose}>Back to my twin</button></div>}
+    {phase === "removed" && <div className={s.card}><h2>Back to the standard voice.</h2><p>Your cloned voice has been removed.</p><button className={s.primary} onClick={onClose}>Done</button></div>}
+    {error && <p role="alert" className={s.notice}>{error}</p>}
+    {cloned && phase === "intro" && <div className={s.actions}><button className={s.secondary} onClick={remove}>Remove my cloned voice</button></div>}
+  </Dialog>;
 }

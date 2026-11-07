@@ -4,6 +4,7 @@
 // archetype, Big-Five bars, per-pillar score cards, and a plain-language read-out.
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import { requestJson } from "../lib/client-request";
 
 const C = {
   text: "#f5f3ff", sub: "#a9a5c0", line: "rgba(255,255,255,0.1)",
@@ -35,22 +36,30 @@ function band(score) {
 export default function Dashboard({ userId, userName, onOpenGroups }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [retry, setRetry] = useState(0);
 
   useEffect(() => {
     if (!userId) { setLoading(false); return; }
     let on = true;
-    fetch(`/api/profile?userId=${userId}`)
-      .then(r => r.json())
-      .then(d => { if (on) { setData(d && d.ok ? d : { empty: true }); setLoading(false); } })
-      .catch(() => { if (on) { setData({ empty: true }); setLoading(false); } });
-    return () => { on = false; };
-  }, [userId]);
+    const controller = new AbortController();
+    setLoading(true); setError(""); setData(null);
+    requestJson(`/api/profile?userId=${encodeURIComponent(userId)}`, { signal: controller.signal, timeoutMs: 15000 })
+      .then(d => { if (on) setData(d); })
+      .catch(() => { if (on) setError("Your profile could not load. Your saved activity has not been changed."); })
+      .finally(() => { if (on) setLoading(false); });
+    return () => { on = false; controller.abort(); };
+  }, [userId, retry]);
 
   if (loading) return (
     <div style={{ borderRadius: 22, padding: 22, background: C.panel, border: `1px solid ${C.line}`, marginBottom: 14, textAlign: "center", color: C.sub, fontSize: 13 }}>
       Pulling your profile together…
     </div>
   );
+
+  if (error) return <div role="alert" style={{ borderRadius: 22, padding: 22, background: C.panel, border: `1px solid ${C.line}`, marginBottom: 14, color: C.text }}>
+    <p>{error}</p><button type="button" onClick={() => setRetry(value => value + 1)} style={{ marginTop: 12, padding: "10px 16px", borderRadius: 12, cursor: "pointer" }}>Retry profile</button>
+  </div>;
 
   const ocean = data?.ocean;
   const chat = data?.chat || { totalMessages: 0, friendCount: 0, friends: [] };
@@ -211,3 +220,4 @@ function Ring({ value }) {
     </div>
   );
 }
+

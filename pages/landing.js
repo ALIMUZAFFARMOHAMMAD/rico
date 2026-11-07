@@ -4,6 +4,7 @@
 import { useState, useEffect } from "react";
 import Head from "next/head";
 import { captureSource } from "../lib/source";
+import { Atmosphere, LivingOrb } from "../components/VisualExperience";
 import FriendsHero from "../components/FriendsHero";
 import TonyCharacter from "../components/TonyCharacter";
 import { AGENT_LIST } from "../lib/agents";
@@ -59,7 +60,7 @@ const SOCIALS = [
 
 const btnPrimary = { display: "inline-block", background: T.grad, color: "#fff", fontWeight: 800, fontSize: 15, padding: "14px 28px", borderRadius: 100, textDecoration: "none", border: "none", cursor: "pointer", boxShadow: "0 12px 34px rgba(255,94,126,0.34)" };
 const btnGhost = { display: "inline-block", background: "rgba(255,255,255,0.06)", color: T.text, fontWeight: 700, fontSize: 15, padding: "14px 24px", borderRadius: 100, textDecoration: "none", border: `1px solid ${T.line}`, cursor: "pointer" };
-const Section = ({ children, style, id }) => <section id={id} style={{ width: "100%", maxWidth: 1080, margin: "0 auto", padding: "0 22px", ...style }}>{children}</section>;
+const Section = ({ children, style, id }) => <section data-vfx-reveal id={id} style={{ width: "100%", maxWidth: 1080, margin: "0 auto", padding: "0 22px", ...style }}>{children}</section>;
 const Eyebrow = ({ children }) => <div style={{ color: T.violet, fontSize: 12.5, fontWeight: 800, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 10 }}>{children}</div>;
 
 const SHOWCASE = ["tony", "zara", "baba", "arjun", "luna", "dev", "pixel", "meera"];
@@ -69,42 +70,6 @@ function Avatar({ agent, size = 60 }) {
     <div style={{ width: size, height: size, borderRadius: "50%", padding: 2, background: T.grad, flexShrink: 0 }}>
       <div style={{ width: "100%", height: "100%", borderRadius: "50%", overflow: "hidden", background: "#161226", display: "flex", justifyContent: "center" }}>
         <div style={{ marginTop: 2 }}><TonyCharacter size={Math.round(size * 1.45)} look={agent.look || {}} float="none" animated={false} pose="down" expr="😊" /></div>
-      </div>
-    </div>
-  );
-}
-
-function PhoneMock() {
-  const tony = AGENT_LIST.find(a => a.id === "tony") || AGENT_LIST[0];
-  const bubble = (who, text) => (
-    <div style={{ display: "flex", justifyContent: who === "you" ? "flex-end" : "flex-start" }}>
-      <div style={{ maxWidth: "80%", background: who === "you" ? T.grad : "rgba(255,255,255,0.08)", border: who === "you" ? "none" : `1px solid ${T.line}`, color: who === "you" ? "#fff" : T.text, borderRadius: who === "you" ? "14px 14px 4px 14px" : "14px 14px 14px 4px", padding: "9px 12px", fontSize: 12.5, lineHeight: 1.4, fontWeight: 500 }}>{text}</div>
-    </div>
-  );
-  return (
-    <div style={{ position: "relative", width: "min(280px, 78vw)", aspectRatio: "9/19", margin: "0 auto", background: "#0f0e17", borderRadius: 38, border: "8px solid #1c1a26", boxShadow: "0 40px 90px rgba(139,92,246,0.28), 0 12px 40px rgba(0,0,0,0.5)", overflow: "hidden" }}>
-      {/* notch */}
-      <div style={{ position: "absolute", top: 8, left: "50%", transform: "translateX(-50%)", width: 90, height: 18, background: "#1c1a26", borderRadius: 100, zIndex: 3 }} />
-      {/* chat header */}
-      <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "26px 14px 10px", borderBottom: `1px solid ${T.line}` }}>
-        <Avatar agent={tony} size={36} />
-        <div>
-          <div style={{ color: T.text, fontWeight: 700, fontSize: 13 }}>Tony</div>
-          <div style={{ color: T.teal, fontSize: 10, fontWeight: 600 }}>● online</div>
-        </div>
-      </div>
-      {/* messages */}
-      <div style={{ padding: "12px 12px", display: "flex", flexDirection: "column", gap: 8 }}>
-        {bubble("them", "Hey! Still chewing on that PM move? 💭")}
-        {bubble("you", "yeah… kinda stuck ngl")}
-        {bubble("them", "Let's untangle it. What's the part you keep avoiding?")}
-        {bubble("you", "the salary conversation 😩")}
-        {bubble("them", "Classic. Okay — what number would actually feel fair to you?")}
-      </div>
-      {/* input bar */}
-      <div style={{ position: "absolute", bottom: 12, left: 12, right: 12, display: "flex", gap: 7, alignItems: "center" }}>
-        <div style={{ flex: 1, background: "rgba(255,255,255,0.08)", border: `1px solid ${T.line}`, borderRadius: 100, padding: "8px 13px", color: T.sub, fontSize: 11.5 }}>Message Tony…</div>
-        <div style={{ width: 30, height: 30, borderRadius: "50%", background: T.grad, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 13 }}>↑</div>
       </div>
     </div>
   );
@@ -124,9 +89,10 @@ export default function Landing() {
       <meta property="og:title" content="Rico — your people, always" />
       <meta property="og:description" content="AI friends who remember you, call you, play with you, and have your back on the real stuff." />    </Head>
 
-    <div style={{ background: T.bg, color: T.text, fontFamily: font, minHeight: "100vh", overflowX: "hidden" }}>
+    <div className="vfx-landing" style={{ position: "relative", background: T.bg, color: T.text, fontFamily: font, minHeight: "100vh", overflowX: "hidden" }}>
       <div style={{ position: "absolute", top: -180, left: "50%", transform: "translateX(-50%)", width: 820, height: 560, background: "radial-gradient(closest-side, rgba(139,92,246,0.3), transparent)", filter: "blur(20px)", pointerEvents: "none", zIndex: 0 }} />
 
+      <Atmosphere fixed />
       {/* nav */}
       <nav style={{ position: "sticky", top: 0, zIndex: 20, backdropFilter: "blur(14px)", background: "rgba(11,10,18,0.72)", borderBottom: `1px solid ${T.line}` }}>
         <div style={{ maxWidth: 1080, margin: "0 auto", padding: "12px 22px", display: "flex", alignItems: "center", gap: 16 }}>
@@ -156,7 +122,7 @@ export default function Landing() {
                 <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.teal }} /> Honestly-labeled AI · friendship-first
               </div>
               <h1 className="rm-display" style={{ fontSize: "clamp(36px, 6vw, 58px)", fontWeight: 800, lineHeight: 1.04, letterSpacing: -1.6, margin: "0 0 18px" }}>
-                AI friends who <span style={{ color: "#ff7b96" }}>actually remember you</span>
+                AI friends who <span className="vfx-heading">actually remember you</span>
               </h1>
               <p style={{ color: T.sub, fontSize: "clamp(15px, 2.2vw, 18.5px)", lineHeight: 1.6, maxWidth: 520, margin: "0 0 26px" }}>
                 Companions with real personalities and lasting memory — who chat, call, play, teach, translate, and have your back on the real stuff. Built to feel less lonely and a lot more fun.
@@ -175,7 +141,7 @@ export default function Landing() {
             {/* right: phone mockup */}
             <div style={{ flex: "1 1 280px", display: "flex", justifyContent: "center", position: "relative" }}>
               <div style={{ position: "absolute", top: -10, right: 0, opacity: 0.5, zIndex: 0 }}><FriendsHero size={96} /></div>
-              <div style={{ position: "relative", zIndex: 1 }}><PhoneMock /></div>
+              <div style={{ position: "relative", zIndex: 1, width: "100%", maxWidth: 490 }}><LivingOrb /></div>
             </div>
           </div>
         </Section>
@@ -185,7 +151,7 @@ export default function Landing() {
       <Section style={{ paddingBottom: 56, paddingTop: 8 }}>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12 }}>
           {[["11", "languages"], ["8+", "ways to connect"], ["∞", "memory that sticks"], ["100%", "honestly-labeled AI"]].map(([n, l]) => (
-            <div key={l} style={{ textAlign: "center", background: T.panel, border: `1px solid ${T.line}`, borderRadius: 16, padding: "18px 12px" }}>
+            <div data-vfx-card data-vfx-reveal key={l} style={{ textAlign: "center", background: T.panel, border: `1px solid ${T.line}`, borderRadius: 16, padding: "18px 12px" }}>
               <div style={{ fontSize: 28, fontWeight: 900, color: "#ff7b96" }}>{n}</div>
               <div style={{ color: T.sub, fontSize: 12.5, fontWeight: 600, marginTop: 2 }}>{l}</div>
             </div>
@@ -203,7 +169,7 @@ export default function Landing() {
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
             {SHOWCASE.map(id => { const a = AGENT_LIST.find(x => x.id === id); if (!a) return null; return (
-              <div key={id} className="card" style={{ display: "flex", gap: 12, alignItems: "flex-start", background: T.panel, border: `1px solid ${T.line}`, borderRadius: 18, padding: 16 }}>
+              <div key={id} data-vfx-card data-vfx-reveal className="card" style={{ display: "flex", gap: 12, alignItems: "flex-start", background: T.panel, border: `1px solid ${T.line}`, borderRadius: 18, padding: 16 }}>
                 <Avatar agent={a} size={52} />
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontWeight: 800, fontSize: 15 }}>{a.emoji} {a.name}</div>
@@ -225,7 +191,7 @@ export default function Landing() {
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: 16 }}>
           {FEATURES.map(f => (
-            <div key={f.title} className="card" style={{ background: T.panel, border: `1px solid ${T.line}`, borderRadius: 20, padding: 22 }}>
+            <div key={f.title} data-vfx-card data-vfx-reveal className="card" style={{ background: T.panel, border: `1px solid ${T.line}`, borderRadius: 20, padding: 22 }}>
               <div style={{ width: 46, height: 46, borderRadius: 14, background: "rgba(139,92,246,0.14)", border: `1px solid ${T.line}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, marginBottom: 12 }}>{f.icon}</div>
               <div style={{ fontWeight: 800, fontSize: 17, marginBottom: 6 }}>{f.title}</div>
               <div style={{ color: T.sub, fontSize: 14, lineHeight: 1.55 }}>{f.body}</div>
@@ -341,7 +307,7 @@ export default function Landing() {
             { icon: "🔒", title: "Your memory, your control", body: "See everything Rico remembers about you, and wipe any of it anytime. Your data stays yours." },
             { icon: "💛", title: "Friendship, not romance", body: "Rico is built for genuine, supportive companionship — never manipulation, romance-baiting, or dependency." },
           ].map((c, i) => (
-            <div key={i} className="card" style={{ background: `linear-gradient(150deg, ${T.violet}14, ${T.pink}0a)`, border: `1px solid ${T.line}`, borderRadius: 20, padding: 22 }}>
+            <div key={i} data-vfx-card data-vfx-reveal className="card" style={{ background: `linear-gradient(150deg, ${T.violet}14, ${T.pink}0a)`, border: `1px solid ${T.line}`, borderRadius: 20, padding: 22 }}>
               <div style={{ fontSize: 26, marginBottom: 10 }}>{c.icon}</div>
               <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 6 }}>{c.title}</div>
               <div style={{ color: T.sub, fontSize: 13.5, lineHeight: 1.6 }}>{c.body}</div>
@@ -365,7 +331,7 @@ export default function Landing() {
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16, marginTop: 26 }}>
             {TESTIMONIALS.map((t, i) => (
-              <div key={i} className="card" style={{ background: T.panel, border: `1px solid ${T.line}`, borderRadius: 20, padding: 22, display: "flex", flexDirection: "column" }}>
+              <div key={i} data-vfx-card data-vfx-reveal className="card" style={{ background: T.panel, border: `1px solid ${T.line}`, borderRadius: 20, padding: 22, display: "flex", flexDirection: "column" }}>
                 <div style={{ color: "#f5c84b", fontSize: 14, letterSpacing: 2, marginBottom: 10 }}>★★★★★</div>
                 <div style={{ color: T.text, fontSize: 15, lineHeight: 1.6, flex: 1, marginBottom: 16 }}>“{t.quote}”</div>
                 <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
@@ -522,3 +488,4 @@ export default function Landing() {
     `}</style>
   </>);
 }
+

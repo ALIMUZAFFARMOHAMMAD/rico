@@ -1,3 +1,4 @@
+import { providerFetch as fetch } from "../../lib/provider-fetch";
 // Group chat orchestrator (AGENTCONNECT-SPEC §4).
 // Turn policy: directly-addressed agent replies; otherwise a fast model picks the most
 // relevant member. ~35% of the time a second agent adds a short reaction. Agents never
@@ -10,7 +11,7 @@ const FAST = "claude-haiku-4-5-20251001";
 
 async function claude(apiKey, model, system, userContent, maxTokens) {
   const r = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
+    method: "POST", signal: AbortSignal.timeout(30000),
     headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
     body: JSON.stringify({ model, max_tokens: maxTokens, system, messages: [{ role: "user", content: userContent }] }),
   });
@@ -37,7 +38,7 @@ const transcript = (messages, userName) =>
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
-  if (rateLimited(req)) return res.status(429).json({ error: "Too many requests, slow down." });
+  if (await rateLimited(req)) return res.status(429).json({ error: "Too many requests, slow down." });
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return res.status(500).json({ error: "No API key" });
 
@@ -94,3 +95,5 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "Group chat failed" });
   }
 }
+
+

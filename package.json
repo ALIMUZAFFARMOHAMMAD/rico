@@ -5,28 +5,52 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "oxlint components lib pages middleware.js next.config.js",
+    "test": "node scripts/run-scale-tests.cjs",
+    "test:scale:sql": "node scripts/test-scale-sql.cjs",
+    "test:staging:setup": "node scripts/staging/setup.cjs",
+    "test:staging:load": "node scripts/staging/run-load.cjs",
+    "test:staging:restore": "node scripts/staging/restore-drill.cjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.0",
     "@capacitor/app": "^8.1.0",
     "@capacitor/browser": "^8.0.3",
-    "@capacitor/cli": "^8.4.0",
     "@capacitor/core": "^8.4.0",
     "@capacitor/ios": "^8.4.0",
     "@capacitor/splash-screen": "^8.0.1",
-    "@clerk/nextjs": "^4.29.3",
+    "@clerk/nextjs": "6.39.7",
     "@supabase/supabase-js": "^2.107.0",
+    "@vercel/functions": "^3.10.1",
     "chess.js": "^1.4.0",
     "framer-motion": "^12.40.0",
     "heic2any": "^0.0.4",
     "mammoth": "^1.12.0",
-    "next": "14.2.35",
+    "next": "15.5.28",
     "react": "18.3.1",
     "react-dom": "18.3.1"
   },
   "devDependencies": {
-    "eslint": "^8.57.1",
-    "eslint-config-next": "^14.2.5"
+    "@capacitor/cli": "^8.4.0",
+    "oxlint": "1.90.0"
+  },
+  "engines": {
+    "node": "24.x"
+  },
+  "overrides": {
+    "minimatch@^10.2.2": "11.0.3",
+    "next": {
+      "postcss": "8.5.32"
+    },
+    "brace-expansion@^1.0.0": "1.1.21",
+    "js-yaml@^4.0.0": "4.3.2",
+    "@vercel/cli-config": {
+      "zod": "4.6.7"
+    },
+    "@capacitor/cli": {
+      "rimraf": {
+        "glob": "14.0.3"
+      }
+    }
   }
 }

@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  outputFileTracingRoot: __dirname,
+  // Keep validation builds separate from a running desktop preview's cache.
+  distDir: process.env.RICOMATES_BUILD_DIR || ".next",
   reactStrictMode: true,
   eslint: {
     // Lint runs on demand via `npm run lint` — not coupled to production builds,
@@ -24,8 +27,12 @@ const nextConfig = {
     }];
   },
   async redirects() {
-    return [{ source: "/:path*", has: [{ type: "host", value: "hitony.vercel.app" }], destination: "https://ricomates.si/:path*", permanent: true }];
+    return [
+      { source: "/meetings", destination: "/", permanent: false },
+      { source: "/:path*", has: [{ type: "host", value: "hitony.vercel.app" }], destination: "https://ricomates.si/:path*", permanent: true },
+    ];
   },
 }
 
 module.exports = nextConfig
+
