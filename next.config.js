@@ -27,7 +27,10 @@ const nextConfig = {
     }];
   },
   async redirects() {
-    return [{ source: "/:path*", has: [{ type: "host", value: "hitony.vercel.app" }], destination: "https://ricomates.si/:path*", permanent: true }];
+    return [
+      { source: "/meetings", destination: "/", permanent: false },
+      { source: "/:path*", has: [{ type: "host", value: "hitony.vercel.app" }], destination: "https://ricomates.si/:path*", permanent: true },
+    ];
   },
 }
 

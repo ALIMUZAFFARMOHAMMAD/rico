@@ -9,6 +9,8 @@ node_modules
 *.local
 *.log
 scripts/staging
+scripts/meeting-pc
+scripts/meeting-voice
 *.dump
 *.dpapi
 ricomates-pc.json*

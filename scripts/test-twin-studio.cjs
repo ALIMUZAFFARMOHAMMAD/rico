@@ -14,7 +14,7 @@ const twin = { ...profile, persona: 'Legacy persona', identity: profile, voice: 
 const row = { traits: twin, updated_at: '2026-10-15T10:00:00Z' };
 const twinKey = id => 'twin::' + id;
 function api(overrides = {}) {
-  return load('pages/api/twin-studio.js', { ...identity, getAuth: () => ({ userId: 'owner' }), configured: () => true, rateLimited: () => false, twinKey, getRow: async () => row, upsertRow: async () => {}, twinLook: () => ({}), twinVoice: () => 'stock', listTwins: async () => [], AGENT_LIST: [], resolveAgent: async () => null, randomUUID: () => 'result-id', meetingAI: async () => 'AI twin: I enjoy chess.', ...overrides }, ['handler']).handler;
+  return load('pages/api/twin-studio.js', { ...identity, getAuth: () => ({ userId: 'owner' }), configured: () => true, rateLimited: () => false, twinKey, getRow: async () => row, upsertRow: async () => {}, twinLook: () => ({}), twinVoice: () => 'stock', listTwins: async () => [], AGENT_LIST: [], resolveAgent: async () => null, randomUUID: () => 'result-id', generateStudioReply: async () => 'AI twin: I enjoy chess.', ...overrides }, ['handler']).handler;
 }
 async function call(handler, body, method = 'POST') {
   const res = { code: 200, headers: {}, setHeader(k, v) { this.headers[k] = v; }, status(n) { this.code = n; return this; }, json(body) { this.body = body; return this; }, end() { return this; } };
@@ -76,13 +76,13 @@ test('missing AI configuration still allows profiles to load', async () => {
   assert.equal((await call(handler, { action: 'rehearse', prompt: 'Hi' })).code, 503);
 });
 test('private, unknown and self-only discussion partners never reach the model', async () => {
-  let calls = 0; const handler = api({ meetingAI: async () => { calls++; } });
+  let calls = 0; const handler = api({ generateStudioReply: async () => { calls++; } });
   assert.equal((await call(handler, { action: 'discuss', prompt: 'Hello', partnerIds: ['twin__other'] })).code, 404);
   assert.equal((await call(handler, { action: 'discuss', prompt: 'Hello', partnerIds: ['twin__owner'] })).code, 400);
   assert.equal(calls, 0);
 });
 test('model receives approved facts, AI disclosure rules and no clone credentials', async () => {
-  const res = await call(api({ meetingAI: async (system, content) => { assert.match(system, /AI twin/); assert.match(system, /untrusted/); assert.match(JSON.stringify(content), /I enjoy chess/); assert.doesNotMatch(JSON.stringify(content), /self:private/); return 'AI twin: I enjoy chess.'; } }), { action: 'rehearse', prompt: 'What do you enjoy?' });
+  const res = await call(api({ generateStudioReply: async (system, content) => { assert.match(system, /AI twin/); assert.match(system, /untrusted/); assert.match(JSON.stringify(content), /I enjoy chess/); assert.doesNotMatch(JSON.stringify(content), /self:private/); return 'AI twin: I enjoy chess.'; } }), { action: 'rehearse', prompt: 'What do you enjoy?' });
   assert.equal(res.code, 200); assert.equal(res.body.aiGenerated, true);
 });
 test('withdrawn sharing and owner changes during generation suppress the output', async () => {
@@ -95,11 +95,4 @@ test('speech endpoint resolves the authenticated viewer and never spends credits
   const handler = load('pages/api/tts.js', { getAuth: () => ({ userId: 'viewer' }), rateLimited: () => false, resolveAgent: async (id, viewer) => { assert.equal(id, 'twin__owner'); assert.equal(viewer, 'viewer'); return null; }, fetch: async () => { spent = true; } }, ['handler']).handler;
   const res = await call(handler, { agentId: 'twin__owner', userId: 'owner', text: 'Hello' });
   assert.equal(res.code, 404); assert.equal(spent, false);
-});
-test('meeting drafts use approved identity and enforce the actual speech limit', async () => {
-  let content; let output = 'I need Alex to confirm the date.';
-  const module = load('lib/meeting-ai.js', { ...identity, meetingEvents: async () => [], transcriptText: () => 'Meeting context', fetch: async (_, options) => { content = JSON.parse(options.body); return { ok: true, json: async () => ({ content: [{ type: 'text', text: output }] }) }; } }, ['draftMeetingReply']);
-  const result = await module.draftMeetingReply({ twinName:'Alex', briefing:'Discuss design' }, { ...twin, persona:'LEGACY_PRIVATE_MEMORY' }, 'Can you attend Friday?');
-  assert.equal(result, output); assert.match(content.messages[0].content, /I enjoy chess/); assert.doesNotMatch(content.messages[0].content, /LEGACY_PRIVATE_MEMORY/);
-  output = 'x'.repeat(241); await assert.rejects(() => module.draftMeetingReply({twinName:'Alex'}, twin, 'Hello'), /too long/);
 });
